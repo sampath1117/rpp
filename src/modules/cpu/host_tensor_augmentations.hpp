@@ -440,7 +440,7 @@ RppStatus brightness_u8_u8_host_tensor(Rpp8u *srcPtr,
             }
         }
     }
-    
+
     return RPP_SUCCESS;
 }
 
@@ -2273,18 +2273,24 @@ RppStatus blend_u8_u8_host_tensor(Rpp8u *srcPtr1,
 
         Rpp32u bufferLength = roiPtr->xywhROI.roiWidth * layoutParams.bufferMultiplier;
 
-        __m128 pMul = _mm_set1_ps(alpha);
-
         Rpp8u *srcPtr1Channel, *srcPtr2Channel, *dstPtrChannel;
         srcPtr1Channel = srcPtr1Image + (roiPtr->xywhROI.xy.y * srcDescPtr->strides.hStride) + (roiPtr->xywhROI.xy.x * layoutParams.bufferMultiplier);
         srcPtr2Channel = srcPtr2Image + (roiPtr->xywhROI.xy.y * srcDescPtr->strides.hStride) + (roiPtr->xywhROI.xy.x * layoutParams.bufferMultiplier);
         dstPtrChannel = dstPtrImage;
 
+        Rpp32u alignedLength = (bufferLength / 48) * 48;
+        Rpp32u vectorIncrement = 48;
+        Rpp32u vectorIncrementPerChannel = 16;
+    
+#if __AVX2__
+        __m256 pBlend = _mm256_set1_ps(alpha);
+#else
+        __m128 pMul = _mm_set1_ps(alpha);
+#endif
+
         // Blend with fused output-layout toggle (NHWC -> NCHW)
         if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NCHW))
         {
-            Rpp32u alignedLength = (bufferLength / 48) * 48;
-
             Rpp8u *srcPtr1Row, *srcPtr2Row, *dstPtrRowR, *dstPtrRowG, *dstPtrRowB;
             srcPtr1Row = srcPtr1Channel;
             srcPtr2Row = srcPtr2Channel;
@@ -2302,8 +2308,21 @@ RppStatus blend_u8_u8_host_tensor(Rpp8u *srcPtr1,
                 dstPtrTempB = dstPtrRowB;
 
                 int vectorLoopCount = 0;
-                for (; vectorLoopCount < alignedLength; vectorLoopCount += 48)
+                for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement)
                 {
+#if __AVX2__
+                    __m256 p1[6], p2[6];
+
+                    rpp_simd_load(rpp_load48_u8pkd3_to_f32pln3_avx, srcPtr1Temp, p1);    // simd loads
+                    rpp_simd_load(rpp_load48_u8pkd3_to_f32pln3_avx, srcPtr2Temp, p2);    // simd loads
+                    p1[0] = _mm256_fmadd_ps(_mm256_sub_ps(p1[0], p2[0]), pBlend, p2[0]);    // alpha-blending adjustment
+                    p1[1] = _mm256_fmadd_ps(_mm256_sub_ps(p1[1], p2[1]), pBlend, p2[1]);    // alpha-blending adjustment
+                    p1[2] = _mm256_fmadd_ps(_mm256_sub_ps(p1[2], p2[2]), pBlend, p2[2]);    // alpha-blending adjustment
+                    p1[3] = _mm256_fmadd_ps(_mm256_sub_ps(p1[3], p2[3]), pBlend, p2[3]);    // alpha-blending adjustment
+                    p1[4] = _mm256_fmadd_ps(_mm256_sub_ps(p1[4], p2[4]), pBlend, p2[4]);    // alpha-blending adjustment
+                    p1[5] = _mm256_fmadd_ps(_mm256_sub_ps(p1[5], p2[5]), pBlend, p2[5]);    // alpha-blending adjustment
+                    rpp_simd_store(rpp_store48_f32pln3_to_u8pln3_avx, dstPtrTempR, dstPtrTempG, dstPtrTempB, p1);
+#else
                     __m128 p1[12], p2[12];
 
                     rpp_simd_load(rpp_load48_u8pkd3_to_f32pln3, srcPtr1Temp, p1);    // simd loads
@@ -2321,12 +2340,12 @@ RppStatus blend_u8_u8_host_tensor(Rpp8u *srcPtr1,
                     p1[10] = _mm_fmadd_ps(_mm_sub_ps(p1[10], p2[10]), pMul, p2[10]);    // alpha-blending adjustment
                     p1[11] = _mm_fmadd_ps(_mm_sub_ps(p1[11], p2[11]), pMul, p2[11]);    // alpha-blending adjustment
                     rpp_simd_store(rpp_store48_f32pln3_to_u8pln3, dstPtrTempR, dstPtrTempG, dstPtrTempB, p1);    // simd stores
-
-                    srcPtr1Temp += 48;
-                    srcPtr2Temp += 48;
-                    dstPtrTempR += 16;
-                    dstPtrTempG += 16;
-                    dstPtrTempB += 16;
+#endif
+                    srcPtr1Temp += vectorIncrement;
+                    srcPtr2Temp += vectorIncrement;
+                    dstPtrTempR += vectorIncrementPerChannel;
+                    dstPtrTempG += vectorIncrementPerChannel;
+                    dstPtrTempB += vectorIncrementPerChannel;
                 }
                 for (; vectorLoopCount < bufferLength; vectorLoopCount += 3)
                 {
@@ -2352,8 +2371,6 @@ RppStatus blend_u8_u8_host_tensor(Rpp8u *srcPtr1,
         // Blend with fused output-layout toggle (NCHW -> NHWC)
         else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NHWC))
         {
-            Rpp32u alignedLength = (bufferLength / 48) * 48;
-
             Rpp8u *srcPtr1RowR, *srcPtr1RowG, *srcPtr1RowB, *srcPtr2RowR, *srcPtr2RowG, *srcPtr2RowB, *dstPtrRow;
             srcPtr1RowR = srcPtr1Channel;
             srcPtr1RowG = srcPtr1RowR + srcDescPtr->strides.cStride;
@@ -2375,8 +2392,21 @@ RppStatus blend_u8_u8_host_tensor(Rpp8u *srcPtr1,
                 dstPtrTemp = dstPtrRow;
 
                 int vectorLoopCount = 0;
-                for (; vectorLoopCount < alignedLength; vectorLoopCount += 16)
+                for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannel)
                 {
+#if __AVX2__
+                    __m256 p1[6], p2[6];
+
+                    rpp_simd_load(rpp_load48_u8pln3_to_f32pln3_avx, srcPtr1TempR, srcPtr1TempG, srcPtr1TempB, p1);    // simd loads
+                    rpp_simd_load(rpp_load48_u8pln3_to_f32pln3_avx, srcPtr2TempR, srcPtr2TempG, srcPtr2TempB, p2);    // simd loads
+                    p1[0] = _mm256_fmadd_ps(_mm256_sub_ps(p1[0], p2[0]), pBlend, p2[0]);    // alpha-blending adjustment
+                    p1[1] = _mm256_fmadd_ps(_mm256_sub_ps(p1[1], p2[1]), pBlend, p2[1]);    // alpha-blending adjustment
+                    p1[2] = _mm256_fmadd_ps(_mm256_sub_ps(p1[2], p2[2]), pBlend, p2[2]);    // alpha-blending adjustment
+                    p1[3] = _mm256_fmadd_ps(_mm256_sub_ps(p1[3], p2[3]), pBlend, p2[3]);    // alpha-blending adjustment
+                    p1[4] = _mm256_fmadd_ps(_mm256_sub_ps(p1[4], p2[4]), pBlend, p2[4]);    // alpha-blending adjustment
+                    p1[5] = _mm256_fmadd_ps(_mm256_sub_ps(p1[5], p2[5]), pBlend, p2[5]);    // alpha-blending adjustment
+                    rpp_simd_store(rpp_store48_f32pln3_to_u8pkd3_avx, dstPtrTemp, p1);    // simd stores
+#else
                     __m128 p1[12], p2[12];
 
                     rpp_simd_load(rpp_load48_u8pln3_to_f32pln3, srcPtr1TempR, srcPtr1TempG, srcPtr1TempB, p1);    // simd loads
@@ -2394,14 +2424,14 @@ RppStatus blend_u8_u8_host_tensor(Rpp8u *srcPtr1,
                     p1[10] = _mm_fmadd_ps(_mm_sub_ps(p1[10], p2[10]), pMul, p2[10]);    // alpha-blending adjustment
                     p1[11] = _mm_fmadd_ps(_mm_sub_ps(p1[11], p2[11]), pMul, p2[11]);    // alpha-blending adjustment
                     rpp_simd_store(rpp_store48_f32pln3_to_u8pkd3, dstPtrTemp, p1);    // simd stores
-
-                    srcPtr1TempR += 16;
-                    srcPtr1TempG += 16;
-                    srcPtr1TempB += 16;
-                    srcPtr2TempR += 16;
-                    srcPtr2TempG += 16;
-                    srcPtr2TempB += 16;
-                    dstPtrTemp += 48;
+#endif
+                    srcPtr1TempR += vectorIncrementPerChannel;
+                    srcPtr1TempG += vectorIncrementPerChannel;
+                    srcPtr1TempB += vectorIncrementPerChannel;
+                    srcPtr2TempR += vectorIncrementPerChannel;
+                    srcPtr2TempG += vectorIncrementPerChannel;
+                    srcPtr2TempB += vectorIncrementPerChannel;
+                    dstPtrTemp += vectorIncrement;
                 }
                 for (; vectorLoopCount < bufferLength; vectorLoopCount++)
                 {
@@ -2448,8 +2478,17 @@ RppStatus blend_u8_u8_host_tensor(Rpp8u *srcPtr1,
                     dstPtrTemp = dstPtrRow;
 
                     int vectorLoopCount = 0;
-                    for (; vectorLoopCount < alignedLength; vectorLoopCount += 16)
+                    for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannel)
                     {
+#if __AVX2__
+                        __m256 p1[2], p2[2];
+
+                        rpp_simd_load(rpp_load16_u8_to_f32_avx, srcPtr1Temp, p1);    // simd loads
+                        rpp_simd_load(rpp_load16_u8_to_f32_avx, srcPtr2Temp, p2);    // simd loads
+                        p1[0] = _mm256_fmadd_ps(_mm256_sub_ps(p1[0], p2[0]), pBlend, p2[0]);    // alpha-blending adjustment
+                        p1[1] = _mm256_fmadd_ps(_mm256_sub_ps(p1[1], p2[1]), pBlend, p2[1]);    // alpha-blending adjustment
+                        rpp_simd_store(rpp_store16_f32_to_u8_avx, dstPtrTemp, p1);    // simd stores
+#else
                         __m128 p1[4], p2[4];
 
                         rpp_simd_load(rpp_load16_u8_to_f32, srcPtr1Temp, p1);    // simd loads
@@ -2459,10 +2498,10 @@ RppStatus blend_u8_u8_host_tensor(Rpp8u *srcPtr1,
                         p1[2] = _mm_fmadd_ps(_mm_sub_ps(p1[2], p2[2]), pMul, p2[2]);    // alpha-blending adjustment
                         p1[3] = _mm_fmadd_ps(_mm_sub_ps(p1[3], p2[3]), pMul, p2[3]);    // alpha-blending adjustment
                         rpp_simd_store(rpp_store16_f32_to_u8, dstPtrTemp, p1);    // simd stores
-
-                        srcPtr1Temp +=16;
-                        srcPtr2Temp +=16;
-                        dstPtrTemp +=16;
+#endif
+                        srcPtr1Temp +=vectorIncrementPerChannel;
+                        srcPtr2Temp +=vectorIncrementPerChannel;
+                        dstPtrTemp +=vectorIncrementPerChannel;
                     }
                     for (; vectorLoopCount < bufferLength; vectorLoopCount++)
                     {
@@ -2547,18 +2586,28 @@ RppStatus blend_f32_f32_host_tensor(Rpp32f *srcPtr1,
 
         Rpp32u bufferLength = roiPtr->xywhROI.roiWidth * layoutParams.bufferMultiplier;
 
-        __m128 pMul = _mm_set1_ps(alpha);
-
         Rpp32f *srcPtr1Channel, *srcPtr2Channel, *dstPtrChannel;
         srcPtr1Channel = srcPtr1Image + (roiPtr->xywhROI.xy.y * srcDescPtr->strides.hStride) + (roiPtr->xywhROI.xy.x * layoutParams.bufferMultiplier);
         srcPtr2Channel = srcPtr2Image + (roiPtr->xywhROI.xy.y * srcDescPtr->strides.hStride) + (roiPtr->xywhROI.xy.x * layoutParams.bufferMultiplier);
         dstPtrChannel = dstPtrImage;
 
+#if __AVX2__
+        Rpp32u alignedLength = (bufferLength / 24) * 24;
+        Rpp32u vectorIncrement = 24;
+        Rpp32u vectorIncrementPerChannel = 8;
+
+        __m256 pBlend = _mm256_set1_ps(alpha);
+#else
+        Rpp32u alignedLength = (bufferLength / 12) * 12;
+        Rpp32u vectorIncrement = 4;
+        Rpp32u vectorIncrementPerChannel = 4;
+
+        __m128 pMul = _mm_set1_ps(alpha);
+#endif
+
         // Blend with fused output-layout toggle (NHWC -> NCHW)
         if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NCHW))
         {
-            Rpp32u alignedLength = (bufferLength / 12) * 12;
-
             Rpp32f *srcPtr1Row, *srcPtr2Row, *dstPtrRowR, *dstPtrRowG, *dstPtrRowB;
             srcPtr1Row = srcPtr1Channel;
             srcPtr2Row = srcPtr2Channel;
@@ -2576,8 +2625,18 @@ RppStatus blend_f32_f32_host_tensor(Rpp32f *srcPtr1,
                 dstPtrTempB = dstPtrRowB;
 
                 int vectorLoopCount = 0;
-                for (; vectorLoopCount < alignedLength; vectorLoopCount += 12)
+                for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement)
                 {
+#if __AVX2__
+                    __m256 p1[3], p2[3];
+
+                    rpp_simd_load(rpp_load24_f32pkd3_to_f32pln3_avx, srcPtr1Temp, p1);    // simd loads
+                    rpp_simd_load(rpp_load24_f32pkd3_to_f32pln3_avx, srcPtr2Temp, p2);    // simd loads
+                    p1[0] = _mm256_fmadd_ps(_mm256_sub_ps(p1[0], p2[0]), pBlend, p2[0]);    // alpha-blending adjustment
+                    p1[1] = _mm256_fmadd_ps(_mm256_sub_ps(p1[1], p2[1]), pBlend, p2[1]);    // alpha-blending adjustment
+                    p1[2] = _mm256_fmadd_ps(_mm256_sub_ps(p1[2], p2[2]), pBlend, p2[2]);    // alpha-blending adjustment
+                    rpp_simd_store(rpp_store24_f32pln3_to_f32pln3_avx, dstPtrTempR, dstPtrTempG, dstPtrTempB, p1);    // simd stores
+#else
                     __m128 p1[4], p2[4];
 
                     rpp_simd_load(rpp_load12_f32pkd3_to_f32pln3, srcPtr1Temp, p1);    // simd loads
@@ -2586,12 +2645,12 @@ RppStatus blend_f32_f32_host_tensor(Rpp32f *srcPtr1,
                     p1[1] = _mm_fmadd_ps(_mm_sub_ps(p1[1], p2[1]), pMul, p2[1]);    // alpha-blending adjustment
                     p1[2] = _mm_fmadd_ps(_mm_sub_ps(p1[2], p2[2]), pMul, p2[2]);    // alpha-blending adjustment
                     rpp_simd_store(rpp_store12_f32pln3_to_f32pln3, dstPtrTempR, dstPtrTempG, dstPtrTempB, p1);    // simd stores
-
-                    srcPtr1Temp += 12;
-                    srcPtr2Temp += 12;
-                    dstPtrTempR += 4;
-                    dstPtrTempG += 4;
-                    dstPtrTempB += 4;
+#endif
+                    srcPtr1Temp += vectorIncrement;
+                    srcPtr2Temp += vectorIncrement;
+                    dstPtrTempR += vectorIncrementPerChannel;
+                    dstPtrTempG += vectorIncrementPerChannel;
+                    dstPtrTempB += vectorIncrementPerChannel;
                 }
                 for (; vectorLoopCount < bufferLength; vectorLoopCount += 3)
                 {
@@ -2617,8 +2676,6 @@ RppStatus blend_f32_f32_host_tensor(Rpp32f *srcPtr1,
         // Blend with fused output-layout toggle (NCHW -> NHWC)
         else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NHWC))
         {
-            Rpp32u alignedLength = (bufferLength / 12) * 12;
-
             Rpp32f *srcPtr1RowR, *srcPtr1RowG, *srcPtr1RowB, *srcPtr2RowR, *srcPtr2RowG, *srcPtr2RowB, *dstPtrRow;
             srcPtr1RowR = srcPtr1Channel;
             srcPtr1RowG = srcPtr1RowR + srcDescPtr->strides.cStride;
@@ -2640,8 +2697,18 @@ RppStatus blend_f32_f32_host_tensor(Rpp32f *srcPtr1,
                 dstPtrTemp = dstPtrRow;
 
                 int vectorLoopCount = 0;
-                for (; vectorLoopCount < alignedLength; vectorLoopCount += 4)
+                for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannel)
                 {
+#if __AVX2__
+                    __m256 p1[3], p2[3];
+
+                    rpp_simd_load(rpp_load24_f32pln3_to_f32pln3_avx, srcPtr1TempR, srcPtr1TempG, srcPtr1TempB, p1);    // simd loads
+                    rpp_simd_load(rpp_load24_f32pln3_to_f32pln3_avx, srcPtr2TempR, srcPtr2TempG, srcPtr2TempB, p2);    // simd loads
+                    p1[0] = _mm256_fmadd_ps(_mm256_sub_ps(p1[0], p2[0]), pBlend, p2[0]);    // alpha-blending adjustment
+                    p1[1] = _mm256_fmadd_ps(_mm256_sub_ps(p1[1], p2[1]), pBlend, p2[1]);    // alpha-blending adjustment
+                    p1[2] = _mm256_fmadd_ps(_mm256_sub_ps(p1[2], p2[2]), pBlend, p2[2]);    // alpha-blending adjustment
+                    rpp_simd_store(rpp_store24_f32pln3_to_f32pkd3_avx, dstPtrTemp, p1);    // simd stores
+#else
                     __m128 p1[4], p2[4];
 
                     rpp_simd_load(rpp_load12_f32pln3_to_f32pln3, srcPtr1TempR, srcPtr1TempG, srcPtr1TempB, p1);    // simd loads
@@ -2650,14 +2717,15 @@ RppStatus blend_f32_f32_host_tensor(Rpp32f *srcPtr1,
                     p1[1] = _mm_fmadd_ps(_mm_sub_ps(p1[1], p2[1]), pMul, p2[1]);    // alpha-blending adjustment
                     p1[2] = _mm_fmadd_ps(_mm_sub_ps(p1[2], p2[2]), pMul, p2[2]);    // alpha-blending adjustment
                     rpp_simd_store(rpp_store12_f32pln3_to_f32pkd3, dstPtrTemp, p1);    // simd stores
+#endif
 
-                    srcPtr1TempR += 4;
-                    srcPtr1TempG += 4;
-                    srcPtr1TempB += 4;
-                    srcPtr2TempR += 4;
-                    srcPtr2TempG += 4;
-                    srcPtr2TempB += 4;
-                    dstPtrTemp += 12;
+                    srcPtr1TempR += vectorIncrementPerChannel;
+                    srcPtr1TempG += vectorIncrementPerChannel;
+                    srcPtr1TempB += vectorIncrementPerChannel;
+                    srcPtr2TempR += vectorIncrementPerChannel;
+                    srcPtr2TempG += vectorIncrementPerChannel;
+                    srcPtr2TempB += vectorIncrementPerChannel;
+                    dstPtrTemp += vectorIncrement;
                 }
                 for (; vectorLoopCount < bufferLength; vectorLoopCount++)
                 {
@@ -2687,7 +2755,8 @@ RppStatus blend_f32_f32_host_tensor(Rpp32f *srcPtr1,
         // Blend without fused output-layout toggle (NHWC -> NHWC or NCHW -> NCHW)
         else
         {
-            Rpp32u alignedLength = bufferLength & ~3;
+            Rpp32u alignedLength = bufferLength & ~7;
+            vectorIncrement = 8;
 
             for(int c = 0; c < layoutParams.channelParam; c++)
             {
@@ -2704,18 +2773,27 @@ RppStatus blend_f32_f32_host_tensor(Rpp32f *srcPtr1,
                     dstPtrTemp = dstPtrRow;
 
                     int vectorLoopCount = 0;
-                    for (; vectorLoopCount < alignedLength; vectorLoopCount += 4)
+                    for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement)
                     {
+#if __AVX2__
+                        __m256 p1[1], p2[1];
+
+                        rpp_simd_load(rpp_load8_f32_to_f32_avx, srcPtr1Temp, p1);    // simd loads
+                        rpp_simd_load(rpp_load8_f32_to_f32_avx, srcPtr2Temp, p2);    // simd loads
+                        p1[0] = _mm256_fmadd_ps(_mm256_sub_ps(p1[0], p2[0]), pBlend, p2[0]);    // alpha-blending adjustment
+                        rpp_simd_store(rpp_store8_f32_to_f32_avx, dstPtrTemp, p1);    // simd stores
+
+#else
                         __m128 p1[1], p2[1];
 
                         rpp_simd_load(rpp_load4_f32_to_f32, srcPtr1Temp, p1);    // simd loads
                         rpp_simd_load(rpp_load4_f32_to_f32, srcPtr2Temp, p2);    // simd loads
                         p1[0] = _mm_fmadd_ps(_mm_sub_ps(p1[0], p2[0]), pMul, p2[0]);    // alpha-blending adjustment
                         rpp_simd_store(rpp_store4_f32_to_f32, dstPtrTemp, p1);    // simd stores
-
-                        srcPtr1Temp += 4;
-                        srcPtr2Temp += 4;
-                        dstPtrTemp += 4;
+#endif
+                        srcPtr1Temp += vectorIncrement;
+                        srcPtr2Temp += vectorIncrement;
+                        dstPtrTemp += vectorIncrement;
                     }
                     for (; vectorLoopCount < bufferLength; vectorLoopCount++)
                     {
