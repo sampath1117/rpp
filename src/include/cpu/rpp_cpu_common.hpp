@@ -4039,4 +4039,18 @@ inline RppStatus compute_packed_to_planar_host(T* srcPtr, RppiSize srcSize, T* d
     return RPP_SUCCESS;
 }
 
+inline RppStatus compute_blend_24_host(__m256 &pVec1R, __m256 &pVec1G, __m256 &pVec1B, __m256 &pVec2R, __m256 &pVec2G, __m256 &pVec2B, __m256 &pBlendParams)
+{
+    pVec1R = _mm256_fmadd_ps(_mm256_sub_ps(pVec1R, pVec2R), pBlendParams, pVec2R);    // alpha-blending adjustment
+    pVec1G = _mm256_fmadd_ps(_mm256_sub_ps(pVec1G, pVec2G), pBlendParams, pVec2G);    // alpha-blending adjustment
+    pVec1B = _mm256_fmadd_ps(_mm256_sub_ps(pVec1B, pVec2B), pBlendParams, pVec2B);    // alpha-blending adjustment
+
+    return RPP_SUCCESS;
+}
+
+inline RppStatus compute_blend_8_host(__m256 &pVec1, __m256 &pVec2, __m256 &pBlendParams)
+{
+    pVec1 = _mm256_fmadd_ps(_mm256_sub_ps(pVec1, pVec2), pBlendParams, pVec2);    // alpha-blending adjustment
+    return RPP_SUCCESS;
+}
 #endif //RPP_CPU_COMMON_H
