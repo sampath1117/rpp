@@ -10,6 +10,7 @@
 #include "kernel/crop.hpp"
 #include "kernel/gridmask.hpp"
 #include "kernel/spatter.hpp"
+#include "kernel/crop_mirror_normalize.hpp"
 #include "kernel/roi_conversion.hpp"
 
 /******************** brightness ********************/
@@ -296,6 +297,39 @@ RppStatus spatter_hip_tensor(T *srcPtr,
                             spatterColor,
                             roiTensorPtrSrc,
                             handle);
+
+    return RPP_SUCCESS;
+}
+
+/******************** crop mirror normalize ********************/
+
+template <typename T>
+RppStatus crop_mirror_normalize_hip_tensor(T *srcPtr,
+                          RpptDescPtr srcDescPtr,
+                          T *dstPtr,
+                          RpptDescPtr dstDescPtr,
+                          Rpp32f *meanTensor,
+                          Rpp32f *stdDevTensor,
+                          Rpp32u *mirrorTensor,
+                          RpptROIPtr roiTensorPtrSrc,
+                          RpptRoiType roiType,
+                          rpp::Handle& handle)
+{
+    if (roiType == RpptRoiType::LTRB)
+    {
+        hip_exec_roi_converison_ltrb_to_xywh(roiTensorPtrSrc,
+                                             handle);
+    }
+
+    hip_exec_crop_mirror_normalize_tensor(srcPtr,
+                         srcDescPtr,
+                         dstPtr,
+                         dstDescPtr,
+                         meanTensor,
+                         stdDevTensor,
+                         mirrorTensor,
+                         roiTensorPtrSrc,
+                         handle);
 
     return RPP_SUCCESS;
 }
