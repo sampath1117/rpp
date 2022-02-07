@@ -28,16 +28,16 @@ int main(int argc, char **argv)
 {
     // Handle inputs
 
-    const int MIN_ARG_COUNT = 7;
+    const int MIN_ARG_COUNT = 8;
 
     if (argc < MIN_ARG_COUNT)
     {
         printf("\nImproper Usage! Needs all arguments!\n");
-        printf("\nUsage: ./Tensor_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:84> <verbosity = 0/1>\n");
+        printf("\nUsage: ./Tensor_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:84> <number of iterations > 0> <verbosity = 0/1>>\n");
         return -1;
     }
 
-    if (atoi(argv[6]) == 1)
+    if (atoi(argv[7]) == 1)
     {
         printf("\nInputs for this test case are:");
         printf("\nsrc1 = %s", argv[1]);
@@ -45,6 +45,7 @@ int main(int argc, char **argv)
         printf("\nu8 / f16 / f32 / u8->f16 / u8->f32 / i8 / u8->i8 (0/1/2/3/4/5/6) = %s", argv[3]);
         printf("\noutputFormatToggle (pkd->pkd = 0 / pkd->pln = 1) = %s", argv[4]);
         printf("\ncase number (0:84) = %s", argv[5]);
+        printf("\nNumber of times to run = %s", argv[6]);
     }
 
     char *src = argv[1];
@@ -52,6 +53,7 @@ int main(int argc, char **argv)
     int ip_bitDepth = atoi(argv[3]);
     unsigned int outputFormatToggle = atoi(argv[4]);
     int test_case = atoi(argv[5]);
+    int num_iterations = atoi(argv[6]);
 
     int ip_channel = 3;
 
@@ -437,9 +439,9 @@ int main(int argc, char **argv)
 
     string test_case_name;
 
-    printf("\nRunning %s 100 times (each time with a batch size of %d images) and computing mean statistics...", func, noOfImages);
+    printf("\nRunning %s %d times (each time with a batch size of %d images) and computing mean statistics...", func, num_iterations, noOfImages);
 
-    for (int perfRunCount = 0; perfRunCount < 100; perfRunCount++)
+    for (int perfRunCount = 0; perfRunCount < num_iterations; perfRunCount++)
     {
         clock_t start, end;
         double start_omp, end_omp;
@@ -943,7 +945,7 @@ int main(int argc, char **argv)
         avg_time_used += cpu_time_used;
     }
 
-    avg_time_used /= 100;
+    avg_time_used /= num_iterations;
 
     // Display measured times
 

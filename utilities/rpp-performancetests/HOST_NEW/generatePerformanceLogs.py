@@ -5,10 +5,12 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--case_start', type=str, default='0', help='Testing range starting case # - (0-84)')
 parser.add_argument('--case_end', type=str, default='84', help='Testing range ending case # - (0-84)')
+parser.add_argument('--num_iterations', type=str, default='100', help='Number of iterations to run # (>0)')
 args = parser.parse_args()
 
 caseStart = args.case_start
 caseEnd = args.case_end
+numIterations = args.num_iterations
 
 if caseEnd < caseStart:
     print("Ending case# must be greater than starting case#. Aborting!")
@@ -22,7 +24,7 @@ if caseEnd < "0" or caseEnd > "84":
     print("Ending case# must be in the 0-84 range. Aborting!")
     exit(0)
 
-subprocess.call(["./rawLogsGenScript.sh", caseStart, caseEnd])
+subprocess.call(["./rawLogsGenScript.sh", caseStart, caseEnd, numIterations])
 
 log_file_list = [
     "../OUTPUT_PERFORMANCE_LOGS_HOST_NEW/BatchPD_host_pkd3_host_raw_performance_log.txt",
