@@ -1,11 +1,63 @@
 #include <hip/hip_runtime.h>
 #include "hip/rpp_hip_common.hpp"
 
+__device__ void cmn_1RGB_hip_compute(float *pixelR, float *pixelG, float *pixelB, float2 *CMNParams_f2)
+{
+    float mean, invstdDev;
+    mean = CMNParams_f2->x;
+    invstdDev = 1/CMNParams_f2->y;
+
+    *pixelR = ((*pixelR) - mean) * invstdDev;
+    *pixelG = ((*pixelG) - mean) * invstdDev;
+    *pixelB = ((*pixelB) - mean) * invstdDev;
+}
+
+__device__ void cmn_8RGB_hip_compute(d_float24 *pix_f24, float2 *CMNParams_f2)
+{
+    cmn_1RGB_hip_compute(&(pix_f24->x.x.x), &(pix_f24->y.x.x), &(pix_f24->z.x.x), CMNParams_f2);
+    cmn_1RGB_hip_compute(&(pix_f24->x.x.y), &(pix_f24->y.x.y), &(pix_f24->z.x.y), CMNParams_f2);
+    cmn_1RGB_hip_compute(&(pix_f24->x.x.z), &(pix_f24->y.x.z), &(pix_f24->z.x.z), CMNParams_f2);
+    cmn_1RGB_hip_compute(&(pix_f24->x.x.w), &(pix_f24->y.x.w), &(pix_f24->z.x.w), CMNParams_f2);
+    cmn_1RGB_hip_compute(&(pix_f24->x.y.x), &(pix_f24->y.y.x), &(pix_f24->z.y.x), CMNParams_f2);
+    cmn_1RGB_hip_compute(&(pix_f24->x.y.y), &(pix_f24->y.y.y), &(pix_f24->z.y.y), CMNParams_f2);
+    cmn_1RGB_hip_compute(&(pix_f24->x.y.z), &(pix_f24->y.y.z), &(pix_f24->z.y.z), CMNParams_f2);
+    cmn_1RGB_hip_compute(&(pix_f24->x.y.w), &(pix_f24->y.y.w), &(pix_f24->z.y.w), CMNParams_f2);
+}
+
+__device__ void cmn_hip_compute(uchar *srcPtr, d_float24 *pix_f24, float2 *CMNParams_f2)
+{
+    cmn_8RGB_hip_compute(pix_f24, CMNParams_f2);
+    rpp_hip_pixel_check_0to255(pix_f24);
+}
+
+__device__ void cmn_hip_compute(float *srcPtr, d_float24 *pix_f24, float2 *CMNParams_f2)
+{
+    cmn_8RGB_hip_compute(pix_f24, CMNParams_f2);
+    rpp_hip_pixel_check_0to255(pix_f24);
+}
+
+__device__ void cmn_hip_compute(schar *srcPtr, d_float24 *pix_f24, float2 *CMNParams_f2)
+{
+    float4 i8Offset_f4 = (float4) 128.0f;
+    rpp_hip_math_add24_const(pix_f24, pix_f24, i8Offset_f4);
+    cmn_8RGB_hip_compute(pix_f24, CMNParams_f2);
+    rpp_hip_pixel_check_0to255(pix_f24);
+    rpp_hip_math_subtract24_const(pix_f24, pix_f24, i8Offset_f4);
+}
+__device__ void cmn_hip_compute(half *srcPtr, d_float24 *pix_f24, float2 *CMNParams_f2)
+{
+    cmn_8RGB_hip_compute(pix_f24, CMNParams_f2);
+    rpp_hip_pixel_check_0to255(pix_f24);
+}
+
 template <typename T>
 __global__ void crop_mirror_normalize_pkd_tensor(T *srcPtr,
                                 uint2 srcStridesNH,
                                 T *dstPtr,
                                 uint2 dstStridesNH,
+                                float *meanTensor,
+                                float *stdDevTensor,
+                                unsigned int *mirrorTensor,
                                 RpptROIPtr roiTensorPtrSrc)
 {
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
@@ -20,9 +72,12 @@ __global__ void crop_mirror_normalize_pkd_tensor(T *srcPtr,
     uint srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + (id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x * 3);
     uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + id_x;
 
-    d_float8 pix_f8;
-    rpp_hip_load8_and_unpack_to_float8(srcPtr, srcIdx, &pix_f8);
-    rpp_hip_pack_float8_and_store8(dstPtr, dstIdx, &pix_f8);
+    float2 CMNParams_f2 = make_float2(meanTensor[id_z], stdDevTensor[id_z]);
+
+    d_float24 pix_f24;
+    rpp_hip_load24_pkd3_and_unpack_to_float24_pln3(srcPtr, srcIdx, &pix_f24);
+    cmn_hip_compute(srcPtr, &pix_f24, &CMNParams_f2);
+    rpp_hip_pack_float24_pln3_and_store24_pkd3(dstPtr, dstIdx, &pix_f24);
 }
 
 template <typename T>
@@ -31,6 +86,9 @@ __global__ void crop_mirror_normalize_pln_tensor(T *srcPtr,
                                 T *dstPtr,
                                 uint3 dstStridesNCH,
                                 int channelsDst,
+                                float *meanTensor,
+                                float *stdDevTensor,
+                                unsigned int *mirrorTensor,
                                 RpptROIPtr roiTensorPtrSrc)
 {
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
@@ -45,20 +103,12 @@ __global__ void crop_mirror_normalize_pln_tensor(T *srcPtr,
     uint srcIdx = (id_z * srcStridesNCH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x);
     uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + id_x;
 
-    d_float8 pix_f8;
-    rpp_hip_load8_and_unpack_to_float8(srcPtr, srcIdx, &pix_f8);
-    rpp_hip_pack_float8_and_store8(dstPtr, dstIdx, &pix_f8);
-    if (channelsDst == 3)
-    {
-        srcIdx += srcStridesNCH.y;
-        dstIdx += dstStridesNCH.y;
-        rpp_hip_load8_and_unpack_to_float8(srcPtr, srcIdx, &pix_f8);
-        rpp_hip_pack_float8_and_store8(dstPtr, dstIdx, &pix_f8);
-        srcIdx += srcStridesNCH.y;
-        dstIdx += dstStridesNCH.y;
-        rpp_hip_load8_and_unpack_to_float8(srcPtr, srcIdx, &pix_f8);
-        rpp_hip_pack_float8_and_store8(dstPtr, dstIdx, &pix_f8);
-    }
+    float2 CMNParams_f2 = make_float2(meanTensor[id_z], stdDevTensor[id_z]);
+
+    d_float24 pix_f24;
+    rpp_hip_load24_pln3_and_unpack_to_float24_pln3(srcPtr, srcIdx, srcStridesNCH.y, &pix_f24);
+    cmn_hip_compute(srcPtr, &pix_f24, &CMNParams_f2);
+    rpp_hip_pack_float24_pln3_and_store24_pln3(dstPtr, dstIdx, dstStridesNCH.y, &pix_f24);
 }
 
 template <typename T>
@@ -66,6 +116,9 @@ __global__ void crop_mirror_normalize_pkd3_pln3_tensor(T *srcPtr,
                                       uint2 srcStridesNH,
                                       T *dstPtr,
                                       uint3 dstStridesNCH,
+                                      float *meanTensor,
+                                      float *stdDevTensor,
+                                      unsigned int *mirrorTensor,
                                       RpptROIPtr roiTensorPtrSrc)
 {
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
@@ -80,8 +133,11 @@ __global__ void crop_mirror_normalize_pkd3_pln3_tensor(T *srcPtr,
     uint srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + ((id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x) * 3);
     uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + id_x;
 
+    float2 CMNParams_f2 = make_float2(meanTensor[id_z], stdDevTensor[id_z]);
+
     d_float24 pix_f24;
     rpp_hip_load24_pkd3_and_unpack_to_float24_pln3(srcPtr, srcIdx, &pix_f24);
+    cmn_hip_compute(srcPtr, &pix_f24, &CMNParams_f2);
     rpp_hip_pack_float24_pln3_and_store24_pln3(dstPtr, dstIdx, dstStridesNCH.y, &pix_f24);
 }
 
@@ -90,6 +146,9 @@ __global__ void crop_mirror_normalize_pln3_pkd3_tensor(T *srcPtr,
                                       uint3 srcStridesNCH,
                                       T *dstPtr,
                                       uint2 dstStridesNH,
+                                      float *meanTensor,
+                                      float *stdDevTensor,
+                                      unsigned int *mirrorTensor,
                                       RpptROIPtr roiTensorPtrSrc)
 {
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
@@ -104,9 +163,12 @@ __global__ void crop_mirror_normalize_pln3_pkd3_tensor(T *srcPtr,
     uint srcIdx = (id_z * srcStridesNCH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x);
     uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + id_x * 3;
 
+    float2 CMNParams_f2 = make_float2(meanTensor[id_z], stdDevTensor[id_z]);
+
     d_float24 pix_f24;
-    rpp_hip_load24_pln3_and_unpack_to_float24_pkd3(srcPtr, srcIdx, srcStridesNCH.y, &pix_f24);
-    rpp_hip_pack_float24_pkd3_and_store24_pkd3(dstPtr, dstIdx, &pix_f24);
+    rpp_hip_load24_pln3_and_unpack_to_float24_pln3(srcPtr, srcIdx, srcStridesNCH.y, &pix_f24);
+    cmn_hip_compute(srcPtr, &pix_f24, &CMNParams_f2);
+    rpp_hip_pack_float24_pln3_and_store24_pkd3(dstPtr, dstIdx, &pix_f24);
 }
 
 template <typename T>
@@ -135,6 +197,9 @@ RppStatus hip_exec_crop_mirror_normalize_tensor(T *srcPtr,
                            make_uint2(srcDescPtr->strides.nStride, srcDescPtr->strides.hStride),
                            dstPtr,
                            make_uint2(dstDescPtr->strides.nStride, dstDescPtr->strides.hStride),
+                           handle.GetInitHandle()->mem.mgpu.floatArr[0].floatmem,
+                           handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
+                           handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
                            roiTensorPtrSrc);
     }
     else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
@@ -149,6 +214,9 @@ RppStatus hip_exec_crop_mirror_normalize_tensor(T *srcPtr,
                            dstPtr,
                            make_uint3(dstDescPtr->strides.nStride, dstDescPtr->strides.cStride, dstDescPtr->strides.hStride),
                            dstDescPtr->c,
+                           handle.GetInitHandle()->mem.mgpu.floatArr[0].floatmem,
+                           handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
+                           handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
                            roiTensorPtrSrc);
     }
     else if ((srcDescPtr->c == 3) && (dstDescPtr->c == 3))
@@ -164,6 +232,9 @@ RppStatus hip_exec_crop_mirror_normalize_tensor(T *srcPtr,
                                make_uint2(srcDescPtr->strides.nStride, srcDescPtr->strides.hStride),
                                dstPtr,
                                make_uint3(dstDescPtr->strides.nStride, dstDescPtr->strides.cStride, dstDescPtr->strides.hStride),
+                               handle.GetInitHandle()->mem.mgpu.floatArr[0].floatmem,
+                               handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
+                               handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
                                roiTensorPtrSrc);
         }
         else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NHWC))
@@ -178,6 +249,9 @@ RppStatus hip_exec_crop_mirror_normalize_tensor(T *srcPtr,
                                make_uint3(srcDescPtr->strides.nStride, srcDescPtr->strides.cStride, srcDescPtr->strides.hStride),
                                dstPtr,
                                make_uint2(dstDescPtr->strides.nStride, dstDescPtr->strides.hStride),
+                               handle.GetInitHandle()->mem.mgpu.floatArr[0].floatmem,
+                               handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
+                               handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
                                roiTensorPtrSrc);
         }
     }
