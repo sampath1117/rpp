@@ -885,10 +885,10 @@ int main(int argc, char **argv)
         // Uncomment to run test case with an xywhROI override
         for (i = 0; i < images; i++)
         {
-            roiTensorPtrSrc[i].xywhROI.xy.x = 0;
-            roiTensorPtrSrc[i].xywhROI.xy.y = 0;
+            roiTensorPtrSrc[i].xywhROI.xy.x = 50;
+            roiTensorPtrSrc[i].xywhROI.xy.y = 50;
             roiTensorPtrSrc[i].xywhROI.roiWidth = 100;
-            roiTensorPtrSrc[i].xywhROI.roiHeight = 180;
+            roiTensorPtrSrc[i].xywhROI.roiHeight = 100;
         }
 
         // Uncomment to run test case with an ltrbROI override

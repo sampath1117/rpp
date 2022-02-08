@@ -69,7 +69,15 @@ __global__ void crop_mirror_normalize_pkd_tensor(T *srcPtr,
         return;
     }
 
-    uint srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + (id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x * 3);
+    uint srcIdx;
+    // if(mirrorTensor[id_z] == 1)
+    // {
+        srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + (dstStridesNH.y - 1 - id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x * 3);
+    // }
+    // else
+    // {
+        // srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + (id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x * 3);
+    // }
     uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + id_x;
 
     float2 CMNParams_f2 = make_float2(meanTensor[id_z], stdDevTensor[id_z]);
@@ -100,13 +108,21 @@ __global__ void crop_mirror_normalize_pln_tensor(T *srcPtr,
         return;
     }
 
-    uint srcIdx = (id_z * srcStridesNCH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x);
+    uint srcIdx;
+    // if(mirrorTensor[id_z] == 1)
+    // {
+        srcIdx = (id_z * srcStridesNCH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (dstStridesNCH.z  - 1 - id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x * 3);
+    // }
+    // else
+    // {
+    //     srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + (id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x * 3);
+    // }
     uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + id_x;
 
     float2 CMNParams_f2 = make_float2(meanTensor[id_z], stdDevTensor[id_z]);
 
     d_float24 pix_f24;
-    rpp_hip_load24_pln3_and_unpack_to_float24_pln3(srcPtr, srcIdx, srcStridesNCH.y, &pix_f24);
+    rpp_hip_load24_pln3_and_unpack_to_float24_pln3_mirror(srcPtr, srcIdx, srcStridesNCH.y, &pix_f24);
     cmn_hip_compute(srcPtr, &pix_f24, &CMNParams_f2);
     rpp_hip_pack_float24_pln3_and_store24_pln3(dstPtr, dstIdx, dstStridesNCH.y, &pix_f24);
 }
@@ -160,13 +176,21 @@ __global__ void crop_mirror_normalize_pln3_pkd3_tensor(T *srcPtr,
         return;
     }
 
-    uint srcIdx = (id_z * srcStridesNCH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x);
+    uint srcIdx;
+    // if(mirrorTensor[id_z] == 1)
+    // {
+        srcIdx = (id_z * srcStridesNCH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (dstStridesNH.y  - 1 - id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x * 3);
+    // }
+    // else
+    // {
+    //     srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + (id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x * 3);
+    // }
     uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + id_x * 3;
 
     float2 CMNParams_f2 = make_float2(meanTensor[id_z], stdDevTensor[id_z]);
 
     d_float24 pix_f24;
-    rpp_hip_load24_pln3_and_unpack_to_float24_pln3(srcPtr, srcIdx, srcStridesNCH.y, &pix_f24);
+    rpp_hip_load24_pln3_and_unpack_to_float24_pln3_mirror(srcPtr, srcIdx, srcStridesNCH.y, &pix_f24);
     cmn_hip_compute(srcPtr, &pix_f24, &CMNParams_f2);
     rpp_hip_pack_float24_pln3_and_store24_pkd3(dstPtr, dstIdx, &pix_f24);
 }

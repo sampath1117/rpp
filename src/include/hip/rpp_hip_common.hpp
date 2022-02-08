@@ -420,6 +420,11 @@ __device__ __forceinline__ float4 rpp_hip_unpack(uint src)
     return make_float4(rpp_hip_unpack0(src), rpp_hip_unpack1(src), rpp_hip_unpack2(src), rpp_hip_unpack3(src));
 }
 
+__device__ __forceinline__ float4 rpp_hip_unpack_mirror(uint src)
+{
+    return make_float4(rpp_hip_unpack3(src), rpp_hip_unpack2(src), rpp_hip_unpack1(src), rpp_hip_unpack0(src));
+}
+
 // Un-Packing from I8s
 
 __device__ __forceinline__ float rpp_hip_unpack0(int src)
@@ -548,9 +553,39 @@ __device__ __forceinline__ void rpp_hip_load24_pln3_and_unpack_to_float24_pln3(u
     src_f24->z.y = rpp_hip_unpack(src.z.y);
 }
 
+__device__ __forceinline__ void rpp_hip_load24_pln3_and_unpack_to_float24_pln3_mirror(uchar *srcPtr, int srcIdx, uint increment, d_float24 *src_f24)
+{
+    d_uint6 src;
+
+    src.x = *((uint2 *)(&srcPtr[srcIdx]));
+    srcIdx += increment;
+    src.y = *((uint2 *)(&srcPtr[srcIdx]));
+    srcIdx += increment;
+    src.z = *((uint2 *)(&srcPtr[srcIdx]));
+
+    src_f24->x.x = rpp_hip_unpack_mirror(src.x.y);
+    src_f24->x.y = rpp_hip_unpack_mirror(src.x.x);
+    src_f24->y.x = rpp_hip_unpack_mirror(src.y.y);
+    src_f24->y.y = rpp_hip_unpack_mirror(src.y.x);
+    src_f24->z.x = rpp_hip_unpack_mirror(src.z.y);
+    src_f24->z.y = rpp_hip_unpack_mirror(src.z.x);
+}
+
 // F32 loads without layout toggle PLN3 to PLN3 (24 F32 pixels)
 
 __device__ __forceinline__ void rpp_hip_load24_pln3_and_unpack_to_float24_pln3(float *srcPtr, int srcIdx, uint increment, d_float24 *src_f24)
+{
+    float *srcPtrR, *srcPtrG, *srcPtrB;
+    srcPtrR = srcPtr + srcIdx;
+    srcPtrG = srcPtrR + increment;
+    srcPtrB = srcPtrG + increment;
+
+    src_f24->x = *(d_float8 *)srcPtrR;
+    src_f24->y = *(d_float8 *)srcPtrG;
+    src_f24->z = *(d_float8 *)srcPtrB;
+}
+
+__device__ __forceinline__ void rpp_hip_load24_pln3_and_unpack_to_float24_pln3_mirror(float *srcPtr, int srcIdx, uint increment, d_float24 *src_f24)
 {
     float *srcPtrR, *srcPtrG, *srcPtrB;
     srcPtrR = srcPtr + srcIdx;
@@ -582,9 +617,67 @@ __device__ __forceinline__ void rpp_hip_load24_pln3_and_unpack_to_float24_pln3(s
     src_f24->z.y = rpp_hip_unpack_from_i8(src.z.y);
 }
 
+__device__ __forceinline__ void rpp_hip_load24_pln3_and_unpack_to_float24_pln3_mirror(schar *srcPtr, int srcIdx, uint increment, d_float24 *src_f24)
+{
+    d_int6 src;
+
+    src.x = *((int2 *)(&srcPtr[srcIdx]));
+    srcIdx += increment;
+    src.y = *((int2 *)(&srcPtr[srcIdx]));
+    srcIdx += increment;
+    src.z = *((int2 *)(&srcPtr[srcIdx]));
+
+    src_f24->x.x = rpp_hip_unpack_from_i8(src.x.x);
+    src_f24->x.y = rpp_hip_unpack_from_i8(src.x.y);
+    src_f24->y.x = rpp_hip_unpack_from_i8(src.y.x);
+    src_f24->y.y = rpp_hip_unpack_from_i8(src.y.y);
+    src_f24->z.x = rpp_hip_unpack_from_i8(src.z.x);
+    src_f24->z.y = rpp_hip_unpack_from_i8(src.z.y);
+}
+
 // F16 loads without layout toggle PLN3 to PLN3 (24 F16 pixels)
 
 __device__ __forceinline__ void rpp_hip_load24_pln3_and_unpack_to_float24_pln3(half *srcPtr, int srcIdx, uint increment, d_float24 *src_f24)
+{
+    half *srcPtrR, *srcPtrG, *srcPtrB;
+    srcPtrR = srcPtr + srcIdx;
+    srcPtrG = srcPtrR + increment;
+    srcPtrB = srcPtrG + increment;
+
+    d_half8 *srcR_h8, *srcG_h8, *srcB_h8;
+    srcR_h8 = (d_half8 *)srcPtrR;
+    srcG_h8 = (d_half8 *)srcPtrG;
+    srcB_h8 = (d_half8 *)srcPtrB;
+
+    src_f24->x.x.x = __half2float(__low2half(srcR_h8->x.x));
+    src_f24->x.x.y = __half2float(__high2half(srcR_h8->x.x));
+    src_f24->x.x.z = __half2float(__low2half(srcR_h8->x.y));
+    src_f24->x.x.w = __half2float(__high2half(srcR_h8->x.y));
+    src_f24->x.y.x = __half2float(__low2half(srcR_h8->y.x));
+    src_f24->x.y.y = __half2float(__high2half(srcR_h8->y.x));
+    src_f24->x.y.z = __half2float(__low2half(srcR_h8->y.y));
+    src_f24->x.y.w = __half2float(__high2half(srcR_h8->y.y));
+
+    src_f24->y.x.x = __half2float(__low2half(srcG_h8->x.x));
+    src_f24->y.x.y = __half2float(__high2half(srcG_h8->x.x));
+    src_f24->y.x.z = __half2float(__low2half(srcG_h8->x.y));
+    src_f24->y.x.w = __half2float(__high2half(srcG_h8->x.y));
+    src_f24->y.y.x = __half2float(__low2half(srcG_h8->y.x));
+    src_f24->y.y.y = __half2float(__high2half(srcG_h8->y.x));
+    src_f24->y.y.z = __half2float(__low2half(srcG_h8->y.y));
+    src_f24->y.y.w = __half2float(__high2half(srcG_h8->y.y));
+
+    src_f24->z.x.x = __half2float(__low2half(srcB_h8->x.x));
+    src_f24->z.x.y = __half2float(__high2half(srcB_h8->x.x));
+    src_f24->z.x.z = __half2float(__low2half(srcB_h8->x.y));
+    src_f24->z.x.w = __half2float(__high2half(srcB_h8->x.y));
+    src_f24->z.y.x = __half2float(__low2half(srcB_h8->y.x));
+    src_f24->z.y.y = __half2float(__high2half(srcB_h8->y.x));
+    src_f24->z.y.z = __half2float(__low2half(srcB_h8->y.y));
+    src_f24->z.y.w = __half2float(__high2half(srcB_h8->y.y));
+}
+
+__device__ __forceinline__ void rpp_hip_load24_pln3_and_unpack_to_float24_pln3_mirror(half *srcPtr, int srcIdx, uint increment, d_float24 *src_f24)
 {
     half *srcPtrR, *srcPtrG, *srcPtrB;
     srcPtrR = srcPtr + srcIdx;
