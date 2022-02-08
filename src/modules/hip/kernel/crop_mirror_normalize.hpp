@@ -57,7 +57,7 @@ __global__ void crop_mirror_normalize_pkd_tensor(T *srcPtr,
                                 uint2 dstStridesNH,
                                 float *meanTensor,
                                 float *stdDevTensor,
-                                unsigned int *mirrorTensor,
+                                uint *mirrorTensor,
                                 RpptROIPtr roiTensorPtrSrc)
 {
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
@@ -88,7 +88,7 @@ __global__ void crop_mirror_normalize_pln_tensor(T *srcPtr,
                                 int channelsDst,
                                 float *meanTensor,
                                 float *stdDevTensor,
-                                unsigned int *mirrorTensor,
+                                uint *mirrorTensor,
                                 RpptROIPtr roiTensorPtrSrc)
 {
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
@@ -118,7 +118,7 @@ __global__ void crop_mirror_normalize_pkd3_pln3_tensor(T *srcPtr,
                                       uint3 dstStridesNCH,
                                       float *meanTensor,
                                       float *stdDevTensor,
-                                      unsigned int *mirrorTensor,
+                                      uint *mirrorTensor,
                                       RpptROIPtr roiTensorPtrSrc)
 {
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
@@ -148,7 +148,7 @@ __global__ void crop_mirror_normalize_pln3_pkd3_tensor(T *srcPtr,
                                       uint2 dstStridesNH,
                                       float *meanTensor,
                                       float *stdDevTensor,
-                                      unsigned int *mirrorTensor,
+                                      uint *mirrorTensor,
                                       RpptROIPtr roiTensorPtrSrc)
 {
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
@@ -199,7 +199,7 @@ RppStatus hip_exec_crop_mirror_normalize_tensor(T *srcPtr,
                            make_uint2(dstDescPtr->strides.nStride, dstDescPtr->strides.hStride),
                            handle.GetInitHandle()->mem.mgpu.floatArr[0].floatmem,
                            handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
-                           handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
+                           handle.GetInitHandle()->mem.mgpu.uintArr[0].uintmem,
                            roiTensorPtrSrc);
     }
     else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
@@ -216,7 +216,7 @@ RppStatus hip_exec_crop_mirror_normalize_tensor(T *srcPtr,
                            dstDescPtr->c,
                            handle.GetInitHandle()->mem.mgpu.floatArr[0].floatmem,
                            handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
-                           handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
+                           handle.GetInitHandle()->mem.mgpu.uintArr[0].uintmem,
                            roiTensorPtrSrc);
     }
     else if ((srcDescPtr->c == 3) && (dstDescPtr->c == 3))
@@ -234,7 +234,7 @@ RppStatus hip_exec_crop_mirror_normalize_tensor(T *srcPtr,
                                make_uint3(dstDescPtr->strides.nStride, dstDescPtr->strides.cStride, dstDescPtr->strides.hStride),
                                handle.GetInitHandle()->mem.mgpu.floatArr[0].floatmem,
                                handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
-                               handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
+                               handle.GetInitHandle()->mem.mgpu.uintArr[0].uintmem,
                                roiTensorPtrSrc);
         }
         else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NHWC))
@@ -251,7 +251,7 @@ RppStatus hip_exec_crop_mirror_normalize_tensor(T *srcPtr,
                                make_uint2(dstDescPtr->strides.nStride, dstDescPtr->strides.hStride),
                                handle.GetInitHandle()->mem.mgpu.floatArr[0].floatmem,
                                handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
-                               handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
+                               handle.GetInitHandle()->mem.mgpu.uintArr[0].uintmem,
                                roiTensorPtrSrc);
         }
     }
