@@ -661,8 +661,8 @@ int main(int argc, char **argv)
             {
                 roiTensorPtrSrc[i].xywhROI.xy.x = 50;
                 roiTensorPtrSrc[i].xywhROI.xy.y = 50;
-                roiTensorPtrSrc[i].xywhROI.roiWidth = 100;
-                roiTensorPtrSrc[i].xywhROI.roiHeight = 100;
+                roiTensorPtrSrc[i].xywhROI.roiWidth = 600;
+                roiTensorPtrSrc[i].xywhROI.roiHeight = 600;
             }
 
             // Uncomment to run test case with an ltrbROI override

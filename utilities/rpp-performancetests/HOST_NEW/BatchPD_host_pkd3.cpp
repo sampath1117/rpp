@@ -2040,8 +2040,8 @@ int main(int argc, char **argv)
             Rpp32u mirrorFlag[images];
             for (i = 0; i < images; i++)
             {
-                dstSize[i].height = 100;
-                dstSize[i].width = 100;
+                dstSize[i].height = 600;
+                dstSize[i].width = 600;
                 if (maxDstHeight < dstSize[i].height)
                     maxDstHeight = dstSize[i].height;
                 if (maxDstWidth < dstSize[i].width)
