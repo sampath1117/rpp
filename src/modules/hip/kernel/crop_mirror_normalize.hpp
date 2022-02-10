@@ -70,9 +70,6 @@ __global__ void crop_mirror_normalize_pkd_tensor(T *srcPtr,
     }
 
     uint srcIdx;
-    uint mirrorflag = mirrorTensor[id_z];
-    printf("mirror flag = %i",mirrorflag);
-    // printf("mean = %f",meanTensor[id_z]);
 
     if(mirrorTensor[id_z] == 1)
     {
@@ -240,7 +237,7 @@ RppStatus hip_exec_crop_mirror_normalize_tensor(T *srcPtr,
                            make_uint2(dstDescPtr->strides.nStride, dstDescPtr->strides.hStride),
                            handle.GetInitHandle()->mem.mgpu.floatArr[0].floatmem,
                            handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
-                           handle.GetInitHandle()->mem.mgpu.uintArr[0].uintmem,
+                           handle.GetInitHandle()->mem.mgpu.uintArr[2].uintmem,
                            roiTensorPtrSrc);
     }
     else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
@@ -257,7 +254,7 @@ RppStatus hip_exec_crop_mirror_normalize_tensor(T *srcPtr,
                            dstDescPtr->c,
                            handle.GetInitHandle()->mem.mgpu.floatArr[0].floatmem,
                            handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
-                           handle.GetInitHandle()->mem.mgpu.uintArr[0].uintmem,
+                           handle.GetInitHandle()->mem.mgpu.uintArr[2].uintmem,
                            roiTensorPtrSrc);
     }
     else if ((srcDescPtr->c == 3) && (dstDescPtr->c == 3))
@@ -275,7 +272,7 @@ RppStatus hip_exec_crop_mirror_normalize_tensor(T *srcPtr,
                                make_uint3(dstDescPtr->strides.nStride, dstDescPtr->strides.cStride, dstDescPtr->strides.hStride),
                                handle.GetInitHandle()->mem.mgpu.floatArr[0].floatmem,
                                handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
-                               handle.GetInitHandle()->mem.mgpu.uintArr[0].uintmem,
+                               handle.GetInitHandle()->mem.mgpu.uintArr[2].uintmem,
                                roiTensorPtrSrc);
         }
         else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NHWC))
@@ -292,7 +289,7 @@ RppStatus hip_exec_crop_mirror_normalize_tensor(T *srcPtr,
                                make_uint2(dstDescPtr->strides.nStride, dstDescPtr->strides.hStride),
                                handle.GetInitHandle()->mem.mgpu.floatArr[0].floatmem,
                                handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
-                               handle.GetInitHandle()->mem.mgpu.uintArr[0].uintmem,
+                               handle.GetInitHandle()->mem.mgpu.uintArr[2].uintmem,
                                roiTensorPtrSrc);
         }
     }
