@@ -1,55 +1,6 @@
 #include <hip/hip_runtime.h>
 #include "hip/rpp_hip_common.hpp"
 
-// __device__ void cmn_1RGB_hip_compute(float *pixelR, float *pixelG, float *pixelB, float2 *CMNParams_f2)
-// {
-//     float mean, invstdDev;
-//     mean = CMNParams_f2->x;
-//     invstdDev = 1/CMNParams_f2->y;
-
-//     *pixelR = ((*pixelR) - mean) * invstdDev;
-//     *pixelG = ((*pixelG) - mean) * invstdDev;
-//     *pixelB = ((*pixelB) - mean) * invstdDev;
-// }
-
-// __device__ void cmn_8RGB_hip_compute(d_float24 *pix_f24, float2 *CMNParams_f2)
-// {
-//     cmn_1RGB_hip_compute(&(pix_f24->x.x.x), &(pix_f24->y.x.x), &(pix_f24->z.x.x), CMNParams_f2);
-//     cmn_1RGB_hip_compute(&(pix_f24->x.x.y), &(pix_f24->y.x.y), &(pix_f24->z.x.y), CMNParams_f2);
-//     cmn_1RGB_hip_compute(&(pix_f24->x.x.z), &(pix_f24->y.x.z), &(pix_f24->z.x.z), CMNParams_f2);
-//     cmn_1RGB_hip_compute(&(pix_f24->x.x.w), &(pix_f24->y.x.w), &(pix_f24->z.x.w), CMNParams_f2);
-//     cmn_1RGB_hip_compute(&(pix_f24->x.y.x), &(pix_f24->y.y.x), &(pix_f24->z.y.x), CMNParams_f2);
-//     cmn_1RGB_hip_compute(&(pix_f24->x.y.y), &(pix_f24->y.y.y), &(pix_f24->z.y.y), CMNParams_f2);
-//     cmn_1RGB_hip_compute(&(pix_f24->x.y.z), &(pix_f24->y.y.z), &(pix_f24->z.y.z), CMNParams_f2);
-//     cmn_1RGB_hip_compute(&(pix_f24->x.y.w), &(pix_f24->y.y.w), &(pix_f24->z.y.w), CMNParams_f2);
-// }
-
-// __device__ void cmn_hip_compute(uchar *srcPtr, d_float24 *pix_f24, float2 *CMNParams_f2)
-// {
-//     cmn_8RGB_hip_compute(pix_f24, CMNParams_f2);
-//     rpp_hip_pixel_check_0to255(pix_f24);
-// }
-
-// __device__ void cmn_hip_compute(float *srcPtr, d_float24 *pix_f24, float2 *CMNParams_f2)
-// {
-//     cmn_8RGB_hip_compute(pix_f24, CMNParams_f2);
-//     rpp_hip_pixel_check_0to255(pix_f24);
-// }
-
-// __device__ void cmn_hip_compute(schar *srcPtr, d_float24 *pix_f24, float2 *CMNParams_f2)
-// {
-//     float4 i8Offset_f4 = (float4) 128.0f;
-//     rpp_hip_math_add24_const(pix_f24, pix_f24, i8Offset_f4);
-//     cmn_8RGB_hip_compute(pix_f24, CMNParams_f2);
-//     rpp_hip_pixel_check_0to255(pix_f24);
-//     rpp_hip_math_subtract24_const(pix_f24, pix_f24, i8Offset_f4);
-// }
-// __device__ void cmn_hip_compute(half *srcPtr, d_float24 *pix_f24, float2 *CMNParams_f2)
-// {
-//     cmn_8RGB_hip_compute(pix_f24, CMNParams_f2);
-//     rpp_hip_pixel_check_0to255(pix_f24);
-// }
-
 __device__ void cmn_hip_compute(uchar *srcPtr, d_float8 *pix_f8, d_float8 *CMNParam_f8)
 {
     pix_f8->x = rpp_hip_pixel_check_0to255((pix_f8->x - CMNParam_f8->x) * CMNParam_f8->y);
