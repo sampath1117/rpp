@@ -511,11 +511,26 @@ __device__ __forceinline__ void rpp_hip_load8_and_unpack_to_float8(uchar *srcPtr
     src_f8->y = rpp_hip_unpack(src.y);
 }
 
+__device__ __forceinline__ void rpp_hip_load8_and_unpack_to_float8_mirror(uchar *srcPtr, int srcIdx, d_float8 *src_f8)
+{
+    uint2 src = *((uint2 *)(&srcPtr[srcIdx]));
+    src_f8->x = rpp_hip_unpack_mirror(src.y);
+    src_f8->y = rpp_hip_unpack_mirror(src.x);
+}
+
 // F32 loads without layout toggle (8 F32 pixels)
 
 __device__ __forceinline__ void rpp_hip_load8_and_unpack_to_float8(float *srcPtr, int srcIdx, d_float8 *src_f8)
 {
     *src_f8 = *((d_float8 *)(&srcPtr[srcIdx]));
+}
+
+__device__ __forceinline__ void rpp_hip_load8_and_unpack_to_float8_mirror(float *srcPtr, int srcIdx, d_float8 *src_f8)
+{
+    d_float8 src;
+    src = *((d_float8 *)(&srcPtr[srcIdx]));
+    src_f8->x = rpp_hip_unpack_mirror(src.y);
+    src_f8->y = rpp_hip_unpack_mirror(src.x);
 }
 
 // I8 loads without layout toggle (8 I8 pixels)
@@ -525,6 +540,13 @@ __device__ __forceinline__ void rpp_hip_load8_and_unpack_to_float8(schar *srcPtr
     int2 src = *((int2 *)(&srcPtr[srcIdx]));
     src_f8->x = rpp_hip_unpack_from_i8(src.x);
     src_f8->y = rpp_hip_unpack_from_i8(src.y);
+}
+
+__device__ __forceinline__ void rpp_hip_load8_and_unpack_to_float8_mirror(schar *srcPtr, int srcIdx, d_float8 *src_f8)
+{
+    int2 src = *((int2 *)(&srcPtr[srcIdx]));
+    src_f8->x = rpp_hip_unpack_from_i8_mirror(src.y);
+    src_f8->y = rpp_hip_unpack_from_i8_mirror(src.x);
 }
 
 // F16 loads without layout toggle (8 F16 pixels)
@@ -543,6 +565,22 @@ __device__ __forceinline__ void rpp_hip_load8_and_unpack_to_float8(half *srcPtr,
     src1_f2 = __half22float2(src_h8.y.x);
     src2_f2 = __half22float2(src_h8.y.y);
     src_f8->y = make_float4(src1_f2.x, src1_f2.y, src2_f2.x, src2_f2.y);
+}
+
+__device__ __forceinline__ void rpp_hip_load8_and_unpack_to_float8_mirror(half *srcPtr, int srcIdx, d_float8 *src_f8)
+{
+    d_half8 src_h8;
+    src_h8 = *((d_half8 *)(&srcPtr[srcIdx]));
+
+    float2 src1_f2, src2_f2;
+
+    src1_f2 = __half22float2(src_h8.x.x);
+    src2_f2 = __half22float2(src_h8.x.y);
+    src_f8->y = rpp_hip_unpack_mirror(make_float4(src1_f2.x, src1_f2.y, src2_f2.x, src2_f2.y));
+
+    src1_f2 = __half22float2(src_h8.y.x);
+    src2_f2 = __half22float2(src_h8.y.y);
+    src_f8->x = rpp_hip_unpack_mirror(make_float4(src1_f2.x, src1_f2.y, src2_f2.x, src2_f2.y));
 }
 
 // U8 loads without layout toggle PLN3 to PLN3 (24 U8 pixels)
