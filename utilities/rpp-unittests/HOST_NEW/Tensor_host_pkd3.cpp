@@ -58,10 +58,9 @@ int main(int argc, char **argv)
     int ip_channel = 3;
 
     // Set case names
-
     string funcType = "Tensor_HOST_PKD3";
-
     string funcName="";
+
     switch (test_case)
     {
     case 0:
