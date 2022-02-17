@@ -1,0 +1,589 @@
+mkdir: cannot create directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW': File exists
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_f16_Tensor_HOST_PKD3_toPLN3/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_f16_Tensor_HOST_PKD3_toPLN3/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_f16_Tensor_HOST_PKD3_toPLN3/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_f16_Tensor_HOST_PKD3_toPLN3'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_u8_Tensor_HOST_PKD3_toPLN3/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_u8_Tensor_HOST_PKD3_toPLN3/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_u8_Tensor_HOST_PKD3_toPLN3/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_u8_Tensor_HOST_PKD3_toPLN3'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_u8_Tensor_HOST_PKD3_toPKD3/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_u8_Tensor_HOST_PKD3_toPKD3/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_u8_Tensor_HOST_PKD3_toPKD3/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_u8_Tensor_HOST_PKD3_toPKD3'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_f32_Tensor_HOST_PKD3_toPKD3/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_f32_Tensor_HOST_PKD3_toPKD3/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_f32_Tensor_HOST_PKD3_toPKD3/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_f32_Tensor_HOST_PKD3_toPKD3'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_i8_Tensor_HOST_PKD3_toPLN3/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_i8_Tensor_HOST_PKD3_toPLN3/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_i8_Tensor_HOST_PKD3_toPLN3/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_i8_Tensor_HOST_PKD3_toPLN3'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_i8_Tensor_HOST_PKD3_toPKD3/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_i8_Tensor_HOST_PKD3_toPKD3/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_i8_Tensor_HOST_PKD3_toPKD3/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_i8_Tensor_HOST_PKD3_toPKD3'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_f32_Tensor_HOST_PKD3_toPLN3/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_f32_Tensor_HOST_PKD3_toPLN3/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_f32_Tensor_HOST_PKD3_toPLN3/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_f32_Tensor_HOST_PKD3_toPLN3'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_f16_Tensor_HOST_PKD3_toPKD3/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_f16_Tensor_HOST_PKD3_toPKD3/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_f16_Tensor_HOST_PKD3_toPKD3/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations/brightness_f16_Tensor_HOST_PKD3_toPKD3'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3/rpp_host_pkd3_image_augmentations'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PKD3'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN1/rpp_host_pln1_image_augmentations/brightness_f16_Tensor_HOST_PLN1_toPLN1/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN1/rpp_host_pln1_image_augmentations/brightness_f16_Tensor_HOST_PLN1_toPLN1/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN1/rpp_host_pln1_image_augmentations/brightness_f16_Tensor_HOST_PLN1_toPLN1/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN1/rpp_host_pln1_image_augmentations/brightness_f16_Tensor_HOST_PLN1_toPLN1'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN1/rpp_host_pln1_image_augmentations/brightness_u8_Tensor_HOST_PLN1_toPLN1/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN1/rpp_host_pln1_image_augmentations/brightness_u8_Tensor_HOST_PLN1_toPLN1/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN1/rpp_host_pln1_image_augmentations/brightness_u8_Tensor_HOST_PLN1_toPLN1/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN1/rpp_host_pln1_image_augmentations/brightness_u8_Tensor_HOST_PLN1_toPLN1'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN1/rpp_host_pln1_image_augmentations/brightness_f32_Tensor_HOST_PLN1_toPLN1/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN1/rpp_host_pln1_image_augmentations/brightness_f32_Tensor_HOST_PLN1_toPLN1/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN1/rpp_host_pln1_image_augmentations/brightness_f32_Tensor_HOST_PLN1_toPLN1/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN1/rpp_host_pln1_image_augmentations/brightness_f32_Tensor_HOST_PLN1_toPLN1'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN1/rpp_host_pln1_image_augmentations/brightness_i8_Tensor_HOST_PLN1_toPLN1/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN1/rpp_host_pln1_image_augmentations/brightness_i8_Tensor_HOST_PLN1_toPLN1/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN1/rpp_host_pln1_image_augmentations/brightness_i8_Tensor_HOST_PLN1_toPLN1/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN1/rpp_host_pln1_image_augmentations/brightness_i8_Tensor_HOST_PLN1_toPLN1'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN1/rpp_host_pln1_image_augmentations'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN1'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_i8_Tensor_HOST_PLN3_toPKD3/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_i8_Tensor_HOST_PLN3_toPKD3/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_i8_Tensor_HOST_PLN3_toPKD3/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_i8_Tensor_HOST_PLN3_toPKD3'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_f32_Tensor_HOST_PLN3_toPLN3/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_f32_Tensor_HOST_PLN3_toPLN3/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_f32_Tensor_HOST_PLN3_toPLN3/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_f32_Tensor_HOST_PLN3_toPLN3'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_u8_Tensor_HOST_PLN3_toPLN3/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_u8_Tensor_HOST_PLN3_toPLN3/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_u8_Tensor_HOST_PLN3_toPLN3/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_u8_Tensor_HOST_PLN3_toPLN3'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_f16_Tensor_HOST_PLN3_toPLN3/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_f16_Tensor_HOST_PLN3_toPLN3/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_f16_Tensor_HOST_PLN3_toPLN3/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_f16_Tensor_HOST_PLN3_toPLN3'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_f32_Tensor_HOST_PLN3_toPKD3/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_f32_Tensor_HOST_PLN3_toPKD3/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_f32_Tensor_HOST_PLN3_toPKD3/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_f32_Tensor_HOST_PLN3_toPKD3'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_f16_Tensor_HOST_PLN3_toPKD3/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_f16_Tensor_HOST_PLN3_toPKD3/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_f16_Tensor_HOST_PLN3_toPKD3/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_f16_Tensor_HOST_PLN3_toPKD3'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_i8_Tensor_HOST_PLN3_toPLN3/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_i8_Tensor_HOST_PLN3_toPLN3/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_i8_Tensor_HOST_PLN3_toPLN3/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_i8_Tensor_HOST_PLN3_toPLN3'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_u8_Tensor_HOST_PLN3_toPKD3/img224x224_1.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_u8_Tensor_HOST_PLN3_toPKD3/img224x224_2.jpg'
+removed '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_u8_Tensor_HOST_PLN3_toPKD3/img224x224_3.jpg'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations/brightness_u8_Tensor_HOST_PLN3_toPKD3'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3/rpp_host_pln3_image_augmentations'
+removed directory '/media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/PLN3'
+mkdir: cannot create directory 'build': File exists
+removed './0.csv'
+removed './1.csv'
+removed './2.csv'
+removed './5.csv'
+removed './CMakeCache.txt'
+removed './CMakeFiles/CMakeDirectoryInformation.cmake'
+removed './CMakeFiles/Makefile2'
+removed './CMakeFiles/feature_tests.cxx'
+removed './CMakeFiles/feature_tests.c'
+removed './CMakeFiles/feature_tests.bin'
+removed './CMakeFiles/Tensor_host_pln1.dir/depend.internal'
+removed './CMakeFiles/Tensor_host_pln1.dir/build.make'
+removed './CMakeFiles/Tensor_host_pln1.dir/Tensor_host_pln1.cpp.o'
+removed './CMakeFiles/Tensor_host_pln1.dir/link.txt'
+removed './CMakeFiles/Tensor_host_pln1.dir/CXX.includecache'
+removed './CMakeFiles/Tensor_host_pln1.dir/cmake_clean.cmake'
+removed './CMakeFiles/Tensor_host_pln1.dir/DependInfo.cmake'
+removed './CMakeFiles/Tensor_host_pln1.dir/depend.make'
+removed './CMakeFiles/Tensor_host_pln1.dir/flags.make'
+removed './CMakeFiles/Tensor_host_pln1.dir/progress.make'
+removed directory './CMakeFiles/Tensor_host_pln1.dir'
+removed './CMakeFiles/TargetDirectories.txt'
+removed './CMakeFiles/progress.marks'
+removed directory './CMakeFiles/CMakeTmp'
+removed './CMakeFiles/cmake.check_cache'
+removed './CMakeFiles/uniqueFunctionalities_host.dir/depend.internal'
+removed './CMakeFiles/uniqueFunctionalities_host.dir/build.make'
+removed './CMakeFiles/uniqueFunctionalities_host.dir/link.txt'
+removed './CMakeFiles/uniqueFunctionalities_host.dir/CXX.includecache'
+removed './CMakeFiles/uniqueFunctionalities_host.dir/cmake_clean.cmake'
+removed './CMakeFiles/uniqueFunctionalities_host.dir/DependInfo.cmake'
+removed './CMakeFiles/uniqueFunctionalities_host.dir/uniqueFunctionalities_host.cpp.o'
+removed './CMakeFiles/uniqueFunctionalities_host.dir/depend.make'
+removed './CMakeFiles/uniqueFunctionalities_host.dir/flags.make'
+removed './CMakeFiles/uniqueFunctionalities_host.dir/progress.make'
+removed directory './CMakeFiles/uniqueFunctionalities_host.dir'
+removed './CMakeFiles/3.10.2/CMakeSystem.cmake'
+removed './CMakeFiles/3.10.2/CMakeDetermineCompilerABI_CXX.bin'
+removed './CMakeFiles/3.10.2/CMakeDetermineCompilerABI_C.bin'
+removed directory './CMakeFiles/3.10.2/CompilerIdC/tmp'
+removed './CMakeFiles/3.10.2/CompilerIdC/CMakeCCompilerId.c'
+removed './CMakeFiles/3.10.2/CompilerIdC/a.out'
+removed directory './CMakeFiles/3.10.2/CompilerIdC'
+removed './CMakeFiles/3.10.2/CMakeCXXCompiler.cmake'
+removed './CMakeFiles/3.10.2/CMakeCCompiler.cmake'
+removed directory './CMakeFiles/3.10.2/CompilerIdCXX/tmp'
+removed './CMakeFiles/3.10.2/CompilerIdCXX/CMakeCXXCompilerId.cpp'
+removed './CMakeFiles/3.10.2/CompilerIdCXX/a.out'
+removed directory './CMakeFiles/3.10.2/CompilerIdCXX'
+removed directory './CMakeFiles/3.10.2'
+removed './CMakeFiles/Makefile.cmake'
+removed './CMakeFiles/Tensor_host_pkd3.dir/depend.internal'
+removed './CMakeFiles/Tensor_host_pkd3.dir/Tensor_host_pkd3.cpp.o'
+removed './CMakeFiles/Tensor_host_pkd3.dir/build.make'
+removed './CMakeFiles/Tensor_host_pkd3.dir/link.txt'
+removed './CMakeFiles/Tensor_host_pkd3.dir/CXX.includecache'
+removed './CMakeFiles/Tensor_host_pkd3.dir/cmake_clean.cmake'
+removed './CMakeFiles/Tensor_host_pkd3.dir/DependInfo.cmake'
+removed './CMakeFiles/Tensor_host_pkd3.dir/depend.make'
+removed './CMakeFiles/Tensor_host_pkd3.dir/flags.make'
+removed './CMakeFiles/Tensor_host_pkd3.dir/progress.make'
+removed directory './CMakeFiles/Tensor_host_pkd3.dir'
+removed './CMakeFiles/CMakeOutput.log'
+removed './CMakeFiles/Tensor_host_pln3.dir/depend.internal'
+removed './CMakeFiles/Tensor_host_pln3.dir/build.make'
+removed './CMakeFiles/Tensor_host_pln3.dir/Tensor_host_pln3.cpp.o'
+removed './CMakeFiles/Tensor_host_pln3.dir/link.txt'
+removed './CMakeFiles/Tensor_host_pln3.dir/CXX.includecache'
+removed './CMakeFiles/Tensor_host_pln3.dir/cmake_clean.cmake'
+removed './CMakeFiles/Tensor_host_pln3.dir/DependInfo.cmake'
+removed './CMakeFiles/Tensor_host_pln3.dir/depend.make'
+removed './CMakeFiles/Tensor_host_pln3.dir/flags.make'
+removed './CMakeFiles/Tensor_host_pln3.dir/progress.make'
+removed directory './CMakeFiles/Tensor_host_pln3.dir'
+removed directory './CMakeFiles'
+removed './Makefile'
+removed './Tensor_host_pkd3'
+removed './Tensor_host_pln1'
+removed './Tensor_host_pln3'
+removed './cmake_install.cmake'
+removed './uniqueFunctionalities_host'
+-- The C compiler identification is GNU 7.5.0
+-- The CXX compiler identification is GNU 7.5.0
+-- Check for working C compiler: /usr/bin/cc
+-- Check for working C compiler: /usr/bin/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Check for working CXX compiler: /usr/bin/c++
+-- Check for working CXX compiler: /usr/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found OPENCL: /opt/rocm/opencl/lib/libOpenCL.so  
+-- ROCm OpenCL Found - Set CL_TARGET_OPENCL_VERSION=220
+-- Found OpenCV: /usr/local (found version "3.4.0") 
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/build
+Scanning dependencies of target BatchPD_host_pln1
+Scanning dependencies of target Tensor_host_pln1
+Scanning dependencies of target BatchPD_host_pln3
+Scanning dependencies of target BatchPD_host_pkd3
+Scanning dependencies of target uniqueFunctionalities_host
+Scanning dependencies of target Tensor_host_pkd3
+[  7%] Building CXX object CMakeFiles/BatchPD_host_pln1.dir/BatchPD_host_pln1.cpp.o
+Scanning dependencies of target Tensor_host_pln3
+[ 14%] Building CXX object CMakeFiles/Tensor_host_pkd3.dir/Tensor_host_pkd3.cpp.o
+[ 21%] Building CXX object CMakeFiles/Tensor_host_pln1.dir/Tensor_host_pln1.cpp.o
+[ 28%] Building CXX object CMakeFiles/Tensor_host_pln3.dir/Tensor_host_pln3.cpp.o
+[ 35%] Building CXX object CMakeFiles/BatchPD_host_pln3.dir/BatchPD_host_pln3.cpp.o
+[ 42%] Building CXX object CMakeFiles/uniqueFunctionalities_host.dir/uniqueFunctionalities_host.cpp.o
+[ 50%] Building CXX object CMakeFiles/BatchPD_host_pkd3.dir/BatchPD_host_pkd3.cpp.o
+[ 57%] Linking CXX executable Tensor_host_pkd3
+[ 64%] Linking CXX executable Tensor_host_pln1
+[ 71%] Linking CXX executable Tensor_host_pln3
+[ 78%] Linking CXX executable uniqueFunctionalities_host
+[ 85%] Linking CXX executable BatchPD_host_pln1
+[ 92%] Linking CXX executable BatchPD_host_pln3
+[ 92%] Built target Tensor_host_pln1
+[ 92%] Built target uniqueFunctionalities_host
+[ 92%] Built target Tensor_host_pkd3
+[ 92%] Built target Tensor_host_pln3
+[100%] Linking CXX executable BatchPD_host_pkd3
+[100%] Built target BatchPD_host_pln1
+[100%] Built target BatchPD_host_pln3
+[100%] Built target BatchPD_host_pkd3
+
+
+
+
+
+##########################################################################################
+Running all PKD3 Inputs...
+##########################################################################################
+
+
+Usage: ./Tensor_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:84> <verbosity = 0/1>
+
+
+
+--------------------------------
+Running a New Functionality...
+--------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pkd3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pkd3_image_augmentations 0 0 0 0
+Running brightness_u8_Tensor_HOST_PKD3_toPKD3...
+CPU Time - BatchPD : 0.006336
+OMP Time - BatchPD : 0.00702418
+------------------------------------------------------------------------------------------
+
+./Tensor_host_pkd3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pkd3_image_augmentations 0 1 0 0
+Running brightness_u8_Tensor_HOST_PKD3_toPLN3...
+CPU Time - BatchPD : 0.007071
+OMP Time - BatchPD : 0.00738114
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pkd3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pkd3_image_augmentations 1 0 0 0
+Running brightness_f16_Tensor_HOST_PKD3_toPKD3...
+CPU Time - BatchPD : 0.008142
+OMP Time - BatchPD : 0.0087945
+------------------------------------------------------------------------------------------
+
+./Tensor_host_pkd3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pkd3_image_augmentations 1 1 0 0
+Running brightness_f16_Tensor_HOST_PKD3_toPLN3...
+CPU Time - BatchPD : 0.011043
+OMP Time - BatchPD : 0.00906806
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pkd3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pkd3_image_augmentations 2 0 0 0
+Running brightness_f32_Tensor_HOST_PKD3_toPKD3...
+CPU Time - BatchPD : 0.006129
+OMP Time - BatchPD : 0.00785033
+------------------------------------------------------------------------------------------
+
+./Tensor_host_pkd3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pkd3_image_augmentations 2 1 0 0
+Running brightness_f32_Tensor_HOST_PKD3_toPLN3...
+CPU Time - BatchPD : 0.006195
+OMP Time - BatchPD : 0.00854066
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pkd3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pkd3_image_augmentations 3 0 0 0
+Running brightness_u8_f16_Tensor_HOST_PKD3_toPKD3...
+The functionality brightness_u8_f16_Tensor_HOST_PKD3_toPKD3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+./Tensor_host_pkd3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pkd3_image_augmentations 3 1 0 0
+Running brightness_u8_f16_Tensor_HOST_PKD3_toPLN3...
+The functionality brightness_u8_f16_Tensor_HOST_PKD3_toPLN3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pkd3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pkd3_image_augmentations 4 0 0 0
+Running brightness_u8_f32_Tensor_HOST_PKD3_toPKD3...
+The functionality brightness_u8_f32_Tensor_HOST_PKD3_toPKD3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+./Tensor_host_pkd3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pkd3_image_augmentations 4 1 0 0
+Running brightness_u8_f32_Tensor_HOST_PKD3_toPLN3...
+The functionality brightness_u8_f32_Tensor_HOST_PKD3_toPLN3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pkd3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pkd3_image_augmentations 5 0 0 0
+Running brightness_i8_Tensor_HOST_PKD3_toPKD3...
+CPU Time - BatchPD : 0.007039
+OMP Time - BatchPD : 0.00747459
+------------------------------------------------------------------------------------------
+
+./Tensor_host_pkd3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pkd3_image_augmentations 5 1 0 0
+Running brightness_i8_Tensor_HOST_PKD3_toPLN3...
+CPU Time - BatchPD : 0.005219
+OMP Time - BatchPD : 0.00723698
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pkd3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pkd3_image_augmentations 6 0 0 0
+Running brightness_u8_i8_Tensor_HOST_PKD3_toPKD3...
+The functionality brightness_u8_i8_Tensor_HOST_PKD3_toPKD3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+./Tensor_host_pkd3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pkd3_image_augmentations 6 1 0 0
+Running brightness_u8_i8_Tensor_HOST_PKD3_toPLN3...
+The functionality brightness_u8_i8_Tensor_HOST_PKD3_toPLN3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+
+
+
+
+##########################################################################################
+Running all PLN1 Inputs...
+##########################################################################################
+
+
+Usage: ./Tensor_host_pln1 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:84> <verbosity = 0/1>
+
+
+
+--------------------------------
+Running a New Functionality...
+--------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pln1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln1_image_augmentations 0 0 0 0
+Running brightness_u8_Tensor_HOST_PLN1_toPLN1...
+CPU Time - BatchPD : 0.0062
+OMP Time - BatchPD : 0.00732686
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pln1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln1_image_augmentations 1 0 0 0
+Running brightness_f16_Tensor_HOST_PLN1_toPLN1...
+CPU Time - BatchPD : 0.007392
+OMP Time - BatchPD : 0.00789513
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pln1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln1_image_augmentations 2 0 0 0
+Running brightness_f32_Tensor_HOST_PLN1_toPLN1...
+CPU Time - BatchPD : 0.004695
+OMP Time - BatchPD : 0.00719359
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pln1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln1_image_augmentations 3 0 0 0
+Running brightness_u8_f16_Tensor_HOST_PLN1_toPLN1...
+The functionality brightness_u8_f16_Tensor_HOST_PLN1_toPLN1 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pln1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln1_image_augmentations 4 0 0 0
+Running brightness_u8_f32_Tensor_HOST_PLN1_toPLN1...
+The functionality brightness_u8_f32_Tensor_HOST_PLN1_toPLN1 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pln1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln1_image_augmentations 5 0 0 0
+Running brightness_i8_Tensor_HOST_PLN1_toPLN1...
+CPU Time - BatchPD : 0.004709
+OMP Time - BatchPD : 0.00728537
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pln1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln1_image_augmentations 6 0 0 0
+Running brightness_u8_i8_Tensor_HOST_PLN1_toPLN1...
+The functionality brightness_u8_i8_Tensor_HOST_PLN1_toPLN1 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+
+
+
+
+##########################################################################################
+Running all PLN3 Inputs...
+##########################################################################################
+
+
+Usage: ./Tensor_host_pln3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:84> <verbosity = 0/1>
+
+
+
+--------------------------------
+Running a New Functionality...
+--------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pln3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln3_image_augmentations 0 0 0 0
+Running brightness_u8_Tensor_HOST_PLN3_toPLN3...
+CPU Time - BatchPD : 0.007938
+OMP Time - BatchPD : 0.00785526
+------------------------------------------------------------------------------------------
+
+./Tensor_host_pln3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln3_image_augmentations 0 1 0 0
+Running brightness_u8_Tensor_HOST_PLN3_toPKD3...
+CPU Time - BatchPD : 0.007124
+OMP Time - BatchPD : 0.00778152
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pln3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln3_image_augmentations 1 0 0 0
+Running brightness_f16_Tensor_HOST_PLN3_toPLN3...
+CPU Time - BatchPD : 0.008508
+OMP Time - BatchPD : 0.00947239
+------------------------------------------------------------------------------------------
+
+./Tensor_host_pln3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln3_image_augmentations 1 1 0 0
+Running brightness_f16_Tensor_HOST_PLN3_toPKD3...
+CPU Time - BatchPD : 0.008485
+OMP Time - BatchPD : 0.00932637
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pln3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln3_image_augmentations 2 0 0 0
+Running brightness_f32_Tensor_HOST_PLN3_toPLN3...
+CPU Time - BatchPD : 0.005725
+OMP Time - BatchPD : 0.00775131
+------------------------------------------------------------------------------------------
+
+./Tensor_host_pln3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln3_image_augmentations 2 1 0 0
+Running brightness_f32_Tensor_HOST_PLN3_toPKD3...
+CPU Time - BatchPD : 0.004912
+OMP Time - BatchPD : 0.00801079
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pln3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln3_image_augmentations 3 0 0 0
+Running brightness_u8_f16_Tensor_HOST_PLN3_toPLN3...
+The functionality brightness_u8_f16_Tensor_HOST_PLN3_toPLN3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+./Tensor_host_pln3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln3_image_augmentations 3 1 0 0
+Running brightness_u8_f16_Tensor_HOST_PLN3_toPKD3...
+The functionality brightness_u8_f16_Tensor_HOST_PLN3_toPKD3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pln3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln3_image_augmentations 4 0 0 0
+Running brightness_u8_f32_Tensor_HOST_PLN3_toPLN3...
+The functionality brightness_u8_f32_Tensor_HOST_PLN3_toPLN3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+./Tensor_host_pln3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln3_image_augmentations 4 1 0 0
+Running brightness_u8_f32_Tensor_HOST_PLN3_toPKD3...
+The functionality brightness_u8_f32_Tensor_HOST_PLN3_toPKD3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pln3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln3_image_augmentations 5 0 0 0
+Running brightness_i8_Tensor_HOST_PLN3_toPLN3...
+CPU Time - BatchPD : 0.006619
+OMP Time - BatchPD : 0.0071041
+------------------------------------------------------------------------------------------
+
+./Tensor_host_pln3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln3_image_augmentations 5 1 0 0
+Running brightness_i8_Tensor_HOST_PLN3_toPKD3...
+CPU Time - BatchPD : 0.00713
+OMP Time - BatchPD : 0.0075605
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host_pln3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln3_image_augmentations 6 0 0 0
+Running brightness_u8_i8_Tensor_HOST_PLN3_toPLN3...
+The functionality brightness_u8_i8_Tensor_HOST_PLN3_toPLN3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+./Tensor_host_pln3 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src1 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../TEST_IMAGES/three_images_224x224_src2 /media/sampath/sampath_rpp/utilities/rpp-unittests/HOST_NEW/../OUTPUT_IMAGES_HOST_NEW/rpp_host_pln3_image_augmentations 6 1 0 0
+Running brightness_u8_i8_Tensor_HOST_PLN3_toPKD3...
+The functionality brightness_u8_i8_Tensor_HOST_PLN3_toPKD3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
