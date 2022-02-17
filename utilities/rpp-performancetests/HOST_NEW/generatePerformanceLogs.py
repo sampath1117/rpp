@@ -78,14 +78,14 @@ for log_file in log_file_list:
                 minVals.extend([" ", " ", " "])
                 avgVals.extend([" ", " ", " "])
 
-        if "max,min,avg" in line:
+        if "max,min,avg in ms" in line:
             split_word_start = "Running "
             split_word_end = " 100"
             prevLine = prevLine.partition(split_word_start)[2].partition(split_word_end)[0]
             if prevLine not in functions:
                 functions.append(prevLine)
                 frames.append("100")
-                split_word_start = "max,min,avg = "
+                split_word_start = "max,min,avg in ms = "
                 split_word_end = "\n"
                 stats = line.partition(split_word_start)[2].partition(split_word_end)[0].split(",")
                 maxVals.append(stats[0])
