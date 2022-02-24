@@ -2099,6 +2099,16 @@ inline RppStatus compute_brightness_48_host(__m128 *p, __m128 *pBrightnessParams
     return RPP_SUCCESS;
 }
 
+inline RppStatus compute_brightness_32_host(__m256 *p, __m256 *pBrightnessParams)
+{
+    p[0] = _mm256_fmadd_ps(p[0], pBrightnessParams[0], pBrightnessParams[1]);    // brightness adjustment
+    p[1] = _mm256_fmadd_ps(p[1], pBrightnessParams[0], pBrightnessParams[1]);    // brightness adjustment
+    p[2] = _mm256_fmadd_ps(p[2], pBrightnessParams[0], pBrightnessParams[1]);    // brightness adjustment
+    p[3] = _mm256_fmadd_ps(p[3], pBrightnessParams[0], pBrightnessParams[1]);    // brightness adjustment
+
+    return RPP_SUCCESS;
+}
+
 inline RppStatus compute_brightness_24_host(__m256 *p, __m256 *pBrightnessParams)
 {
     p[0] = _mm256_fmadd_ps(p[0], pBrightnessParams[0], pBrightnessParams[1]);    // brightness adjustment

@@ -163,7 +163,8 @@ RppStatus brightness_u8_u8_host_tensor(Rpp8u *srcPtr,
         // Brightness without fused output-layout toggle (NHWC -> NHWC or NCHW -> NCHW)
         else
         {
-            Rpp32u alignedLength = bufferLength & ~15;
+            Rpp32u alignedLength = bufferLength & ~31;
+            vectorIncrementPerChannel = 32;
             for(int c = 0; c < layoutParams.channelParam; c++)
             {
                 Rpp8u *srcPtrRow, *dstPtrRow;
@@ -177,14 +178,14 @@ RppStatus brightness_u8_u8_host_tensor(Rpp8u *srcPtr,
                     dstPtrTemp = dstPtrRow;
 
                     int vectorLoopCount = 0;
-                    for (; vectorLoopCount < alignedLength; vectorLoopCount += 16)
+                    for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannel)
                     {
 #if __AVX2__
-                        __m256 p[2];
+                        __m256 p[4];
 
-                        rpp_simd_load(rpp_load16_u8_to_f32_avx, srcPtrTemp, p);    // simd loads
-                        compute_brightness_16_host(p, pBrightnessParams);  // brightness adjustment
-                        rpp_simd_store(rpp_store16_f32_to_u8_avx, dstPtrTemp, p);    // simd stores
+                        rpp_simd_load(rpp_load32_u8_to_f32_avx, srcPtrTemp, p);    // simd loads
+                        compute_brightness_32_host(p, pBrightnessParams);  // brightness adjustment
+                        rpp_simd_store(rpp_store32_f32_to_u8_avx, dstPtrTemp, p);    // simd stores
 #else
                         __m128 p[4];
 
@@ -192,8 +193,8 @@ RppStatus brightness_u8_u8_host_tensor(Rpp8u *srcPtr,
                         compute_brightness_16_host(p, pBrightnessParams);  // brightness adjustment
                         rpp_simd_store(rpp_store16_f32_to_u8, dstPtrTemp, p);    // simd stores
 #endif
-                        srcPtrTemp +=16;
-                        dstPtrTemp +=16;
+                        srcPtrTemp +=vectorIncrementPerChannel;
+                        dstPtrTemp +=vectorIncrementPerChannel;
                     }
                     for (; vectorLoopCount < bufferLength; vectorLoopCount++)
                     {
@@ -847,7 +848,8 @@ RppStatus brightness_i8_i8_host_tensor(Rpp8s *srcPtr,
         // Brightness without fused output-layout toggle (NHWC -> NHWC or NCHW -> NCHW)
         else
         {
-            Rpp32u alignedLength = bufferLength & ~15;
+            Rpp32u alignedLength = bufferLength & ~31;
+            vectorIncrementPerChannel = 32;
 
             for(int c = 0; c < layoutParams.channelParam; c++)
             {
@@ -862,14 +864,14 @@ RppStatus brightness_i8_i8_host_tensor(Rpp8s *srcPtr,
                     dstPtrTemp = dstPtrRow;
 
                     int vectorLoopCount = 0;
-                    for (; vectorLoopCount < alignedLength; vectorLoopCount += 16)
+                    for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannel)
                     {
 #if __AVX2__
-                        __m256 p[2];
+                        __m256 p[4];
 
-                        rpp_simd_load(rpp_load16_i8_to_f32_avx, srcPtrTemp, p);    // simd loads
-                        compute_brightness_16_host(p, pBrightnessParams);  // brightness adjustment
-                        rpp_simd_store(rpp_store16_f32_to_i8_avx, dstPtrTemp, p);    // simd stores
+                        rpp_simd_load(rpp_load32_i8_to_f32_avx, srcPtrTemp, p);    // simd loads
+                        compute_brightness_32_host(p, pBrightnessParams);  // brightness adjustment
+                        rpp_simd_store(rpp_store32_f32_to_i8_avx, dstPtrTemp, p);    // simd stores
 #else
                         __m128 p[4];
 
@@ -878,8 +880,8 @@ RppStatus brightness_i8_i8_host_tensor(Rpp8s *srcPtr,
                         rpp_simd_store(rpp_store16_f32_to_i8, dstPtrTemp, p);    // simd stores
 #endif
 
-                        srcPtrTemp +=16;
-                        dstPtrTemp +=16;
+                        srcPtrTemp += vectorIncrementPerChannel;
+                        dstPtrTemp += vectorIncrementPerChannel;
                     }
                     for (; vectorLoopCount < bufferLength; vectorLoopCount++)
                     {
