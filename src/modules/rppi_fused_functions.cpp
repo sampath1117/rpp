@@ -1484,6 +1484,51 @@ rppi_resize_crop_mirror_i8_pkd3_batchPD_host(RppPtr_t srcPtr, RppiSize *srcSize,
 }
 
 /******************** resize_mirror_normalize ********************/
+RppStatus resize_mirror_normalize_helper(RppiChnFormat chn_format,
+                                         Rpp32u num_of_channels,
+                                         RPPTensorDataType in_tensor_type,
+                                         RPPTensorDataType out_tensor_type,
+                                         Rpp32u outputFormatToggle,
+                                         RppPtr_t srcPtr,
+                                         RppiSize *srcSize,
+                                         RppiSize maxSrcSize,
+                                         RppPtr_t dstPtr,
+                                         RppiSize *dstSize,
+                                         RppiSize maxDstSize,
+                                         Rpp32f *mean,
+                                         Rpp32f *stdDev,
+                                         Rpp32u *mirrorFlag,
+                                         Rpp32u nbatchSize,
+                                         rppHandle_t rppHandle)
+{
+    Rpp32u paramIndex = 0;
+    bool is_padded = true;
+    RPPTensorFunctionMetaData tensor_info(chn_format, in_tensor_type, out_tensor_type, num_of_channels,
+                                          (bool)outputFormatToggle);
+    copy_srcSize(srcSize, rpp::deref(rppHandle));
+    copy_srcMaxSize(maxSrcSize, rpp::deref(rppHandle));
+    copy_dstSize(dstSize, rpp::deref(rppHandle));
+    copy_dstMaxSize(maxDstSize, rpp::deref(rppHandle));
+    get_srcBatchIndex(rpp::deref(rppHandle), num_of_channels, tensor_info._in_format, is_padded);
+    get_dstBatchIndex(rpp::deref(rppHandle), num_of_channels, tensor_info._out_format, is_padded);
+    copy_param_float(mean, rpp::deref(rppHandle), paramIndex++);
+    copy_param_float(stdDev, rpp::deref(rppHandle), paramIndex++);
+    copy_param_uint(mirrorFlag, rpp::deref(rppHandle), paramIndex++);
+
+#if defined(HIP_COMPILE)
+    {
+        if (in_tensor_type == RPPTensorDataType::U8)
+        {
+            resize_mirror_normalize_hip_batch_tensor(static_cast<Rpp8u *>(srcPtr),
+                                                     static_cast<Rpp8u *>(dstPtr),
+                                                     rpp::deref(rppHandle),
+                                                     tensor_info);
+        } 
+    }
+#endif //BACKEND
+
+    return RPP_SUCCESS;
+}
 
 RppStatus resize_mirror_normalize_host_helper(RppiChnFormat chn_format,
                                               Rpp32u num_of_channels,
@@ -1538,4 +1583,9 @@ RppStatus
 rppi_resize_mirror_normalize_u8_pkd3_batchPD_host(RppPtr_t srcPtr, RppiSize *srcSize, RppiSize maxSrcSize, RppPtr_t dstPtr, RppiSize *dstSize, RppiSize maxDstSize, Rpp32f *batch_mean, Rpp32f *batch_stdDev, Rpp32u *mirrorFlag, Rpp32u outputFormatToggle, Rpp32u nbatchSize, rppHandle_t rppHandle)
 {
     return (resize_mirror_normalize_host_helper(RPPI_CHN_PACKED, 3, RPPTensorDataType::U8, srcPtr, srcSize, maxSrcSize, dstPtr, dstSize, maxDstSize, batch_mean, batch_stdDev, mirrorFlag, outputFormatToggle, nbatchSize, rppHandle));
+}
+RppStatus
+rppi_resize_mirror_normalize_u8_pkd3_batchPD_gpu(RppPtr_t srcPtr, RppiSize *srcSize, RppiSize maxSrcSize, RppPtr_t dstPtr, RppiSize *dstSize, RppiSize maxDstSize, Rpp32f *mean, Rpp32f *stdDev, Rpp32u *mirrorFlag, Rpp32u outputFormatToggle, Rpp32u nbatchSize, rppHandle_t rppHandle)
+{
+    return (resize_mirror_normalize_helper(RPPI_CHN_PACKED, 3, RPPTensorDataType::U8, RPPTensorDataType::U8, outputFormatToggle, srcPtr, srcSize, maxSrcSize, dstPtr, dstSize, maxDstSize, mean, stdDev, mirrorFlag, nbatchSize, rppHandle));
 }

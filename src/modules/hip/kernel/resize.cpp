@@ -1745,3 +1745,116 @@ RppStatus hip_exec_random_crop_letterbox_batch(Rpp8u *srcPtr, Rpp8u *dstPtr, rpp
 
     return RPP_SUCCESS;
 }
+
+extern "C" __global__ void resize_mirror_normalize_batch(unsigned char *srcPtr,
+                                                         unsigned char *dstPtr,
+                                                         unsigned int *source_height,
+                                                         unsigned int *source_width,
+                                                         unsigned int *dest_height,
+                                                         unsigned int *dest_width,
+                                                         unsigned int *max_source_width,
+                                                         unsigned int *max_dest_width,
+                                                         float *mean,
+                                                         float *std_dev,
+                                                         unsigned int *mirror,
+                                                         unsigned long long *source_batch_index,
+                                                         unsigned long long *dest_batch_index,
+                                                         const unsigned int channel,
+                                                         unsigned int *source_inc, // use width * height for pln and 1 for pkd
+                                                         unsigned int *dest_inc)
+{
+    int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+    int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+    int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
+
+    if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
+    {
+        return;
+    }
+
+    unsigned long dst_pixIdx = 0;
+    const int plnpkdindex = 3;
+    const float local_mean = mean[id_z];
+    const float local_inv_std_dev = 1 / std_dev[id_z];
+    const unsigned int local_mirror = mirror[id_z];
+
+    float x_ratio = ((float)(source_width[id_z] - 1)) / dest_width[id_z];
+    float y_ratio = ((float)(source_height[id_z] -1)) / dest_height[id_z];
+    float x_diff, y_diff, ya, yb;
+
+    int x = (int)(x_ratio * id_x);
+    int y = (int)(y_ratio * id_y);
+
+    x_diff = (x_ratio * id_x) - x;
+    y_diff = (y_ratio * id_y) - y;
+
+    if(local_mirror)
+    {
+        dst_pixIdx = dest_batch_index[id_z] + ((dest_width[id_z] - 1 - id_x) + id_y * max_dest_width[id_z]) * plnpkdindex;
+    }
+    else
+    {
+        dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * plnpkdindex;
+    }
+
+    if ((x + 1) < source_width[id_z] && (y + 1) < source_height[id_z])
+    {
+        for (int indextmp = 0; indextmp < channel; indextmp++)
+        {
+            int A = srcPtr[source_batch_index[id_z] + (x + y * max_source_width[id_z]) * plnpkdindex + indextmp * source_inc[id_z]];
+            int B = srcPtr[source_batch_index[id_z] + ((x + 1) + y * max_source_width[id_z]) * plnpkdindex  + indextmp * source_inc[id_z]];
+            int C = srcPtr[source_batch_index[id_z] + (x + (y + 1) * max_source_width[id_z]) * plnpkdindex + indextmp * source_inc[id_z]];
+            int D = srcPtr[source_batch_index[id_z] + ((x + 1) + (y + 1) * max_source_width[id_z]) * plnpkdindex + indextmp * source_inc[id_z]];
+
+            int pixVal = (int)(A * (1 - x_diff) * (1 - y_diff) +
+                               B * (x_diff) * (1 - y_diff) +
+                               C * (y_diff) * (1 - x_diff) +
+                               D * (x_diff * y_diff));
+
+            dstPtr[dst_pixIdx] = saturate_8u(((float)pixVal - local_mean) * local_inv_std_dev);
+            dst_pixIdx += dest_inc[id_z];
+        }
+    }
+    else
+    {
+        for (int indextmp = 0; indextmp < channel; indextmp++)
+        {
+            dstPtr[dst_pixIdx] = 0;
+            dst_pixIdx += dest_inc[id_z];
+        }
+    }
+}
+
+RppStatus hip_exec_resize_mirror_normalize_batch(Rpp8u *srcPtr, Rpp8u *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u max_height, Rpp32u max_width)
+{
+    int localThreads_x = 16;
+    int localThreads_y = 16;
+    int localThreads_z = 1;
+    int globalThreads_x = max_width;
+    int globalThreads_y = max_height;
+    int globalThreads_z = handle.GetBatchSize();
+
+    hipLaunchKernelGGL(resize_mirror_normalize_batch,
+                       dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
+                       dim3(localThreads_x, localThreads_y, localThreads_z),
+                       0,
+                       handle.GetStream(),
+                       srcPtr,
+                       dstPtr,
+                       handle.GetInitHandle()->mem.mgpu.srcSize.height,
+                       handle.GetInitHandle()->mem.mgpu.srcSize.width,
+                       handle.GetInitHandle()->mem.mgpu.dstSize.height,
+                       handle.GetInitHandle()->mem.mgpu.dstSize.width,
+                       handle.GetInitHandle()->mem.mgpu.maxSrcSize.width,
+                       handle.GetInitHandle()->mem.mgpu.maxDstSize.width,
+                       handle.GetInitHandle()->mem.mgpu.floatArr[0].floatmem,
+                       handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
+                       handle.GetInitHandle()->mem.mgpu.uintArr[2].uintmem,
+                       handle.GetInitHandle()->mem.mgpu.srcBatchIndex,
+                       handle.GetInitHandle()->mem.mgpu.dstBatchIndex,
+                       tensor_info._in_channels,
+                       handle.GetInitHandle()->mem.mgpu.inc,
+                       handle.GetInitHandle()->mem.mgpu.dstInc);
+
+    return RPP_SUCCESS;
+}

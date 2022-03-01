@@ -375,6 +375,10 @@ int main(int argc, char **argv)
         strcpy(funcName, "remap");
         outputFormatToggle = 0;
         break;
+    case 80:
+        strcpy(funcName, "resize_mirror_normalize");
+        outputFormatToggle = 0;
+        break;
     default:
         strcpy(funcName, "test_case");
         break;
@@ -3206,6 +3210,53 @@ int main(int argc, char **argv)
     {
         test_case_name = "remap";
         missingFuncFlag = 1;
+
+        break;
+    }
+    case 80:
+    {
+        test_case_name = "resize_mirror_normalize";
+
+        Rpp32f mean_val[images];
+        Rpp32f std_dev[images];
+        Rpp32u mirrorFlag[images];
+        for (i = 0; i < images; i++)
+        {
+            mean_val[i] = 0.0;
+            std_dev[i] = 1.0;
+            mirrorFlag[i] = 1;
+            dstSize[i].height = 100;
+            dstSize[i].width = 100;
+            if (maxDstHeight < dstSize[i].height)
+                maxDstHeight = dstSize[i].height;
+            if (maxDstWidth < dstSize[i].width)
+                maxDstWidth = dstSize[i].width;
+            if (minDstHeight > dstSize[i].height)
+                minDstHeight = dstSize[i].height;
+            if (minDstWidth > dstSize[i].width)
+                minDstWidth = dstSize[i].width;
+        }
+        maxDstSize.height = maxDstHeight;
+        maxDstSize.width = maxDstWidth;
+
+        start = clock();
+
+        if (ip_bitDepth == 0)
+            rppi_resize_mirror_normalize_u8_pkd3_batchPD_gpu(d_input, srcSize, maxSize, d_output, dstSize, maxDstSize, mean_val, std_dev, mirrorFlag, outputFormatToggle, noOfImages, handle);
+        // else if (ip_bitDepth == 1)
+        //     missingFuncFlag = 1; // rppi_resize_crop_mirror_f16_pkd3_batchPD_gpu(d_inputf16, srcSize, maxSize, d_outputf16, dstSize, maxDstSize, x1, x2, y1, y2, mirrorFlag, outputFormatToggle, noOfImages, handle);
+        // else if (ip_bitDepth == 2)
+        //     rppi_resize_mirror_normalize_f32_pkd3_batchPD_gpu(d_inputf32, srcSize, maxSize, d_outputf32, dstSize, maxDstSize, mean, std_dev, mirrorFlag, outputFormatToggle, noOfImages, handle);
+        // else if (ip_bitDepth == 3)
+        //     missingFuncFlag = 1;
+        // else if (ip_bitDepth == 4)
+        //     missingFuncFlag = 1;
+        // else if (ip_bitDepth == 5)
+        //     rppi_resize_mirror_normalize_i8_pkd3_batchPD_gpu(d_inputi8, srcSize, maxSize, d_outputi8, dstSize, maxDstSize, mean, std_dev, mirrorFlag, outputFormatToggle, noOfImages, handle);
+        // else if (ip_bitDepth == 6)
+        //     missingFuncFlag = 1;
+        else
+            missingFuncFlag = 1;
 
         break;
     }

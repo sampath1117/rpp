@@ -114,6 +114,17 @@ resize_crop_mirror_hip_batch_tensor(Rpp8u *srcPtr, Rpp8u *dstPtr, rpp::Handle &h
 }
 
 RppStatus
+resize_mirror_normalize_hip_batch_tensor(Rpp8u *srcPtr, Rpp8u *dstPtr, rpp::Handle &handle, RPPTensorFunctionMetaData &tensor_info)
+{
+    Rpp32u max_height, max_width;
+    max_size(handle.GetInitHandle()->mem.mgpu.cdstSize.height, handle.GetInitHandle()->mem.mgpu.cdstSize.width, handle.GetBatchSize(), &max_height, &max_width);
+
+    hip_exec_resize_mirror_normalize_batch(srcPtr, dstPtr, handle, tensor_info, max_height, max_width);
+
+    return RPP_SUCCESS;
+}
+
+RppStatus
 resize_crop_mirror_hip_batch_tensor_fp16(Rpp16f *srcPtr, Rpp16f *dstPtr, rpp::Handle &handle, RPPTensorFunctionMetaData &tensor_info)
 {
     Rpp32u max_height, max_width;
