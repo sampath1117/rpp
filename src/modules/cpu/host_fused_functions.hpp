@@ -5814,6 +5814,7 @@ RppStatus resize_mirror_normalize_host_batch(T* srcPtr, RppiSize *batch_srcSize,
             T *dstPtrImageUnpadded = (T*) calloc(channel * batch_dstSize[batchCount].height * batch_dstSize[batchCount].width, sizeof(T));
             compute_unpadded_from_padded_host(srcPtrImage, batch_srcSize[batchCount], batch_srcSizeMax[batchCount], srcPtrImageUnpadded, chnFormat, channel);
             resize_kernel_host(srcPtrImageUnpadded, batch_srcSize[batchCount], dstPtrImageUnpadded, batch_dstSize[batchCount], chnFormat, channel);
+            memset(dstPtrImage, (T) 0, dstImageDimMax * channel * sizeof(T));
             compute_padded_from_unpadded_host(dstPtrImageUnpadded, batch_dstSize[batchCount], batch_dstSizeMax[batchCount], dstPtrImage, chnFormat, channel);
             free(srcPtrImageUnpadded);
             free(dstPtrImageUnpadded);
@@ -6047,6 +6048,7 @@ RppStatus resize_mirror_normalize_host_batch(T* srcPtr, RppiSize *batch_srcSize,
             T *dstPtrImageUnpadded = (T*) calloc(channel * batch_dstSize[batchCount].height * batch_dstSize[batchCount].width, sizeof(T));
             compute_unpadded_from_padded_host(srcPtrImage, batch_srcSize[batchCount], batch_srcSizeMax[batchCount], srcPtrImageUnpadded, chnFormat, channel);
             resize_kernel_host(srcPtrImageUnpadded, batch_srcSize[batchCount], dstPtrImageUnpadded, batch_dstSize[batchCount], chnFormat, channel);
+            memset(dstPtrImage, (T) 0, dstImageDimMax * channel * sizeof(T));
             compute_padded_from_unpadded_host(dstPtrImageUnpadded, batch_dstSize[batchCount], batch_dstSizeMax[batchCount], dstPtrImage, chnFormat, channel);
             free(srcPtrImageUnpadded);
             free(dstPtrImageUnpadded);
@@ -6238,6 +6240,7 @@ RppStatus resize_mirror_normalize_host_batch(T* srcPtr, RppiSize *batch_srcSize,
                 T *dstPtrImageUnpaddedCopy = (T*) calloc(channel * batch_dstSize[batchCount].height * batch_dstSize[batchCount].width, sizeof(T));
                 compute_unpadded_from_padded_host(dstPtrImage, batch_dstSize[batchCount], batch_dstSizeMax[batchCount], dstPtrImageUnpadded, chnFormat, channel);
                 compute_packed_to_planar_host(dstPtrImageUnpadded, batch_dstSize[batchCount], dstPtrImageUnpaddedCopy, channel);
+                memset(dstPtrImage, (T) 0, dstImageDimMax * channel * sizeof(T));
                 compute_padded_from_unpadded_host(dstPtrImageUnpaddedCopy, batch_dstSize[batchCount], batch_dstSizeMax[batchCount], dstPtrImage, RPPI_CHN_PLANAR, channel);
                 free(dstPtrImageUnpadded);
                 free(dstPtrImageUnpaddedCopy);
