@@ -1835,12 +1835,15 @@ RppStatus hip_exec_resize_mirror_normalize_batch(Rpp8u *srcPtr, Rpp8u *dstPtr, r
     int globalThreads_z = handle.GetBatchSize();
 
     int temp_max_dst_width, temp_max_dst_height, temp_max_dst_size;
+    Rpp8u *temp_dstPtr;
+    temp_dstPtr = dstPtr;
     for(int i = 0; i < globalThreads_z; i++)
     {
         temp_max_dst_width = handle.GetInitHandle()->mem.mgpu.maxDstSize.width[i];
         temp_max_dst_height = handle.GetInitHandle()->mem.mgpu.maxDstSize.height[i];
         temp_max_dst_size = temp_max_dst_width * temp_max_dst_height * 3;
-        memset(dstPtr + i * (temp_max_dst_size), 0, size_t(temp_max_dst_size));
+        memset(temp_dstPtr, 0, size_t(temp_max_dst_size) * sizeof(unsigned char));
+        temp_dstPtr = temp_dstPtr + temp_max_dst_size;
     }
 
     hipLaunchKernelGGL(resize_mirror_normalize_batch,
