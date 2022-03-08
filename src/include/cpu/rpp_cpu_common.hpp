@@ -2214,6 +2214,16 @@ inline RppStatus compute_cmn_16_host(__m256 *p, __m256 *pCMNParams)
     return RPP_SUCCESS;
 }
 
+inline RppStatus compute_cmn_32_host(__m256 *p, __m256 *pCMNParams)
+{
+    p[0] = _mm256_mul_ps(_mm256_sub_ps(p[0], pCMNParams[0]), pCMNParams[1]);
+    p[1] = _mm256_mul_ps(_mm256_sub_ps(p[1], pCMNParams[0]), pCMNParams[1]);
+    p[2] = _mm256_mul_ps(_mm256_sub_ps(p[2], pCMNParams[0]), pCMNParams[1]);
+    p[3] = _mm256_mul_ps(_mm256_sub_ps(p[3], pCMNParams[0]), pCMNParams[1]);
+
+    return RPP_SUCCESS;
+}
+
 inline RppStatus compute_cmn_8_host(__m256 *p, __m256 *pCMNParams)
 {
     p[0] = _mm256_mul_ps(_mm256_sub_ps(p[0], pCMNParams[0]), pCMNParams[1]);
