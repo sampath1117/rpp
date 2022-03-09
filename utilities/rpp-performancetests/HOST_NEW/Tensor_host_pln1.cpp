@@ -687,7 +687,7 @@ int main(int argc, char **argv)
             {
                 mean[i] = 0.0;
                 stdDev[i] = 1.0;
-                mirror[i] = 1;
+                mirror[i] = 0;
             }
 
             // Uncomment to run test case with an xywhROI override
@@ -695,8 +695,8 @@ int main(int argc, char **argv)
             {
                 roiTensorPtrSrc[i].xywhROI.xy.x = 50;
                 roiTensorPtrSrc[i].xywhROI.xy.y = 50;
-                roiTensorPtrSrc[i].xywhROI.roiWidth = 100;
-                roiTensorPtrSrc[i].xywhROI.roiHeight = 100;
+                roiTensorPtrSrc[i].xywhROI.roiWidth = 1200;
+                roiTensorPtrSrc[i].xywhROI.roiHeight = 1200;
             }
 
             // Uncomment to run test case with an ltrbROI override

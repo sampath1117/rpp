@@ -256,7 +256,9 @@ RppStatus crop_mirror_normalize_u8_u8_host_tensor(Rpp8u *srcPtr,
         {
             if(mirrorFlag == 0)
             {
-                Rpp32u alignedLength = (bufferLength / 16) * 16;
+                // Rpp32u alignedLength = (bufferLength / 16) * 16;
+                Rpp32u alignedLength = (bufferLength / 32) * 32;
+                vectorIncrementPerChannel = 32;
                 srcPtrChannel = srcPtrImage + (roi.xywhROI.xy.y * srcDescPtr->strides.hStride) + (roi.xywhROI.xy.x * layoutParams.bufferMultiplier);
                 for(int c = 0; c < layoutParams.channelParam; c++)
                 {
@@ -273,11 +275,11 @@ RppStatus crop_mirror_normalize_u8_u8_host_tensor(Rpp8u *srcPtr,
                         int vectorLoopCount = 0;
                         for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannel)
                         {
-                            __m256 p[2];
+                            __m256 p[4];
 
-                            rpp_simd_load(rpp_load16_u8_to_f32_avx, srcPtrTemp, p);    // simd loads
-                            compute_cmn_16_host(p, pCMNParams);  // cmn adjustment
-                            rpp_simd_store(rpp_store16_f32_to_u8_avx, dstPtrTemp, p);    // simd stores
+                            rpp_simd_load(rpp_load32_u8_to_f32_avx, srcPtrTemp, p);    // simd loads
+                            compute_cmn_32_host(p, pCMNParams);  // cmn adjustment
+                            rpp_simd_store(rpp_store32_f32_to_u8_avx, dstPtrTemp, p);    // simd stores
 
                             srcPtrTemp += vectorIncrementPerChannel;
                             dstPtrTemp += vectorIncrementPerChannel;
@@ -337,9 +339,7 @@ RppStatus crop_mirror_normalize_u8_u8_host_tensor(Rpp8u *srcPtr,
                 }
                 else
                 {
-                    // Rpp32u alignedLength = (bufferLength / 16) * 16;
-                    Rpp32u alignedLength = (bufferLength / 32) * 32;
-                    vectorIncrementPerChannel = 32;
+                    Rpp32u alignedLength = (bufferLength / 16) * 16;
                     srcPtrChannel = srcPtrImage + (roi.xywhROI.xy.y * srcDescPtr->strides.hStride) + ((roi.xywhROI.xy.x+roi.xywhROI.roiWidth) * layoutParams.bufferMultiplier);
                     for(int c = 0; c < layoutParams.channelParam; c++)
                     {
@@ -358,11 +358,11 @@ RppStatus crop_mirror_normalize_u8_u8_host_tensor(Rpp8u *srcPtr,
                             {
                                 srcPtrTemp -= vectorIncrementPerChannel;
 
-                                __m256 p[4];
+                                __m256 p[2];
 
-                                rpp_simd_load(rpp_load32_u8_to_f32_avx, srcPtrTemp, p);    // simd loads
-                                compute_cmn_32_host(p, pCMNParams);  // cmn adjustment
-                                rpp_simd_store(rpp_store32_f32_to_u8_avx, dstPtrTemp, p);    // simd stores
+                                rpp_simd_load(rpp_load16_u8_to_f32_avx, srcPtrTemp, p);    // simd loads
+                                compute_cmn_16_host(p, pCMNParams);  // cmn adjustment
+                                rpp_simd_store(rpp_store16_f32_to_u8_avx, dstPtrTemp, p);    // simd stores
 
                                 dstPtrTemp += vectorIncrementPerChannel;
                             }

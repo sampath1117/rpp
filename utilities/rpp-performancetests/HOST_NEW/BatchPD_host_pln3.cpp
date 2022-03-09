@@ -2143,8 +2143,8 @@ int main(int argc, char **argv)
             Rpp32u mirrorFlag[images];
             for (i = 0; i < images; i++)
             {
-                dstSize[i].height = 100;
-                dstSize[i].width = 100;
+                dstSize[i].height = 1200;
+                dstSize[i].width = 1200;
                 if (maxDstHeight < dstSize[i].height)
                     maxDstHeight = dstSize[i].height;
                 if (maxDstWidth < dstSize[i].width)
@@ -2157,7 +2157,7 @@ int main(int argc, char **argv)
                 crop_pos_y[i] = 50;
                 mean[i] = 0.0;
                 stdDev[i] = 1.0;
-                mirrorFlag[i] = 1;
+                mirrorFlag[i] = 0;
             }
 
             start_omp = omp_get_wtime();
