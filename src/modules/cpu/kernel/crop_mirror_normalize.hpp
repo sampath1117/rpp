@@ -44,6 +44,21 @@ RppStatus crop_mirror_normalize_u8_u8_host_tensor(Rpp8u *srcPtr,
         __m256 pCMNParams[2];
         pCMNParams[0] = _mm256_set1_ps(mean);
         pCMNParams[1] = _mm256_set1_ps(invStdDev);
+        auto load48FnPkdPln = &rpp_load48_u8pkd3_to_f32pln3_avx;
+        auto load48FnPlnPln = &rpp_load48_u8pln3_to_f32pln3_avx;
+        auto load16Fn = &rpp_load16_u8_to_f32_avx;
+
+        if(mirrorFlag)
+        {
+            srcPtrChannel = srcPtrImage + (roi.xywhROI.xy.y * srcDescPtr->strides.hStride) + ((roi.xywhROI.xy.x + roi.xywhROI.roiWidth) * layoutParams.bufferMultiplier);
+            load48FnPkdPln = &rpp_load48_u8pkd3_to_f32pln3_mirror_avx;
+            load48FnPlnPln = &rpp_load48_u8pln3_to_f32pln3_mirror_avx;
+            load16Fn = &rpp_load16_u8_to_f32_mirror_avx;
+        }
+        else
+        {
+            srcPtrChannel = srcPtrImage + (roi.xywhROI.xy.y * srcDescPtr->strides.hStride) + (roi.xywhROI.xy.x  * layoutParams.bufferMultiplier);
+        }
 
         // Crop Mirror Normalize with fused output-layout toggle (NHWC -> NCHW)
         if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NCHW))
@@ -250,134 +265,92 @@ RppStatus crop_mirror_normalize_u8_u8_host_tensor(Rpp8u *srcPtr,
                 }
             }
         }
+        // flip without fused output-layout toggle (NHWC -> NHWC)
+        else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
+        {
+            Rpp8u *srcPtrRow, *dstPtrRow;
+            srcPtrRow = srcPtrChannel;
+            dstPtrRow = dstPtrChannel;
+
+            for(int i = 0; i < roi.xywhROI.roiHeight; i++)
+            {
+                Rpp8u *srcPtrTemp, *dstPtrTemp;
+                srcPtrTemp = srcPtrRow;
+                dstPtrTemp = dstPtrRow;
+
+                int vectorLoopCount = 0;
+                for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement)
+                {
+                    __m256 p[6];
+                    srcPtrTemp -= (vectorIncrement * mirrorFlag);
+
+                    rpp_simd_load(load48FnPkdPln, srcPtrTemp, p);    // simd loads
+                    compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
+                    rpp_simd_store(rpp_store48_f32pln3_to_u8pkd3_avx, dstPtrTemp, p);    // simd stores
+
+                    srcPtrTemp += (vectorIncrement * (1 - mirrorFlag));
+                    dstPtrTemp += vectorIncrement;
+                }
+                for (; vectorLoopCount < bufferLength; vectorLoopCount += 3)
+                {
+                    srcPtrTemp -= (3 * mirrorFlag);
+
+                    dstPtrTemp[0] = (Rpp8u) RPPPIXELCHECK((Rpp32f) (srcPtrTemp[0]));
+                    dstPtrTemp[1] = (Rpp8u) RPPPIXELCHECK((Rpp32f) (srcPtrTemp[1]));
+                    dstPtrTemp[2] = (Rpp8u) RPPPIXELCHECK((Rpp32f) (srcPtrTemp[2]));
+
+                    srcPtrTemp += (3 * (1 - mirrorFlag));
+                    dstPtrTemp += 3;
+                }
+                srcPtrRow += srcDescPtr->strides.hStride;
+                dstPtrRow += dstDescPtr->strides.hStride;
+            }
+        }
 
         // Crop Mirror Normalize without fused output-layout toggle (NHWC -> NHWC or NCHW -> NCHW)
         else
         {
-            if(mirrorFlag == 0)
+            Rpp32u alignedLength = (bufferLength / 16) * 16;
+            for(int c = 0; c < layoutParams.channelParam; c++)
             {
-                Rpp32u alignedLength = (bufferLength / 16) * 16;
-                srcPtrChannel = srcPtrImage + (roi.xywhROI.xy.y * srcDescPtr->strides.hStride) + (roi.xywhROI.xy.x * layoutParams.bufferMultiplier);
-                for(int c = 0; c < layoutParams.channelParam; c++)
+                Rpp8u *srcPtrRow, *dstPtrRow;
+                srcPtrRow = srcPtrChannel;
+                dstPtrRow = dstPtrChannel;
+
+                for(int i = 0; i < roi.xywhROI.roiHeight; i++)
                 {
-                    Rpp8u *srcPtrRow, *dstPtrRow;
-                    srcPtrRow = srcPtrChannel;
-                    dstPtrRow = dstPtrChannel;
+                    Rpp8u *srcPtrTemp, *dstPtrTemp;
+                    srcPtrTemp = srcPtrRow;
+                    dstPtrTemp = dstPtrRow;
 
-                    for(int i = 0; i < roi.xywhROI.roiHeight; i++)
+                    int vectorLoopCount = 0;
+                    for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannel)
                     {
-                        Rpp8u *srcPtrTemp, *dstPtrTemp;
-                        srcPtrTemp = srcPtrRow;
-                        dstPtrTemp = dstPtrRow;
+                        __m256 p[2];
 
-                        int vectorLoopCount = 0;
-                        for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannel)
-                        {
-                            __m256 p[2];
+                        srcPtrTemp -= (vectorIncrementPerChannel * mirrorFlag);
 
-                            rpp_simd_load(rpp_load16_u8_to_f32_avx, srcPtrTemp, p);    // simd loads
-                            compute_cmn_16_host(p, pCMNParams);  // cmn adjustment
-                            rpp_simd_store(rpp_store16_f32_to_u8_avx, dstPtrTemp, p);    // simd stores
+                        rpp_simd_load(load16Fn, srcPtrTemp, p);    // simd loads
+                        compute_cmn_16_host(p, pCMNParams);  // cmn adjustment
+                        rpp_simd_store(rpp_store16_f32_to_u8_avx, dstPtrTemp, p);    // simd stores
 
-                            srcPtrTemp += vectorIncrementPerChannel;
-                            dstPtrTemp += vectorIncrementPerChannel;
-                        }
-                        for (; vectorLoopCount < bufferLength; vectorLoopCount++)
-                        {
-                            *dstPtrTemp = (Rpp8u) RPPPIXELCHECK((((Rpp32f) (*srcPtrTemp)) - mean) * invStdDev);
-
-                            srcPtrTemp++;
-                            dstPtrTemp++;
-                        }
-                        srcPtrRow += srcDescPtr->strides.hStride;
-                        dstPtrRow += dstDescPtr->strides.hStride;
+                        srcPtrTemp += (vectorIncrementPerChannel * (1 - mirrorFlag));
+                        dstPtrTemp += vectorIncrementPerChannel;
                     }
-                    srcPtrChannel += srcDescPtr->strides.cStride;
-                    dstPtrChannel += dstDescPtr->strides.cStride;
-                }
-            }
-            else if (mirrorFlag == 1)
-            {
-                if((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
-                {
-                    Rpp8u *srcPtrRow, *dstPtrRow;
-                    srcPtrChannel = srcPtrImage + (roi.xywhROI.xy.y * srcDescPtr->strides.hStride) + ((roi.xywhROI.xy.x+roi.xywhROI.roiWidth) * layoutParams.bufferMultiplier);
-                    srcPtrRow = srcPtrChannel;
-                    dstPtrRow = dstPtrChannel;
-
-                    for(int i = 0; i < roi.xywhROI.roiHeight; i++)
+                    for (; vectorLoopCount < bufferLength; vectorLoopCount++)
                     {
-                        Rpp8u *srcPtrTemp, *dstPtrTemp;
-                        srcPtrTemp = srcPtrRow;
-                        dstPtrTemp = dstPtrRow;
+                        srcPtrTemp -= mirrorFlag;
 
-                        int vectorLoopCount = 0;
-                        for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement)
-                        {
-                            srcPtrTemp -= vectorIncrement;
+                        *dstPtrTemp = (Rpp8u) RPPPIXELCHECK((Rpp32f) (*srcPtrTemp));
 
-                            __m256 p[6];
-                            rpp_simd_load(rpp_load48_u8pkd3_to_f32pln3_mirror_avx, srcPtrTemp, p);      // simd loads
-                            compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
-                            rpp_simd_store(rpp_store48_f32pln3_to_u8pkd3_avx, dstPtrTemp, p);    // simd stores
-
-                            dstPtrTemp += vectorIncrement;
-                        }
-                        for (; vectorLoopCount < bufferLength; vectorLoopCount+=3)
-                        {
-                            srcPtrTemp -= 3;
-                            dstPtrTemp[0] = (Rpp8u) RPPPIXELCHECK((((Rpp32f) (srcPtrTemp[0] - mean) * invStdDev)));
-                            dstPtrTemp[1] = (Rpp8u) RPPPIXELCHECK((((Rpp32f) (srcPtrTemp[1] - mean) * invStdDev)));
-                            dstPtrTemp[2] = (Rpp8u) RPPPIXELCHECK((((Rpp32f) (srcPtrTemp[2] - mean) * invStdDev)));
-                            dstPtrTemp += 3;
-                        }
-                        srcPtrRow += srcDescPtr->strides.hStride;
-                        dstPtrRow += dstDescPtr->strides.hStride;
+                        srcPtrTemp += (1 - mirrorFlag);
+                        dstPtrTemp++;
                     }
+                    srcPtrRow += srcDescPtr->strides.hStride;
+                    dstPtrRow += dstDescPtr->strides.hStride;
                 }
-                else
-                {
-                    Rpp32u alignedLength = (bufferLength / 16) * 16;
-                    srcPtrChannel = srcPtrImage + (roi.xywhROI.xy.y * srcDescPtr->strides.hStride) + ((roi.xywhROI.xy.x+roi.xywhROI.roiWidth) * layoutParams.bufferMultiplier);
-                    for(int c = 0; c < layoutParams.channelParam; c++)
-                    {
-                        Rpp8u *srcPtrRow, *dstPtrRow;
-                        srcPtrRow = srcPtrChannel;
-                        dstPtrRow = dstPtrChannel;
-
-                        for(int i = 0; i < roi.xywhROI.roiHeight; i++)
-                        {
-                            Rpp8u *srcPtrTemp, *dstPtrTemp;
-                            srcPtrTemp = srcPtrRow;
-                            dstPtrTemp = dstPtrRow;
-
-                            int vectorLoopCount = 0;
-                            for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannel)
-                            {
-                                srcPtrTemp -= vectorIncrementPerChannel;
-
-                                __m256 p[2];
-
-                                rpp_simd_load(rpp_load16_u8_to_f32_mirror_avx, srcPtrTemp, p);    // simd loads
-                                compute_cmn_16_host(p, pCMNParams);  // cmn adjustment
-                                rpp_simd_store(rpp_store16_f32_to_u8_avx, dstPtrTemp, p);    // simd stores
-
-                                dstPtrTemp += vectorIncrementPerChannel;
-                            }
-                            for (; vectorLoopCount < bufferLength; vectorLoopCount++)
-                            {
-                                srcPtrTemp--;
-
-                                *dstPtrTemp = (Rpp8u) RPPPIXELCHECK((((Rpp32f) (*srcPtrTemp)) - mean) * invStdDev);
-                                dstPtrTemp++;
-                            }
-                            srcPtrRow += srcDescPtr->strides.hStride;
-                            dstPtrRow += dstDescPtr->strides.hStride;
-                        }
-                        srcPtrChannel += srcDescPtr->strides.cStride;
-                        dstPtrChannel += dstDescPtr->strides.cStride;
-                    }
-                }
+                srcPtrChannel += srcDescPtr->strides.cStride;
+                dstPtrChannel += dstDescPtr->strides.cStride;
             }
         }
     }
