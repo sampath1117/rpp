@@ -62,10 +62,31 @@ int main(int argc, char **argv)
     char funcType[1000] = {"Tensor_HOST_PKD3"};
 
     char funcName[1000];
+
+    //set user input
+
+    //Set Brightness default values
+    Rpp32f pAlpha = 1.5, pBeta = 60; 
+
+    //Set CMN default values
+    Rpp32f pStdDev = 1.0, pMean = 1.0;
+    Rpp32u pMirror = 0;
+
+    //set ColorTwist Default values
+    Rpp32f pBrightness = 1.4, pContrast = 0.0, pHue = 60.0, pSaturation = 1.9;
+
+    //set Spatter Default values
+    Rpp8u pRed = 65, pGreen = 50, pBlue = 23;
+
     switch (test_case)
     {
     case 0:
         strcpy(funcName, "brightness");
+        if(argv[8] != NULL)
+        {
+            pAlpha = atof(argv[8]);
+            pBeta = atof(argv[9]);
+        }
         break;
     case 1:
         strcpy(funcName, "gamma_correction");
@@ -81,12 +102,25 @@ int main(int argc, char **argv)
         break;
     case 36:
         strcpy(funcName, "color_twist");
+        if(argv[8] != NULL)
+        {
+            pBrightness = atof(argv[8]);
+            pContrast = atof(argv[9]);
+            pHue = atof(argv[10]);
+            pSaturation = atof(argv[11]);
+        }
         break;
     case 37:
         strcpy(funcName, "crop");
         break;
     case 38:
         strcpy(funcName, "crop_mirror_normalize");
+        if(argv[8] != NULL)
+        {
+            pMean = atof(argv[8]);
+            pStdDev = atof(argv[9]);
+            pMirror = atoi(argv[10]);
+        }
         break;
     case 81:
         strcpy(funcName, "color_jitter");
@@ -96,6 +130,12 @@ int main(int argc, char **argv)
         break;
     case 84:
         strcpy(funcName, "spatter");
+        if(argv[8] != NULL)
+        {
+            pRed = atoi(argv[8]);
+            pGreen = atoi(argv[9]);
+            pBlue = atoi(argv[10]);
+        }
         break;
     default:
         strcpy(funcName, "test_case");
@@ -457,10 +497,11 @@ int main(int argc, char **argv)
 
         Rpp32f alpha[images];
         Rpp32f beta[images];
+
         for (i = 0; i < images; i++)
         {
-            alpha[i] = 1.75;
-            beta[i] = 50;
+            alpha[i] = pAlpha;
+            beta[i] = pBeta;
         }
 
         // Uncomment to run test case with an xywhROI override
@@ -698,10 +739,10 @@ int main(int argc, char **argv)
         Rpp32f saturation[images];
         for (i = 0; i < images; i++)
         {
-            brightness[i] = 1.4;
-            contrast[i] = 0.0;
-            hue[i] = 60.0;
-            saturation[i] = 1.9;
+            brightness[i] = pBrightness;
+            contrast[i] = pContrast;
+            hue[i] = pHue;
+            saturation[i] = pSaturation;
         }
 
         // Uncomment to run test case with an xywhROI override
@@ -796,9 +837,9 @@ int main(int argc, char **argv)
         Rpp32u mirror[images];
         for (i = 0; i < images; i++)
         {
-            mean[i] = 0.0;
-            stdDev[i] = 1.0;
-            mirror[i] = 1;
+            mean[i] = pMean;
+            stdDev[i] = pStdDev;
+            mirror[i] = pMirror;
         }
 
         // Uncomment to run test case with an xywhROI override
@@ -955,9 +996,9 @@ int main(int argc, char **argv)
         RpptRGB spatterColor;
 
         // Mud Spatter
-        spatterColor.R = 65;
-        spatterColor.G = 50;
-        spatterColor.B = 23;
+        spatterColor.R = pRed;
+        spatterColor.G = pGreen;
+        spatterColor.B = pBlue;
 
         // Blood Spatter
         // spatterColor.R = 98;

@@ -136,14 +136,31 @@ if [ "$3" -ne 0 ]; then
     fi
 fi
 
-if (( "$#" < 3 )); then
+if [ "$4" -ne 0 ]; then
+    if [ "$4" -ne 1 ]; then
+        echo "The UserInput option must be 0/1!"
+        echo
+        echo "The rawLogsGenScript.sh bash script runs the RPP performance testsuite for AMDRPP functionalities in HOST/OCL/HIP backends."
+        echo
+        echo "Syntax: ./rawLogsGenScript.sh <S> <E> <U> <F>"
+        echo "S     CASE_START (Starting case# (0-84))"
+        echo "E     CASE_END (Ending case# (0-84))"
+        echo "U     UNIQUE_FUNC (0 = Skip / 1 = Run)"
+        echo "F     USER FLAG(0 = Skip / 1 = Run)"
+        exit 1
+    fi
+fi
+
+if (( "$#" < 4 )); then
     CASE_START="0"
     CASE_END="84"
     UNIQUE_FUNC="0"
+    USER_FLAG="0"
 else
     CASE_START="$1"
     CASE_END="$2"
     UNIQUE_FUNC="$3"
+    USER_FLAG="$4"
 fi
 
 rm -rvf "$DST_FOLDER"/*
@@ -154,15 +171,43 @@ rm -rvf ./*
 cmake ..
 make -j16
 
+inputArray=("")
+if ([[ $USER_FLAG -eq "1" ]])
+then
+    for ((case=$CASE_START;case<=$CASE_END;case++))
+    do
+        if [[ case -eq 0 ]]
+        then
+            varNames="Brightness - Alpha, Beta: "
+        elif [[ case -eq 36 ]]
+        then
+            varNames="ColorTwist - Brightness, Contrast, Hue, Saturation: "
+        elif [[ case -eq 38 ]]
+        then
+            varNames="CropMirrorNormalize - Mean, StdDev, Mirror: "
+        elif [[ case -eq 84 ]]
+        then
+            varNames="Spatter - R, G, B: "
+        fi
+        read -p "$varNames" inputArray[case] 
+    done
+fi
+
 printf "\n\n\n\n\n"
 echo "##########################################################################################"
 echo "Running all PKD3 Inputs..."
 echo "##########################################################################################"
 
-printf "\n\nUsage: ./BatchPD_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:84> <verbosity = 0/1>"
+printf "\n\nUsage: ./BatchPD_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:84> <verbosity = 0/1>\n"
 
 for ((case=$CASE_START;case<=$CASE_END;case++))
 do
+    tempArray=()
+    if ([[ $USER_FLAG -eq 1 ]])
+    then
+        tempArray=${inputArray[case]}
+    fi
+
     directory_name_generator "host" "pkd3" "$case"
     mkdir $DST_FOLDER_TEMP
 
@@ -201,7 +246,7 @@ do
             ./BatchPD_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
 
             printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
+            ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" ${tempArray[*]}
 
             echo "------------------------------------------------------------------------------------------"
         done
