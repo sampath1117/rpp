@@ -172,6 +172,7 @@ cmake ..
 make -j16
 
 inputArray=("")
+arrCount=0
 if ([[ $USER_FLAG -eq "1" ]])
 then
     for ((case=$CASE_START;case<=$CASE_END;case++))
@@ -179,12 +180,33 @@ then
         if [[ case -eq 0 ]]
         then
             varNames="Brightness - Alpha, Beta: "
+        elif [[ case -eq 1 ]]
+        then
+            varNames="Gamma correction - Gamma: "
+        elif [[ case -eq 2 ]]
+        then
+            varNames="Blend - Alpha: "
+        elif [[ case -eq 13 ]]
+        then
+            varNames="Exposure - Exposure Factor: "
+        elif [[ case -eq 31 ]]
+        then
+            varNames="ColorCast - R, G, B, Alpha: "
         elif [[ case -eq 36 ]]
         then
             varNames="ColorTwist - Brightness, Contrast, Hue, Saturation: "
+        elif [[ case -eq 37 ]]
+        then
+            varNames="Crop - x, y, w, h: "
         elif [[ case -eq 38 ]]
         then
-            varNames="CropMirrorNormalize - Mean, StdDev, Mirror: "
+            varNames="CropMirrorNormalize - x, y, w, h, Mean, StdDev, Mirror: "
+        elif [[ case -eq 81 ]]
+        then
+            varNames="ColorJitter - Brightness, Contrast, Hue, Saturation: "
+        elif [[ case -eq 83 ]]
+        then
+            varNames="GridMask - TileWidth, GridRatio, GridAngle, TranslateX, TranslateY: "
         elif [[ case -eq 84 ]]
         then
             varNames="Spatter - R, G, B: "
