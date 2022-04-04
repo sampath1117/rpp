@@ -68,19 +68,67 @@ int main(int argc, char **argv)
     char funcType[1000] = {"Tensor_HOST_PLN1_toPLN1"};
 
     char funcName[1000];
+
+    //set user input
+
+    //set brightness default values
+    Rpp32f pBrightness[2] = {1.75, 50.0}; 
+
+    //set gamma correction default value
+    Rpp32f pGamma = 1.9;
+
+    //set blend default values
+    Rpp32f pBlend = 0.4;
+
+    //set exposure default values
+    Rpp32f pExposure = 1.4;
+
+    //set crop default values
+    int pCrop[4] = {0, 0, 100, 180};
+
+    //Set CMN default values
+    int pCMNCrop[4] = {50, 50, 100, 100};
+    Rpp32f pCMNNormalize[2] = {0.0, 1.0};
+    Rpp8u pCMNMirror = 1;
+
+    //set gridmask default values    
+    Rpp32u pGridMaskTileWidth = 40;
+    Rpp32f pGridMask[2] = {0.6, 0.5};
+    Rpp32u pGridMaskTranslate[2] = {0, 0};
+
+    //set spatter default values
+    uint pSpatterRGB[3] = {65, 50, 23};
+    
     switch (test_case)
     {
     case 0:
         strcpy(funcName, "brightness");
+        if(argv[8] != NULL)
+        {
+            pBrightness[0] = atof(argv[8]);
+            pBrightness[1] = atof(argv[9]);
+        }
         break;
     case 1:
         strcpy(funcName, "gamma_correction");
+        if(argv[8] != NULL)
+        {
+            pGamma = atof(argv[8]);
+        }
         break;
     case 2:
         strcpy(funcName, "blend");
+        if(argv[8] != NULL)
+        {
+            pBlend = atof(argv[8]);
+        }
         break;
     case 13:
         strcpy(funcName, "exposure");
+        if(argv[8] != NULL)
+        {
+            pExposure = atof(argv[8]);
+        }
         break;
     case 31:
         strcpy(funcName, "color_cast");
@@ -90,18 +138,49 @@ int main(int argc, char **argv)
         break;
     case 37:
         strcpy(funcName, "crop");
+        if(argv[8] != NULL)
+        {
+            pCrop[0] = atoi(argv[8]);
+            pCrop[1] = atoi(argv[9]);
+            pCrop[2] = atoi(argv[10]);
+            pCrop[3] = atoi(argv[11]);
+        }
         break;
     case 38:
         strcpy(funcName, "crop_mirror_normalize");
+        if(argv[8] != NULL)
+        {
+            pCMNCrop[0] = atoi(argv[8]);
+            pCMNCrop[1] = atof(argv[9]);
+            pCMNCrop[2] = atoi(argv[10]);
+            pCMNCrop[3] = atoi(argv[11]);
+            pCMNNormalize[0] = atof(argv[12]);
+            pCMNNormalize[1] = atof(argv[13]);
+            pCMNMirror = atoi(argv[14]);
+        }
         break;
     case 81:
         strcpy(funcName, "color_jitter");
         break;
     case 83:
         strcpy(funcName, "gridmask");
+        if(argv[8] != NULL)
+        {
+            pGridMaskTileWidth = atoi(argv[8]);
+            pGridMask[0] = atof(argv[9]);
+            pGridMask[1] = atof(argv[10]);
+            pGridMaskTranslate[0] = atoi(argv[11]);
+            pGridMaskTranslate[0] = atoi(argv[12]);
+        }
         break;
     case 84:
         strcpy(funcName, "spatter");
+        if(argv[8] != NULL)
+        {
+            pSpatterRGB[0] = atoi(argv[8]);
+            pSpatterRGB[1] = atoi(argv[9]);
+            pSpatterRGB[2] = atoi(argv[10]);
+        }
         break;
     default:
         strcpy(funcName, "test_case");
@@ -455,10 +534,11 @@ int main(int argc, char **argv)
 
         Rpp32f alpha[images];
         Rpp32f beta[images];
+
         for (i = 0; i < images; i++)
         {
-            alpha[i] = 1.75;
-            beta[i] = 50;
+            alpha[i] = pBrightness[0];
+            beta[i] = pBrightness[1];
         }
 
         // Uncomment to run test case with an xywhROI override
@@ -508,7 +588,7 @@ int main(int argc, char **argv)
         Rpp32f gammaVal[images];
         for (i = 0; i < images; i++)
         {
-            gammaVal[i] = 1.9;
+            gammaVal[i] = pGamma;
         }
 
         // Uncomment to run test case with an xywhROI override
@@ -558,7 +638,7 @@ int main(int argc, char **argv)
         Rpp32f alpha[images];
         for (i = 0; i < images; i++)
         {
-            alpha[i] = 0.4;
+            alpha[i] = pBlend;
         }
 
         // Uncomment to run test case with an xywhROI override
@@ -608,7 +688,7 @@ int main(int argc, char **argv)
         Rpp32f exposureFactor[images];
         for (i = 0; i < images; i++)
         {
-            exposureFactor[i] = 1.4;
+            exposureFactor[i] = pExposure;
         }
 
         start_omp = omp_get_wtime();
@@ -639,10 +719,10 @@ int main(int argc, char **argv)
         // Uncomment to run test case with an xywhROI override
         for (i = 0; i < images; i++)
         {
-            roiTensorPtrSrc[i].xywhROI.xy.x = 0;
-            roiTensorPtrSrc[i].xywhROI.xy.y = 0;
-            roiTensorPtrSrc[i].xywhROI.roiWidth = 100;
-            roiTensorPtrSrc[i].xywhROI.roiHeight = 180;
+            roiTensorPtrSrc[i].xywhROI.xy.x = pCrop[0];
+            roiTensorPtrSrc[i].xywhROI.xy.y = pCrop[1];
+            roiTensorPtrSrc[i].xywhROI.roiWidth = pCrop[2];
+            roiTensorPtrSrc[i].xywhROI.roiHeight = pCrop[3];
         }
 
         // Uncomment to run test case with an ltrbROI override
@@ -684,18 +764,18 @@ int main(int argc, char **argv)
         Rpp32u mirror[images];
         for (i = 0; i < images; i++)
         {
-            mean[i] = 0.0;
-            stdDev[i] = 1.0;
-            mirror[i] = 1;
+            mean[i] = pCMNNormalize[0];
+            stdDev[i] = pCMNNormalize[1];
+            mirror[i] = pCMNMirror;
         }
 
         // Uncomment to run test case with an xywhROI override
         for (i = 0; i < images; i++)
         {
-            roiTensorPtrSrc[i].xywhROI.xy.x = 50;
-            roiTensorPtrSrc[i].xywhROI.xy.y = 50;
-            roiTensorPtrSrc[i].xywhROI.roiWidth = 100;
-            roiTensorPtrSrc[i].xywhROI.roiHeight = 100;
+            roiTensorPtrSrc[i].xywhROI.xy.x = pCMNCrop[0];
+            roiTensorPtrSrc[i].xywhROI.xy.y = pCMNCrop[1];
+            roiTensorPtrSrc[i].xywhROI.roiWidth = pCMNCrop[2];
+            roiTensorPtrSrc[i].xywhROI.roiHeight = pCMNCrop[3];
         }
 
         // Uncomment to run test case with an ltrbROI override
@@ -733,12 +813,12 @@ int main(int argc, char **argv)
     {
         test_case_name = "gridmask";
 
-        Rpp32u tileWidth = 40;
-        Rpp32f gridRatio = 0.6;
-        Rpp32f gridAngle = 0.5;
+        Rpp32u tileWidth = pGridMaskTileWidth;
+        Rpp32f gridRatio = pGridMask[0];
+        Rpp32f gridAngle = pGridMask[1];
         RpptUintVector2D translateVector;
-        translateVector.x = 0.0;
-        translateVector.y = 0.0;
+        translateVector.x = pGridMaskTranslate[0];
+        translateVector.y = pGridMaskTranslate[1];
 
         // Uncomment to run test case with an xywhROI override
         /*for (i = 0; i < images; i++)
@@ -787,9 +867,9 @@ int main(int argc, char **argv)
         RpptRGB spatterColor;
 
         // Mud Spatter
-        spatterColor.R = 65;
-        spatterColor.G = 50;
-        spatterColor.B = 23;
+        spatterColor.R = pSpatterRGB[0];
+        spatterColor.G = pSpatterRGB[1];
+        spatterColor.B = pSpatterRGB[2];
 
         // Blood Spatter
         // spatterColor.R = 98;

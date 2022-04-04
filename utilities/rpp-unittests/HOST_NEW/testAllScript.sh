@@ -171,8 +171,8 @@ rm -rvf ./*
 cmake ..
 make -j16
 
-inputArray=("")
-arrCount=0
+USER_INPUT_ARGS=("")
+CASE_INDEX=0
 if ([[ $USER_FLAG -eq "1" ]])
 then
     for ((case=$CASE_START;case<=$CASE_END;case++))
@@ -211,7 +211,8 @@ then
         then
             varNames="Spatter - R, G, B: "
         fi
-        read -p "$varNames" inputArray[case] 
+        read -p "$varNames" USER_INPUT_ARGUMENTS[CASE_INDEX]
+        CASE_INDEX=CASE_INDEX+1
     done
 fi
 
@@ -222,12 +223,13 @@ echo "##########################################################################
 
 printf "\n\nUsage: ./BatchPD_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:84> <verbosity = 0/1>\n"
 
+CASE_INDEX=0
 for ((case=$CASE_START;case<=$CASE_END;case++))
 do
     tempArray=()
     if ([[ $USER_FLAG -eq 1 ]])
     then
-        tempArray=${inputArray[case]}
+        tempArray=${USER_INPUT_ARGUMENTS[CASE_INDEX]}
     fi
 
     directory_name_generator "host" "pkd3" "$case"
@@ -273,6 +275,10 @@ do
             echo "------------------------------------------------------------------------------------------"
         done
     done
+    if ([[ $USER_FLAG -eq 1 ]])
+    then
+        CASE_INDEX=CASE_INDEX+1
+    fi
 done
 
 mkdir "$DST_FOLDER/PKD3"
@@ -288,8 +294,15 @@ echo "##########################################################################
 
 printf "\n\nUsage: ./BatchPD_host_pln1 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:84> <verbosity = 0/1>"
 
+CASE_INDEX=0
 for ((case=$CASE_START;case<=$CASE_END;case++))
 do
+    tempArray=()
+    if ([[ $USER_FLAG -eq 1 ]])
+    then
+        tempArray=${USER_INPUT_ARGUMENTS[CASE_INDEX]}
+    fi
+
     directory_name_generator "host" "pln1" "$case"
     mkdir $DST_FOLDER_TEMP
 
@@ -328,11 +341,15 @@ do
             ./BatchPD_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
 
             printf "\n./Tensor_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
+            ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" ${tempArray[*]}
 
             echo "------------------------------------------------------------------------------------------"
         done
     done
+    if ([[ $USER_FLAG -eq 1 ]])
+    then
+        CASE_INDEX=CASE_INDEX+1
+    fi
 done
 
 mkdir "$DST_FOLDER/PLN1"
@@ -348,8 +365,15 @@ echo "##########################################################################
 
 printf "\n\nUsage: ./BatchPD_host_pln3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:84> <verbosity = 0/1>"
 
+CASE_INDEX=0
 for ((case=$CASE_START;case<=$CASE_END;case++))
 do
+    tempArray=()
+    if ([[ $USER_FLAG -eq 1 ]])
+    then
+        tempArray=${USER_INPUT_ARGUMENTS[CASE_INDEX]}
+    fi
+
     directory_name_generator "host" "pln3" "$case"
     mkdir $DST_FOLDER_TEMP
 
@@ -388,11 +412,15 @@ do
             ./BatchPD_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
 
             printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
+            ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" ${tempArray[*]}
 
             echo "------------------------------------------------------------------------------------------"
         done
     done
+    if ([[ $USER_FLAG -eq 1 ]])
+    then
+        CASE_INDEX=CASE_INDEX+1
+    fi
 done
 
 mkdir "$DST_FOLDER/PLN3"

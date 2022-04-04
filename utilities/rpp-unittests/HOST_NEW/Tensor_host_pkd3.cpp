@@ -66,7 +66,7 @@ int main(int argc, char **argv)
     //set user input
 
     //set brightness default values
-    Rpp32f pBrightness[2] = {1.5, 60.0}; 
+    Rpp32f pBrightness[2] = {1.75, 50.0}; 
 
     //set gamma correction default value
     Rpp32f pGamma = 1.9;
