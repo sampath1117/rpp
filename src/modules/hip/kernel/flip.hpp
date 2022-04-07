@@ -10,43 +10,26 @@ __global__ void flip_pkd_tensor(T *srcPtr,
                                 unsigned int *verticalTensor,
                                 RpptROIPtr roiTensorPtrSrc)
 {
-    int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
+    int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
+    uint horizontalFlag = horizontalTensor[id_z];
+    uint verticalFlag = verticalTensor[id_z];
+    __shared__ T flip_temp[256];
     if ((id_y >= roiTensorPtrSrc[id_z].xywhROI.roiHeight) || (id_x >= roiTensorPtrSrc[id_z].xywhROI.roiWidth))
     {
         return;
     }
 
-    d_float24 pix_f24;
-    uint horizontalFlag, verticalFlag, srcIdx = id_z * srcStridesNH.x;
-    horizontalFlag = horizontalTensor[id_z];
-    verticalFlag = verticalTensor[id_z];
-
-    if(horizontalFlag == 0 && verticalFlag == 0)
-    {
-        srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + (id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x) * 3;
-        rpp_hip_load24_pkd3_and_unpack_to_float24_pln3(srcPtr + srcIdx, &pix_f24);
-    }
-    else if(horizontalFlag == 1 && verticalFlag == 1)
-    {
-        srcIdx = (id_z * srcStridesNH.x) + ((roiTensorPtrSrc[id_z].xywhROI.xy.y + roiTensorPtrSrc[id_z].xywhROI.roiHeight - 1 - id_y) * srcStridesNH.y) + (roiTensorPtrSrc[id_z].xywhROI.xy.x + roiTensorPtrSrc[id_z].xywhROI.roiWidth - id_x - 8) * 3;
-        rpp_hip_load24_pkd3_and_unpack_to_float24_pln3_mirror(srcPtr + srcIdx, &pix_f24);
-    }
-    else if(horizontalFlag == 1)
-    {
-        srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + (roiTensorPtrSrc[id_z].xywhROI.xy.x + roiTensorPtrSrc[id_z].xywhROI.roiWidth - id_x - 8) * 3;
-        rpp_hip_load24_pkd3_and_unpack_to_float24_pln3_mirror(srcPtr + srcIdx, &pix_f24);
-    }
-    else
-    {
-        srcIdx = (id_z * srcStridesNH.x) + ((roiTensorPtrSrc[id_z].xywhROI.xy.y + roiTensorPtrSrc[id_z].xywhROI.roiHeight - 1 - id_y) * srcStridesNH.y) + (id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x) * 3;
-        rpp_hip_load24_pkd3_and_unpack_to_float24_pln3(srcPtr + srcIdx, &pix_f24);
-    }
-
+    uint srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + id_x * 3;
     uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + id_x * 3;
-    rpp_hip_pack_float24_pln3_and_store24_pkd3(dstPtr + dstIdx, &pix_f24);
+
+    flip_temp[hipThreadIdx_x] = srcPtr[srcIdx];
+   
+    __syncthreads();
+    
+    dstPtr[dstIdx] = flip_temp[hipThreadIdx_x];
 }
 
 template <typename T>
@@ -244,8 +227,8 @@ RppStatus hip_exec_flip_tensor(T *srcPtr,
     if ((srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
     {
         hipLaunchKernelGGL(flip_pkd_tensor,
-                           dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
-                           dim3(localThreads_x, localThreads_y, localThreads_z),
+                           dim3(ceil((float)(dstDescPtr->strides.hStride)/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
+                           dim3(localThreads_x , localThreads_y, localThreads_z),
                            0,
                            handle.GetStream(),
                            srcPtr,
