@@ -2141,8 +2141,8 @@ int main(int argc, char **argv)
             y1[i] = 0;
             x2[i] = 50;
             y2[i] = 50;
-            dstSize[i].height = srcSize[i].height / 3;
-            dstSize[i].width = srcSize[i].width / 1.1;
+            dstSize[i].height = 100;//srcSize[i].height / 3;
+            dstSize[i].width = 100;//srcSize[i].width / 1.1;
             if (maxDstHeight < dstSize[i].height)
                 maxDstHeight = dstSize[i].height;
             if (maxDstWidth < dstSize[i].width)
