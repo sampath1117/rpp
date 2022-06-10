@@ -86,6 +86,8 @@ __global__ void resize_mirror_normalize_bilinear_pkd_tensor(T *srcPtr,
     dstDimsWH.x = dstImgSize[id_z].width;
     dstDimsWH.y = dstImgSize[id_z].height;
 
+    // printf("calculated dst width and height case\n");
+
     if ((id_y >= dstDimsWH.y) || (id_x >= dstDimsWH.x))
     {
         return;
@@ -116,12 +118,12 @@ __global__ void resize_mirror_normalize_bilinear_pkd_tensor(T *srcPtr,
     d_float24 dst_f24;
     rpp_hip_interpolate24_bilinear_pkd3(srcPtr + srcIdx, srcStridesNH.y, &locSrc_f16, &srcRoi_i4, &dst_f24, false);
     
-    d_float24 dst_f24_pln;
-    rpp_hip_pack_float24_pkd3_to_pln3(&dst_f24, &dst_f24_pln);
-    rmn_hip_compute(dstPtr, &dst_f24_pln.f8[0], &rmnParams_R_f8);
-    rmn_hip_compute(dstPtr, &dst_f24_pln.f8[1], &rmnParams_G_f8);
-    rmn_hip_compute(dstPtr, &dst_f24_pln.f8[2], &rmnParams_B_f8);
-    rpp_hip_pack_float24_pln3_and_store24_pkd3(dstPtr + dstIdx, &dst_f24_pln);
+    // d_float24 dst_f24_pln;
+    // rpp_hip_pack_float24_pkd3_to_pln3(&dst_f24, &dst_f24_pln);
+    // rmn_hip_compute(dstPtr, &dst_f24_pln.f8[0], &rmnParams_R_f8);
+    // rmn_hip_compute(dstPtr, &dst_f24_pln.f8[1], &rmnParams_G_f8);
+    // rmn_hip_compute(dstPtr, &dst_f24_pln.f8[2], &rmnParams_B_f8);
+    rpp_hip_pack_float24_pkd3_and_store24_pkd3(dstPtr + dstIdx, &dst_f24);
 }
 
 template <typename T>   
@@ -136,7 +138,6 @@ __global__ void resize_mirror_normalize_bilinear_pln_tensor(T *srcPtr,
                                                             uint *mirrorTensor,
                                                             RpptROIPtr roiTensorPtrSrc)
 {
-    
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
@@ -213,9 +214,13 @@ __global__ void resize_mirror_normalize_bilinear_pkd3_pln3_tensor(T *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
+    // printf("entered hip PKD3-PLN3 case\n");
+
     uint2 dstDimsWH;
     dstDimsWH.x = dstImgSize[id_z].width;
     dstDimsWH.y = dstImgSize[id_z].height;
+
+    // printf("computed widht and height\n");
 
     if ((id_y >= dstDimsWH.y) || (id_x >= dstDimsWH.x))
     {
@@ -327,7 +332,7 @@ RppStatus hip_exec_resize_mirror_normalize_tensor(T *srcPtr,
     if (roiType == RpptRoiType::XYWH)
         hip_exec_roi_converison_xywh_to_ltrb(roiTensorPtrSrc, handle);
 
-    //Set non ROI pixels to zero
+    // Set non ROI pixels to zero
     int max_dst_size = dstDescPtr->w * dstDescPtr->w * dstDescPtr->c;
     for(int i = 0; i < dstDescPtr->n; i++)
     {
@@ -345,6 +350,7 @@ RppStatus hip_exec_resize_mirror_normalize_tensor(T *srcPtr,
     {
         if ((srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
         {
+            // std::cout<<"launching PKD3-PKD3 kernel\n"<<std::endl;
             hipLaunchKernelGGL(resize_mirror_normalize_bilinear_pkd_tensor,
                                dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
                                dim3(localThreads_x, localThreads_y, localThreads_z),
@@ -362,6 +368,7 @@ RppStatus hip_exec_resize_mirror_normalize_tensor(T *srcPtr,
         }
         else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
         {
+            // std::cout<<"launching PLN3-PLN3 kernel\n"<<std::endl;
             hipLaunchKernelGGL(resize_mirror_normalize_bilinear_pln_tensor,
                                dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
                                dim3(localThreads_x, localThreads_y, localThreads_z),
@@ -382,6 +389,7 @@ RppStatus hip_exec_resize_mirror_normalize_tensor(T *srcPtr,
         {
             if ((srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NCHW))
             {
+                // std::cout<<"launching PKD3-PLN3 kernel\n"<<std::endl;
                 hipLaunchKernelGGL(resize_mirror_normalize_bilinear_pkd3_pln3_tensor,
                                    dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
                                    dim3(localThreads_x, localThreads_y, localThreads_z),
@@ -399,6 +407,7 @@ RppStatus hip_exec_resize_mirror_normalize_tensor(T *srcPtr,
             }
             else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NHWC))
             {
+                // std::cout<<"launching PLN3-PKD3 kernel\n"<<std::endl;
                 globalThreads_x = (dstDescPtr->w + 7) >> 3;
                 hipLaunchKernelGGL(resize_mirror_normalize_bilinear_pln3_pkd3_tensor,
                                    dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
