@@ -45,8 +45,11 @@ cwd=$(pwd)
 # DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/three_images_224x224_src2"
 
 # Input Images - Eight images (224 x 224)
-DEFAULT_SRC_FOLDER_1="/media/sampath/rppTestImages/224x224_0008_images_src1"
-DEFAULT_SRC_FOLDER_2="/media/sampath/rppTestImages/224x224_0008_images_src1"
+DEFAULT_SRC_FOLDER_1="/media/imageNetRecords/imagenet_completeDataset/val"
+DEFAULT_SRC_FOLDER_2="/media/imageNetRecords/imagenet_completeDataset/val"
+
+# DEFAULT_SRC_FOLDER_1="/media/imageNetRecords/imagenet_completeDataset/val"
+# DEFAULT_SRC_FOLDER_2="/media/imageNetRecords/imagenet_completeDataset/val"
 
 # Input Images - Two images (mixed size)
 # DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/two_images_mixed_src1"
@@ -188,7 +191,7 @@ do
     for ((bitDepth=0;bitDepth<1;bitDepth++))
     do
         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
-        for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
+        for ((outputFormatToggle=0;outputFormatToggle<1;outputFormatToggle++))
         do
 
             SRC_FOLDER_1_TEMP="$SRC_FOLDER_1"
@@ -398,7 +401,7 @@ done
 #     for ((bitDepth=0;bitDepth<1;bitDepth++))
 #     do
 #         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
-#         for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
+#         for ((outputFormatToggle=0;outputFormatToggle<1;outputFormatToggle++))
 #         do
 
 #             SRC_FOLDER_1_TEMP="$SRC_FOLDER_1"

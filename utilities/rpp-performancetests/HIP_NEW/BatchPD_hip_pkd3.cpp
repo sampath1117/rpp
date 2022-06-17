@@ -235,23 +235,56 @@ int main(int argc, char **argv)
     unsigned long long ioBufferSize = 0;
     unsigned long long oBufferSize = 0;
     static int noOfImages = 0;
-    int batchSize = 3;
+    int batchSize = 256;
 
     Mat image;
 
     // Get number of images
     struct dirent *de;
+    struct dirent *de_sub;
     DIR *dr = opendir(src);
     std::vector<std::string> imageNamesVec;
+    char subname[1000]={};
+    char temp_img[1000] ={};
+    printf("source directory: %s ",subname);
     while ((de = readdir(dr)) != NULL)
     {
         if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
             continue;
-        noOfImages += 1;
-        imageNamesVec.push_back(de->d_name);
+
+        if (de->d_type == DT_DIR)
+        {
+           strcpy(subname, src);
+           strcat(subname,"/");
+           strcat(subname, de->d_name);
+
+           DIR *drsub = opendir(subname);
+           while((de_sub = readdir(drsub))!= NULL)
+           {
+                if (strcmp(de_sub->d_name, ".") == 0 || strcmp(de_sub->d_name, "..") == 0)
+                    continue;
+
+                strcpy(temp_img, subname);
+                strcat(temp_img,"/");
+                strcat(temp_img, de_sub->d_name);
+
+                noOfImages += 1;
+                // std::cout<<"noOfImages: "<<noOfImages<<std::endl;
+                imageNamesVec.push_back(temp_img);
+           }
+           closedir(drsub);
+        }
+        else
+        {
+            strcpy(temp_img, src);
+            strcat(temp_img,"/");
+            strcat(temp_img, de->d_name);
+            noOfImages += 1;
+            imageNamesVec.push_back(temp_img);
+        }
     }
     closedir(dr);
-    
+
     std::string last_img_name = imageNamesVec[noOfImages - 1];
     int remImages = 0;
 
@@ -260,7 +293,7 @@ int main(int argc, char **argv)
     {
         remImages = batchSize - noOfImages % batchSize;
     }
-    
+
     //Replicate last image for remImages
     for(int i = 0; i < remImages; i++)
     {
@@ -273,24 +306,23 @@ int main(int argc, char **argv)
 
     // Set maxHeight, maxWidth and ROIs for src/dst
     const int images = batchSize;
-    for(int i = 0; i < (int)imageNamesVec.size(); i++)
-    {
-        std::string currentImageName = imageNamesVec[i];
-        char tempName[1000] ={};
-        strcat(tempName, src);
-        strcat(tempName, "/");
-        strcat(tempName, currentImageName.c_str()); 
-        image = imread(tempName, 1);
+    // for(int i = 0; i < (int)imageNamesVec.size(); i++)
+    // {
+    //     std::string currentImageName = imageNamesVec[i];
+    //     image = imread(currentImageName.c_str(), 1);
 
-        maxHeight = RPPMAX2(maxHeight, image.rows);
-        maxWidth = RPPMAX2(maxWidth, image.cols);
-        maxDstHeight = RPPMAX2(maxDstHeight, image.rows);
-        maxDstWidth = RPPMAX2(maxDstWidth, image.cols);
-    }
+    //     maxHeight = RPPMAX2(maxHeight, image.rows);
+    //     maxWidth = RPPMAX2(maxWidth, image.cols);
+    //     maxDstHeight = RPPMAX2(maxDstHeight, image.rows);
+    //     maxDstWidth = RPPMAX2(maxDstWidth, image.cols);
+    // }
+    std::cout<<"calculated max width and max height"<<std::endl;
 
     // Uncomment for Resize upsampling
-    maxDstWidth = 300;
-    maxDstHeight = 300;
+    maxWidth = 4288;
+    maxHeight = 5005;
+    maxDstWidth = 4288;
+    maxDstHeight = 5005;
 
     ioBufferSize = (unsigned long long)maxHeight * (unsigned long long)maxWidth * (unsigned long long)ip_channel * (unsigned long long)batchSize;
     oBufferSize = (unsigned long long)maxDstHeight * (unsigned long long)maxDstWidth * (unsigned long long)ip_channel * (unsigned long long)batchSize;
@@ -316,7 +348,7 @@ int main(int argc, char **argv)
     }
 
     std::cout<<std::endl<<"maxWidth, maxHeight: "<<maxWidth<<" "<<maxHeight;
- 
+
     // Run case-wise RPP API and measure time
     rppHandle_t handle;
     hipStream_t stream;
@@ -328,11 +360,12 @@ int main(int argc, char **argv)
 
     string test_case_name;
     printf("\nRunning %s 100 times (each time with a batch size of %d images) and computing mean statistics...\n", func, batchSize);
-
-    for (int perfRunCount = 0; perfRunCount < 100; perfRunCount++)
+    std::cout<<"iterations: "<<(int)imageNamesVec.size() / batchSize<<std::endl;
+    for (int perfRunCount = 0; perfRunCount < 2; perfRunCount++)
     {
         for(int t = 0; t < (int)imageNamesVec.size() / batchSize; t++)
         {
+            std::cout<<"Iteration: "<<t<<std::endl;
             //Read the input images
             Rpp8u *offsetted_input;
             offsetted_input = input;
@@ -342,12 +375,8 @@ int main(int argc, char **argv)
                 Rpp8u *input_temp;
                 input_temp = offsetted_input + (i * imageDimMax);
                 int idx = t * batchSize + i;
-                
-                char temp[1000];
-                strcpy(temp, src1);
-                strcat(temp, imageNamesVec[idx].c_str());
-                
-                image = imread(temp, 1); 
+
+                image = imread(imageNamesVec[idx].c_str(), 1);
                 srcSize[i].width = image.cols;
                 srcSize[i].height = image.rows;
                 dstSize[i].width = image.cols;
@@ -368,17 +397,17 @@ int main(int argc, char **argv)
             {
                 hipMemcpy(d_input, input, ioBufferSize * sizeof(Rpp8u), hipMemcpyHostToDevice);
             }
-                    
-            double gpu_time_used;
+
+            double gpu_time_used = 0;
             switch (test_case)
             {
                 case 0:
                 {
                     test_case_name = "brightness";
 
-                    Rpp32f alpha[images];
-                    Rpp32f beta[images];
-                    for (i = 0; i < images; i++)
+                    Rpp32f alpha[batchSize];
+                    Rpp32f beta[batchSize];
+                    for (i = 0; i < batchSize; i++)
                     {
                         alpha[i] = 1.75;
                         beta[i] = 50;
@@ -405,22 +434,53 @@ int main(int argc, char **argv)
 
                     break;
                 }
+                case 20:
+                {
+                    test_case_name = "flip";
+
+                    Rpp32u flipAxis[batchSize];
+                    for (i = 0; i < batchSize; i++)
+                    {
+                        flipAxis[i] = 1;
+                    }
+
+                    start = clock();
+
+                    if (ip_bitDepth == 0)
+                        rppi_flip_u8_pkd3_batchPD_gpu(d_input, srcSize, maxSize, d_output, flipAxis, noOfImages, handle);
+                    // else if (ip_bitDepth == 1)
+                    //     missingFuncFlag = 1;
+                    // else if (ip_bitDepth == 2)
+                    //     missingFuncFlag = 1;
+                    // else if (ip_bitDepth == 3)
+                    //     missingFuncFlag = 1;
+                    // else if (ip_bitDepth == 4)
+                    //     missingFuncFlag = 1;
+                    // else if (ip_bitDepth == 5)
+                    //     missingFuncFlag = 1;
+                    // else if (ip_bitDepth == 6)
+                    //     missingFuncFlag = 1;
+                    else
+                        missingFuncFlag = 1;
+
+                    break;
+                }
                 case 21:
                 {
                     test_case_name = "resize";
 
-                    for (i = 0; i < images; i++)
+                    for (i = 0; i < batchSize; i++)
                     {
                         dstSize[i].height = 300;
                         dstSize[i].width = 300;
-                        // if (maxDstHeight < dstSize[i].height)
-                        //     maxDstHeight = dstSize[i].height;
-                        // if (maxDstWidth < dstSize[i].width)
-                        //     maxDstWidth = dstSize[i].width;
-                        
+                        if (maxDstHeight < dstSize[i].height)
+                            maxDstHeight = dstSize[i].height;
+                        if (maxDstWidth < dstSize[i].width)
+                            maxDstWidth = dstSize[i].width;
+
                     }
-                    maxDstSize.height = 300;//maxDstHeight;
-                    maxDstSize.width = 300;//maxDstWidth;
+                    maxDstSize.height = maxDstHeight;
+                    maxDstSize.width = maxDstWidth;
 
                     start = clock();
 
@@ -474,32 +534,32 @@ int main(int argc, char **argv)
     }
 
     int factor = (int)imageNamesVec.size() / batchSize;
-    avg_time_used /= (factor * 100);
+    avg_time_used /= (factor * 2);
     cout << fixed << "\nmax,min,avg = " << max_time_used << "," << min_time_used << "," << avg_time_used << endl;
-    
+
     // Reconvert other bit depths to 8u for output display purposes
 
     string fileName = std::to_string(ip_bitDepth);
     ofstream outputFile (fileName + ".csv");
 
-    if (ip_bitDepth == 0)
-    {
-        hipMemcpy(output, d_output, oBufferSize, hipMemcpyDeviceToHost);
-        Rpp8u *outputTemp;
-        outputTemp = output;;
+    // if (ip_bitDepth == 0)
+    // {
+    //     hipMemcpy(output, d_output, oBufferSize, hipMemcpyDeviceToHost);
+    //     Rpp8u *outputTemp;
+    //     outputTemp = output;
 
-        if (outputFile.is_open())
-        {
-            for (int i = 0; i < oBufferSize; i++)
-            {
-                outputFile << (Rpp32u) *outputTemp << ",";
-                outputTemp++;
-            }
-            outputFile.close();
-        }
-        else
-            cout << "Unable to open file!";
-    }
+        // if (outputFile.is_open())
+        // {
+        //     for (int i = 0; i < oBufferSize; i++)
+        //     {
+        //         outputFile << (Rpp32u) *outputTemp << ",";
+        //         outputTemp++;
+        //     }
+        //     outputFile.close();
+        // }
+        // else
+        //     cout << "Unable to open file!";
+    // }
 
     rppDestroyGPU(handle);
 
@@ -509,42 +569,47 @@ int main(int argc, char **argv)
     strcat(dst, "/");
     count = 0;
 
-    if (outputFormatToggle == 0)
-    {
-        Rpp8u *offsetted_output;
-        offsetted_output = output;
-        for (j = 0; j < batchSize; j++)
-        {
-            int height = dstSize[j].height;
-            int width =  dstSize[j].width;
+    // elementsInRowMax = maxDstWidth * ip_channel;
+    // if (outputFormatToggle == 0)
+    // {
+    //     Rpp8u *offsetted_output;
+    //     offsetted_output = output;
+    //     for (j = 0; j < batchSize; j++)
+    //     {
+    //         int height = dstSize[j].height;
+    //         int width =  dstSize[j].width;
 
-            int op_size = height * width * ip_channel;
-            Rpp8u *temp_output = (Rpp8u *)calloc(op_size, sizeof(Rpp8u));
-            Rpp8u *temp_output_row;
-            temp_output_row = temp_output;
-            Rpp32u elementsInRow = width * ip_channel;
-            Rpp8u *output_row = offsetted_output + count;
+    //         int op_size = height * width * ip_channel;
+    //         Rpp8u *temp_output = (Rpp8u *)calloc(op_size, sizeof(Rpp8u));
+    //         Rpp8u *temp_output_row;
+    //         temp_output_row = temp_output;
+    //         Rpp32u elementsInRow = width * ip_channel;
+    //         Rpp8u *output_row = offsetted_output + count;
 
-            for (int k = 0; k < height; k++)
-            {
-                memcpy(temp_output_row, (output_row), elementsInRow * sizeof (Rpp8u));
-                temp_output_row += elementsInRow;
-                output_row += elementsInRowMax;
-            }
-            count += maxHeight * maxWidth * ip_channel;
+    //         for (int k = 0; k < height; k++)
+    //         {
+    //             memcpy(temp_output_row, (output_row), elementsInRow * sizeof (Rpp8u));
+    //             temp_output_row += elementsInRow;
+    //             output_row += elementsInRowMax;
+    //         }
+    //         count += maxDstHeight * maxDstWidth * ip_channel;
 
-            char temp[1000];
-            strcpy(temp, dst);
-            strcat(temp, imageNamesVec[j].c_str());
-            // printf("image name is: %s ",temp);
+    //         char temp[1000];
+    //         char outName[1000];
+    //         strcpy(temp, dst);
+    //         strcpy(outName, "batchpd");
+    //         std::string num = to_string(j);
+    //         strcat(outName, num.c_str());
+    //         strcat(outName, ".jpg");
+    //         strcat(temp, outName);
 
-            Mat mat_op_image;
-            mat_op_image = Mat(height, width, CV_8UC3, temp_output);
-            imwrite(temp, mat_op_image);
+    //         Mat mat_op_image;
+    //         mat_op_image = Mat(height, width, CV_8UC3, temp_output);
+    //         imwrite(temp, mat_op_image);
 
-            free(temp_output);
-        }
-    }
+    //         free(temp_output);
+    //     }
+    // }
 
     // Free memory
     free(srcSize);
