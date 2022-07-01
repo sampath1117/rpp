@@ -333,10 +333,10 @@ RppStatus hip_exec_resize_mirror_normalize_tensor(T *srcPtr,
 
     // Set non ROI pixels to zero
     int max_dst_size = dstDescPtr->w * dstDescPtr->h * dstDescPtr->c;
-    // for(int i = 0; i < dstDescPtr->n; i++)
-    // {
-    //     hipMemset(dstPtr + i * (max_dst_size), (T)0, size_t(max_dst_size));
-    // }
+    for(int i = 0; i < dstDescPtr->n; i++)
+    {
+        hipMemset(dstPtr + i * (max_dst_size), (T)0, size_t(max_dst_size));
+    }
 
     int localThreads_x = 16;
     int localThreads_y = 16;
