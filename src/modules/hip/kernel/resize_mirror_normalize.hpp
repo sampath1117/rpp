@@ -109,10 +109,10 @@ __global__ void resize_mirror_normalize_bilinear_pkd_tensor(T *srcPtr,
     rmnParams_B_f8.f4[1] = (float4)1.0;//(1 / stdDevTensor[id_z * 3 + 2]);
 
     d_float16 locSrc_f16;
-    if(mirrorTensor[id_z] == 1)
-        resize_mirror_normalize_roi_and_srclocs_hip_compute_mirror(&srcRoi_i4, &dstDimsWH, id_x, id_y, &locSrc_f16);
-    else
-        resize_mirror_normalize_roi_and_srclocs_hip_compute(&srcRoi_i4, &dstDimsWH, id_x, id_y, &locSrc_f16);
+    // if(mirrorTensor[id_z] == 1)
+    //     resize_mirror_normalize_roi_and_srclocs_hip_compute_mirror(&srcRoi_i4, &dstDimsWH, id_x, id_y, &locSrc_f16);
+    // else
+    resize_mirror_normalize_roi_and_srclocs_hip_compute(&srcRoi_i4, &dstDimsWH, id_x, id_y, &locSrc_f16);
 
     d_float24 dst_f24;
     rpp_hip_interpolate24_bilinear_pkd3(srcPtr + srcIdx, srcStridesNH.y, &locSrc_f16, &srcRoi_i4, &dst_f24, false);
@@ -333,10 +333,10 @@ RppStatus hip_exec_resize_mirror_normalize_tensor(T *srcPtr,
 
     // Set non ROI pixels to zero
     int max_dst_size = dstDescPtr->w * dstDescPtr->h * dstDescPtr->c;
-    for(int i = 0; i < dstDescPtr->n; i++)
-    {
-        hipMemset(dstPtr + i * (max_dst_size), (T)0, size_t(max_dst_size));
-    }
+    // for(int i = 0; i < dstDescPtr->n; i++)
+    // {
+    //     hipMemset(dstPtr + i * (max_dst_size), (T)0, size_t(max_dst_size));
+    // }
 
     int localThreads_x = 16;
     int localThreads_y = 16;
