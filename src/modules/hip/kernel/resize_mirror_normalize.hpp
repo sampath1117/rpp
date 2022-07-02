@@ -331,19 +331,19 @@ RppStatus hip_exec_resize_mirror_normalize_tensor(T *srcPtr,
     if (roiType == RpptRoiType::XYWH)
         hip_exec_roi_converison_xywh_to_ltrb(roiTensorPtrSrc, handle);
 
-    // Set non ROI pixels to zero
-    int max_dst_size = dstDescPtr->w * dstDescPtr->h * dstDescPtr->c;
-    // for(int i = 0; i < dstDescPtr->n; i++)
-    // {
-    //     hipMemset(dstPtr + i * (max_dst_size), (T)0, size_t(max_dst_size));
-    // }
-
     int localThreads_x = 16;
     int localThreads_y = 16;
     int localThreads_z = 1;
     int globalThreads_x = (dstDescPtr->strides.hStride + 7) >> 3;
     int globalThreads_y = dstDescPtr->h;
     int globalThreads_z = handle.GetBatchSize();
+
+    // Set non ROI pixels to zero
+    // int max_dst_size = dstDescPtr->w * dstDescPtr->h * dstDescPtr->c;
+    for(int i = 0; i < dstDescPtr->n; i++)
+    {
+        memset(dstPtr + i * dstDescPtr->strides.nStride, 0, (size_t)dstDescPtr->strides.nStride);
+    }
 
     if (interpolationType == RpptInterpolationType::BILINEAR)
     {
