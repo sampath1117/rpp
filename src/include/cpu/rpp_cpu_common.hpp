@@ -1046,7 +1046,7 @@ inline RppStatus resize_kernel_host(T* srcPtr, RppiSize srcSize, U* dstPtr, Rppi
                         srcLocCF[pos] = widthLimit;
                     }
                     srcLocCF[pos] *= channel;
-
+                    
                     for (int c = 0; c < channel; c++)
                     {
                         *dstPtrTemp++ = (U) ((*(srcPtrTopRow + c + srcLocCF[pos])) * param1[pos])
@@ -4365,24 +4365,24 @@ inline void compute_dst_size_cap_host(RpptImagePatchPtr dstImgSize, RpptDescPtr 
 inline void compute_resize_src_loc(Rpp32s dstLocation, Rpp32f scale, Rpp32s &srcLoc, Rpp32f &weight, Rpp32f offset = 0, Rpp32u srcStride = 1)
 {
     Rpp32f srcLocationFloat = ((Rpp32f) dstLocation) * scale + offset;
-    Rpp32s srcLocation = (Rpp32s) std::ceil(srcLocationFloat);
-    weight = srcLocation - srcLocationFloat;
+    Rpp32s srcLocation = (Rpp32s) RPPFLOOR(srcLocationFloat);
+    weight = srcLocationFloat - srcLocation;
     srcLoc = srcLocation * srcStride;
 }
 
 inline void compute_resize_bilinear_src_loc_and_weights(Rpp32s dstLocation, Rpp32f scale, Rpp32s &srcLoc, Rpp32f *weight, Rpp32f offset = 0, Rpp32u srcStride = 1)
 {
-    compute_resize_src_loc(dstLocation, scale, srcLoc, weight[1], offset, srcStride);
-    weight[0] = 1 - weight[1];
+    compute_resize_src_loc(dstLocation, scale, srcLoc, weight[0], offset, srcStride);
+    weight[1] = 1 - weight[0];
 }
 
 inline void compute_resize_bilinear_src_loc_and_weights_avx(__m256 &pDstLoc, __m256 &pScale, Rpp32s *srcLoc, __m256 *pWeight, __m256i &pxLoc, __m256 pOffset = avx_p0, bool hasRGBChannels = false)
 {
     __m256 pLocFloat = _mm256_fmadd_ps(pDstLoc, pScale, pOffset);
     pDstLoc = _mm256_add_ps(pDstLoc, avx_p8);
-    __m256 pLoc = _mm256_ceil_ps(pLocFloat);
-    pWeight[1] = _mm256_sub_ps(pLoc, pLocFloat);
-    pWeight[0] = _mm256_sub_ps(avx_p1, pWeight[1]);
+    __m256 pLoc = _mm256_floor_ps(pLocFloat);
+    pWeight[0] = _mm256_sub_ps(pLocFloat, pLoc);
+    pWeight[1] = _mm256_sub_ps(avx_p1, pWeight[0]);
     if(hasRGBChannels)
         pLoc = _mm256_mul_ps(pLoc, avx_p3);
     pxLoc = _mm256_cvtps_epi32(pLoc);
@@ -4393,9 +4393,9 @@ inline void compute_resize_bilinear_src_loc_and_weights_mirror_avx(__m256 &pDstL
 {
   __m256 pLocFloat = _mm256_fmadd_ps(pDstLoc, pScale, pOffset);
   pDstLoc = _mm256_sub_ps(pDstLoc, avx_p8);
-  __m256 pLoc = _mm256_ceil_ps(pLocFloat);
-  pWeight[1] = _mm256_sub_ps(pLoc, pLocFloat);
-  pWeight[0] = _mm256_sub_ps(avx_p1, pWeight[1]);
+  __m256 pLoc = _mm256_floor_ps(pLocFloat);
+  pWeight[0] = _mm256_sub_ps(pLocFloat, pLoc);
+  pWeight[1] = _mm256_sub_ps(avx_p1, pWeight[0]);
   if(hasRGBChannels)
     pLoc = _mm256_mul_ps(pLoc, avx_p3);
   pxLoc = _mm256_cvtps_epi32(pLoc);
