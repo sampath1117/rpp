@@ -1,28 +1,40 @@
 #include <hip/hip_runtime.h>
 #include "hip/rpp_hip_common.hpp"
 
-__device__ void rmn_hip_compute(uchar *srcPtr, d_float8 *pix_f8, d_float8 *rmnParams_f8)
+__device__ void rmn_hip_compute(uchar *srcPtr, uchar *dstPtr, d_float8 *pix_f8, d_float8 *rmnParams_f8)
 {
     pix_f8->f4[0] = rpp_hip_pixel_check_0to255((pix_f8->f4[0] - rmnParams_f8->f4[0]) * rmnParams_f8->f4[1]);
     pix_f8->f4[1] = rpp_hip_pixel_check_0to255((pix_f8->f4[1] - rmnParams_f8->f4[0]) * rmnParams_f8->f4[1]);
 }
 
-__device__ void rmn_hip_compute(float *srcPtr, d_float8 *pix_f8, d_float8 *rmnParams_f8)
+__device__ void rmn_hip_compute(float *srcPtr, float *dstPtr, d_float8 *pix_f8, d_float8 *rmnParams_f8)
 {
     pix_f8->f4[0] = rpp_hip_pixel_check_0to1((pix_f8->f4[0] - rmnParams_f8->f4[0] * (float4) ONE_OVER_255) * rmnParams_f8->f4[1]);
     pix_f8->f4[1] = rpp_hip_pixel_check_0to1((pix_f8->f4[1] - rmnParams_f8->f4[0] * (float4) ONE_OVER_255) * rmnParams_f8->f4[1]);
 }
 
-__device__ void rmn_hip_compute(schar *srcPtr, d_float8 *pix_f8, d_float8 *rmnParams_f8)
+__device__ void rmn_hip_compute(schar *srcPtr, schar *dstPtr, d_float8 *pix_f8, d_float8 *rmnParams_f8)
 {
     pix_f8->f4[0] = rpp_hip_pixel_check_0to255(((pix_f8->f4[0] + (float4)128) - rmnParams_f8->f4[0]) * rmnParams_f8->f4[1]) - (float4)128;
     pix_f8->f4[1] = rpp_hip_pixel_check_0to255(((pix_f8->f4[1] + (float4)128) - rmnParams_f8->f4[0]) * rmnParams_f8->f4[1]) - (float4)128;
 }
 
-__device__ void rmn_hip_compute(half *srcPtr, d_float8 *pix_f8, d_float8 *rmnParams_f8)
+__device__ void rmn_hip_compute(half *srcPtr, half *dstPtr, d_float8 *pix_f8, d_float8 *rmnParams_f8)
 {
     pix_f8->f4[0] = rpp_hip_pixel_check_0to1((pix_f8->f4[0] - rmnParams_f8->f4[0] * (float4) ONE_OVER_255) * rmnParams_f8->f4[1]);
     pix_f8->f4[1] = rpp_hip_pixel_check_0to1((pix_f8->f4[1] - rmnParams_f8->f4[0] * (float4) ONE_OVER_255) * rmnParams_f8->f4[1]);
+}
+
+__device__ void rmn_hip_compute(uchar *srcPtr, float *dstPtr, d_float8 *pix_f8, d_float8 *rmnParams_f8)
+{
+    pix_f8->f4[0] = rpp_hip_pixel_check_0to1((pix_f8->f4[0] - rmnParams_f8->f4[0]) * rmnParams_f8->f4[1] * (float4) ONE_OVER_255);
+    pix_f8->f4[1] = rpp_hip_pixel_check_0to1((pix_f8->f4[1] - rmnParams_f8->f4[0]) * rmnParams_f8->f4[1] * (float4) ONE_OVER_255);
+}
+
+__device__ void rmn_hip_compute(uchar *srcPtr, half *dstPtr, d_float8 *pix_f8, d_float8 *rmnParams_f8)
+{
+    pix_f8->f4[0] = rpp_hip_pixel_check_0to1((pix_f8->f4[0] - rmnParams_f8->f4[0]) * rmnParams_f8->f4[1] * (float4) ONE_OVER_255);
+    pix_f8->f4[1] = rpp_hip_pixel_check_0to1((pix_f8->f4[1] - rmnParams_f8->f4[0]) * rmnParams_f8->f4[1] * (float4) ONE_OVER_255);
 }
 
 __device__ void resize_mirror_normalize_roi_and_srclocs_hip_compute(int4 *srcRoiPtr_i4, uint2 *dstDimsWH, int id_x, int id_y, d_float16 *locSrc_f16)
@@ -67,10 +79,10 @@ __device__ void resize_mirror_normalize_roi_and_srclocs_hip_compute_mirror(int4 
     locSrc_f16->f8[1].f4[1] = (locDst_f8y.f4[1] * (float4)hRatio) + hOffset_f4 + (float4)srcRoiPtr_i4->y;  // Compute Next 4 locSrcY
 }
 
-template <typename T>
+template <typename T, typename U>
 __global__ void resize_mirror_normalize_bilinear_pkd_tensor(T *srcPtr,
                                                             uint2 srcStridesNH,
-                                                            T *dstPtr,
+                                                            U *dstPtr,
                                                             uint2 dstStridesNH,
                                                             RpptImagePatchPtr dstImgSize,
                                                             float *meanTensor,
@@ -119,16 +131,16 @@ __global__ void resize_mirror_normalize_bilinear_pkd_tensor(T *srcPtr,
     
     d_float24 dst_f24_pln;
     rpp_hip_pack_float24_pkd3_to_pln3(&dst_f24, &dst_f24_pln);
-    rmn_hip_compute(dstPtr, &dst_f24_pln.f8[0], &rmnParams_R_f8);
-    rmn_hip_compute(dstPtr, &dst_f24_pln.f8[1], &rmnParams_G_f8);
-    rmn_hip_compute(dstPtr, &dst_f24_pln.f8[2], &rmnParams_B_f8);
-    rpp_hip_pack_float24_pkd3_and_store24_pkd3(dstPtr + dstIdx, &dst_f24);
+    rmn_hip_compute(srcPtr, dstPtr, &dst_f24_pln.f8[0], &rmnParams_R_f8);
+    rmn_hip_compute(srcPtr, dstPtr, &dst_f24_pln.f8[1], &rmnParams_G_f8);
+    rmn_hip_compute(srcPtr, dstPtr, &dst_f24_pln.f8[2], &rmnParams_B_f8);
+    rpp_hip_pack_float24_pln3_and_store24_pkd3(dstPtr + dstIdx, &dst_f24_pln);
 }
 
-template <typename T>   
+template <typename T, typename U>   
 __global__ void resize_mirror_normalize_bilinear_pln_tensor(T *srcPtr,
                                                             uint3 srcStridesNCH,
-                                                            T *dstPtr,
+                                                            U *dstPtr,
                                                             uint3 dstStridesNCH,
                                                             RpptImagePatchPtr dstImgSize,
                                                             int channelsDst,
@@ -175,7 +187,7 @@ __global__ void resize_mirror_normalize_bilinear_pln_tensor(T *srcPtr,
     d_float8 dst_f8;
     rpp_hip_interpolate8_bilinear_pln1(srcPtr + srcIdx, srcStridesNCH.z, &locSrc_f16, &srcRoi_i4, &dst_f8, false);
     if(!(meanTensor[id_z] == 0.0 && stdDevTensor[id_z] == 1.0))
-        rmn_hip_compute(dstPtr, &dst_f8, &rmnParams_R_f8);
+        rmn_hip_compute(srcPtr, dstPtr, &dst_f8, &rmnParams_R_f8);
     rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &dst_f8);
 
     if (channelsDst == 3)
@@ -185,7 +197,7 @@ __global__ void resize_mirror_normalize_bilinear_pln_tensor(T *srcPtr,
 
         rpp_hip_interpolate8_bilinear_pln1(srcPtr + srcIdx, srcStridesNCH.z, &locSrc_f16, &srcRoi_i4, &dst_f8, false);
         if(!(meanTensor[id_z] == 0.0 && stdDevTensor[id_z] == 1.0))
-            rmn_hip_compute(dstPtr, &dst_f8, &rmnParams_G_f8);
+            rmn_hip_compute(srcPtr, dstPtr, &dst_f8, &rmnParams_G_f8);
         rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &dst_f8);
 
         srcIdx += srcStridesNCH.y;
@@ -193,15 +205,15 @@ __global__ void resize_mirror_normalize_bilinear_pln_tensor(T *srcPtr,
 
         rpp_hip_interpolate8_bilinear_pln1(srcPtr + srcIdx, srcStridesNCH.z, &locSrc_f16, &srcRoi_i4, &dst_f8, false);
         if(!(meanTensor[id_z] == 0.0 && stdDevTensor[id_z] == 1.0))
-            rmn_hip_compute(dstPtr, &dst_f8, &rmnParams_B_f8);
+            rmn_hip_compute(srcPtr, dstPtr, &dst_f8, &rmnParams_B_f8);
         rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &dst_f8);
     }
 }
 
-template <typename T>
+template <typename T, typename U>
 __global__ void resize_mirror_normalize_bilinear_pkd3_pln3_tensor(T *srcPtr,
                                                                   uint2 srcStridesNH,
-                                                                  T *dstPtr,
+                                                                  U *dstPtr,
                                                                   uint3 dstStridesNCH,
                                                                   RpptImagePatchPtr dstImgSize,
                                                                   float *meanTensor,
@@ -254,16 +266,16 @@ __global__ void resize_mirror_normalize_bilinear_pkd3_pln3_tensor(T *srcPtr,
     
     d_float24 dst_f24_pln;
     rpp_hip_pack_float24_pkd3_to_pln3(&dst_f24, &dst_f24_pln);
-    rmn_hip_compute(dstPtr, &dst_f24_pln.f8[0], &rmnParams_R_f8);
-    rmn_hip_compute(dstPtr, &dst_f24_pln.f8[1], &rmnParams_G_f8);
-    rmn_hip_compute(dstPtr, &dst_f24_pln.f8[2], &rmnParams_B_f8);
+    rmn_hip_compute(srcPtr, dstPtr, &dst_f24_pln.f8[0], &rmnParams_R_f8);
+    rmn_hip_compute(srcPtr, dstPtr, &dst_f24_pln.f8[1], &rmnParams_G_f8);
+    rmn_hip_compute(srcPtr, dstPtr, &dst_f24_pln.f8[2], &rmnParams_B_f8);
     rpp_hip_pack_float24_pln3_and_store24_pln3(dstPtr + dstIdx, dstStridesNCH.y, &dst_f24_pln);
 }
 
-template <typename T>
+template <typename T, typename U>
 __global__ void resize_mirror_normalize_bilinear_pln3_pkd3_tensor(T *srcPtr,
                                                                   uint3 srcStridesNCH,
-                                                                  T *dstPtr,
+                                                                  U *dstPtr,
                                                                   uint2 dstStridesNH,
                                                                   RpptImagePatchPtr dstImgSize,
                                                                   float *meanTensor,
@@ -309,24 +321,24 @@ __global__ void resize_mirror_normalize_bilinear_pln3_pkd3_tensor(T *srcPtr,
         
     d_float24 dst_f24;
     rpp_hip_interpolate24_bilinear_pln3(srcPtr + srcIdx, &srcStridesNCH, &locSrc_f16, &srcRoi_i4, &dst_f24, false);
-    rmn_hip_compute(dstPtr, &dst_f24.f8[0], &rmnParams_R_f8);
-    rmn_hip_compute(dstPtr, &dst_f24.f8[1], &rmnParams_G_f8);
-    rmn_hip_compute(dstPtr, &dst_f24.f8[2], &rmnParams_B_f8);
+    rmn_hip_compute(srcPtr, dstPtr, &dst_f24.f8[0], &rmnParams_R_f8);
+    rmn_hip_compute(srcPtr, dstPtr, &dst_f24.f8[1], &rmnParams_G_f8);
+    rmn_hip_compute(srcPtr, dstPtr, &dst_f24.f8[2], &rmnParams_B_f8);
     rpp_hip_pack_float24_pln3_and_store24_pkd3(dstPtr + dstIdx, &dst_f24);
 }
 
 // -------------------- Set 3 - Kernel Executors --------------------
 
-template <typename T>
+template <typename T, typename U>
 RppStatus hip_exec_resize_mirror_normalize_tensor(T *srcPtr,
-                                                 RpptDescPtr srcDescPtr,
-                                                 T *dstPtr,
-                                                 RpptDescPtr dstDescPtr,
-                                                 RpptImagePatchPtr dstImgSizes,
-                                                 RpptInterpolationType interpolationType,
-                                                 RpptROIPtr roiTensorPtrSrc,
-                                                 RpptRoiType roiType,
-                                                 rpp::Handle& handle)
+                                                  RpptDescPtr srcDescPtr,
+                                                  U *dstPtr,
+                                                  RpptDescPtr dstDescPtr,
+                                                  RpptImagePatchPtr dstImgSizes,
+                                                  RpptInterpolationType interpolationType,
+                                                  RpptROIPtr roiTensorPtrSrc,
+                                                  RpptRoiType roiType,
+                                                  rpp::Handle& handle)
 {
     if (roiType == RpptRoiType::XYWH)
         hip_exec_roi_converison_xywh_to_ltrb(roiTensorPtrSrc, handle);
@@ -339,7 +351,6 @@ RppStatus hip_exec_resize_mirror_normalize_tensor(T *srcPtr,
     int globalThreads_z = handle.GetBatchSize();
 
     // Set non ROI pixels to zero
-    // int max_dst_size = dstDescPtr->w * dstDescPtr->h * dstDescPtr->c;
     for(int i = 0; i < dstDescPtr->n; i++)
     {
         memset(dstPtr + i * dstDescPtr->strides.nStride, 0, (size_t)dstDescPtr->strides.nStride);
