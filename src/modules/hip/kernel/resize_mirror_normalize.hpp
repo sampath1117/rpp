@@ -359,8 +359,8 @@ RppStatus hip_exec_resize_mirror_normalize_tensor(T *srcPtr,
                                dstPtr,
                                make_uint2(dstDescPtr->strides.nStride, dstDescPtr->strides.hStride),
                                dstImgSizes,
-                               handle.GetInitHandle()->mem.mgpu.floatArr[0].floatmem,
-                               handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
+                               handle.GetInitHandle()->mem.mgpu.float3Arr[0].floatmem,
+                               handle.GetInitHandle()->mem.mgpu.float3Arr[1].floatmem,
                                handle.GetInitHandle()->mem.mgpu.uintArr[2].uintmem,
                                roiTensorPtrSrc);
         }
@@ -377,8 +377,8 @@ RppStatus hip_exec_resize_mirror_normalize_tensor(T *srcPtr,
                                make_uint3(dstDescPtr->strides.nStride, dstDescPtr->strides.cStride, dstDescPtr->strides.hStride),
                                dstImgSizes,
                                dstDescPtr->c,
-                               handle.GetInitHandle()->mem.mgpu.floatArr[0].floatmem,
-                               handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
+                               handle.GetInitHandle()->mem.mgpu.float3Arr[0].floatmem,
+                               handle.GetInitHandle()->mem.mgpu.float3Arr[1].floatmem,
                                handle.GetInitHandle()->mem.mgpu.uintArr[2].uintmem,
                                roiTensorPtrSrc);
         }
@@ -396,8 +396,8 @@ RppStatus hip_exec_resize_mirror_normalize_tensor(T *srcPtr,
                                    dstPtr,
                                    make_uint3(dstDescPtr->strides.nStride, dstDescPtr->strides.cStride, dstDescPtr->strides.hStride),
                                    dstImgSizes,
-                                   handle.GetInitHandle()->mem.mgpu.floatArr[0].floatmem,
-                                   handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
+                                   handle.GetInitHandle()->mem.mgpu.float3Arr[0].floatmem,
+                                   handle.GetInitHandle()->mem.mgpu.float3Arr[1].floatmem,
                                    handle.GetInitHandle()->mem.mgpu.uintArr[2].uintmem,
                                    roiTensorPtrSrc);
             }
@@ -414,8 +414,8 @@ RppStatus hip_exec_resize_mirror_normalize_tensor(T *srcPtr,
                                    dstPtr,
                                    make_uint2(dstDescPtr->strides.nStride, dstDescPtr->strides.hStride),
                                    dstImgSizes,
-                                   handle.GetInitHandle()->mem.mgpu.floatArr[0].floatmem,
-                                   handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
+                                   handle.GetInitHandle()->mem.mgpu.float3Arr[0].floatmem,
+                                   handle.GetInitHandle()->mem.mgpu.float3Arr[1].floatmem,
                                    handle.GetInitHandle()->mem.mgpu.uintArr[2].uintmem,
                                    roiTensorPtrSrc);
             }
