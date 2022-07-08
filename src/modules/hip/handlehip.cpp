@@ -101,7 +101,7 @@ void set_device(int id)
 
 void set_ctx(hipCtx_t ctx)
 {
-    auto status =  0; 
+    auto status =  0;
     if(status != hipSuccess)
         RPP_THROW("Error setting context");
 }
@@ -182,6 +182,7 @@ struct HandleImpl
 	    }
 
         this->initHandle->mem.mcpu.rgbArr.rgbmem = (RpptRGB *)malloc(sizeof(RpptRGB) * this->nBatchSize);
+        this->initHandle->mem.mcpu.tempFloatmem = (Rpp32f *)malloc(sizeof(Rpp32f) * 99532800 * this->nBatchSize); // 7680 * 4320 * 3
     }
 
     void PreInitializeBuffer() {
@@ -279,14 +280,14 @@ Handle::Handle(rppAcceleratorQueue_t stream) : impl(new HandleImpl())
         this->impl->stream = HandleImpl::reference_stream(stream);
 
     this->SetAllocator(nullptr, nullptr, nullptr);
-    
+
     impl->PreInitializeBuffer();
 
 #if RPP_USE_ROCBLAS
     rhandle_ = CreateRocblasHandle();
 #endif
     // RPP_LOG_I(*this);
-    
+
 }
 
 
@@ -309,7 +310,7 @@ Handle::Handle(rppAcceleratorQueue_t stream, size_t batchSize) : impl(new Handle
     rhandle_ = CreateRocblasHandle();
 #endif
     RPP_LOG_I(*this);
-    
+
 }
 
 Handle::Handle() : impl(new HandleImpl())
@@ -408,6 +409,9 @@ void Handle::rpp_destroy_object_host()
     free(this->GetInitHandle()->mem.mcpu.ucharArr[i].ucharmem);
     free(this->GetInitHandle()->mem.mcpu.charArr[i].charmem);
     }
+
+    free(this->GetInitHandle()->mem.mcpu.rgbArr.rgbmem);
+    free(this->GetInitHandle()->mem.mcpu.tempFloatmem);
 }
 
 
