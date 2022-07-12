@@ -25,6 +25,11 @@ THE SOFTWARE.
 #include "rppt_tensor_audio.h"
 #include "cpu/host_tensor_audio.hpp"
 
+#ifdef HIP_COMPILE
+#include <hip/hip_fp16.h>
+#include "hip/hip_tensor_audio.hpp"
+#endif // HIP_COMPILE
+
 
 RppStatus rppt_non_silent_region_detection_host(RppPtr_t srcPtr,
                                                 RpptDescPtr srcDescPtr,
@@ -82,7 +87,7 @@ RppStatus rppt_pre_emphasis_filter_host(RppPtr_t srcPtr,
                                     srcSizeTensor,
                                     coeffTensor,
                                     borderType);
-    
+
     return RPP_SUCCESS;
 }
 
@@ -102,3 +107,41 @@ RppStatus rppt_down_mixing_host(RppPtr_t srcPtr,
 
     return RPP_SUCCESS;
 }
+
+/********************************************************************************************************************/
+/*********************************************** RPP_GPU_SUPPORT = ON ***********************************************/
+/********************************************************************************************************************/
+
+#ifdef GPU_SUPPORT
+
+/******************** to_decibels ********************/
+
+RppStatus rppt_to_decibels_gpu(RppPtr_t srcPtr,
+                               RpptDescPtr srcDescPtr,
+                               RppPtr_t dstPtr,
+                               Rpp64s *samplesPerChannelTensor,
+                               Rpp32f cutOffDB,
+                               Rpp32f multiplier,
+                               Rpp32f referenceMagnitude,
+                               rppHandle_t rppHandle)
+{
+#ifdef HIP_COMPILE
+    if (srcDescPtr->dataType == RpptDataType::F32)
+    {
+        hip_exec_to_decibels_tensor((Rpp32f*) static_cast<Rpp8u*>(srcPtr),
+                                    srcDescPtr,
+                                    (Rpp32f*) static_cast<Rpp8u*>(dstPtr),
+                                    samplesPerChannelTensor,
+                                    cutOffDB,
+                                    multiplier,
+                                    referenceMagnitude,
+                                    rpp::deref(rppHandle));
+    }
+
+    return RPP_SUCCESS;
+#elif defined(OCL_COMPILE)
+    return RPP_ERROR_NOT_IMPLEMENTED;
+#endif // backend
+}
+
+#endif // GPU_SUPPORT

@@ -63,6 +63,9 @@ RppStatus rppt_non_silent_region_detection_host(RppPtr_t srcPtr, RpptDescPtr src
 // *retval RPP_ERROR : Error
 
 RppStatus rppt_to_decibels_host(RppPtr_t magnitudePtr, RppPtr_t DBPtr, Rpp32u batchSize, Rpp32f cutOffDB = -200.0, Rpp32f multiplier = 10.0, Rpp32f referenceMagnitude = 0.0);
+#ifdef GPU_SUPPORT
+RppStatus rppt_to_decibels_gpu(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, Rpp64s *samplesPerChannelTensor, Rpp32f cutOffDB, Rpp32f multiplier, Rpp32f referenceMagnitude, rppHandle_t rppHandle);
+#endif // GPU_SUPPORT
 
 /******************** pre_emphasis_filter ********************/
 
