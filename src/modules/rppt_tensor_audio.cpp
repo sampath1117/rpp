@@ -144,4 +144,33 @@ RppStatus rppt_to_decibels_gpu(RppPtr_t srcPtr,
 #endif // backend
 }
 
+RppStatus rppt_pre_emphasis_filter_gpu(RppPtr_t srcPtr,
+                                       RpptDescPtr srcDescPtr,
+                                       RppPtr_t dstPtr,
+                                       Rpp32s *srcSizeTensor,
+                                       Rpp32f *coeffTensor,
+                                       RpptAudioBorderType borderType,
+                                       rppHandle_t rppHandle)
+{
+#ifdef HIP_COMPILE
+    Rpp32u paramIndex = 0;
+    copy_param_int(srcSizeTensor, rpp::deref(rppHandle), paramIndex++);
+    copy_param_float(coeffTensor, rpp::deref(rppHandle), paramIndex++);
+
+    if (srcDescPtr->dataType == RpptDataType::F32)
+    {
+        hip_exec_pre_emphasis_filter_tensor((Rpp32f*)srcPtr,
+                                            srcDescPtr,
+                                            (Rpp32f*)dstPtr,
+                                            borderType,
+                                            rpp::deref(rppHandle));
+    }
+
+    return RPP_SUCCESS;
+#elif defined(OCL_COMPILE)
+    return RPP_ERROR_NOT_IMPLEMENTED;
+#endif // backend
+}
+
+
 #endif // GPU_SUPPORT
