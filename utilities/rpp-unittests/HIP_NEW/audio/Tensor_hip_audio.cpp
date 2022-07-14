@@ -27,7 +27,7 @@ int main(int argc, char **argv)
     if (argc < MIN_ARG_COUNT)
     {
         printf("\nImproper Usage! Needs all arguments!\n");
-        printf("\nUsage: ./Tensor_host_audio <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:84> <verbosity = 0/1>\n");
+        printf("\nUsage: ./Tensor_hip_audio <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:84> <verbosity = 0/1>\n");
         return -1;
     }
 
@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 
     // Initialize the AudioPatch for source
     Rpp32s *inputAudioSize = (Rpp32s *) calloc(noOfAudioFiles, sizeof(Rpp32s));
-    Rpp64s *samplesPerChannelTensor = (Rpp64s *) calloc(noOfAudioFiles, sizeof(Rpp64s));
+    Rpp32u *srcLengthTensor = (Rpp32u *) calloc(noOfAudioFiles, sizeof(Rpp32u));
     Rpp32s *channelsTensor = (Rpp32s *) calloc(noOfAudioFiles, sizeof(Rpp32s));
 
     // Set maxLength
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
         }
 
         inputAudioSize[count] = sfinfo.frames * sfinfo.channels;
-        samplesPerChannelTensor[count] = sfinfo.frames;
+        srcLengthTensor[count] = sfinfo.frames;
         channelsTensor[count] = sfinfo.channels;
         maxLength = std::max(maxLength, inputAudioSize[count]);
 
@@ -195,12 +195,15 @@ int main(int argc, char **argv)
         hipMemcpy(d_outputf32, outputf32, ioBufferSizeInBytes_f32, hipMemcpyHostToDevice);
     }
 
-    Rpp64s *d_samplesPerChannelTensor;
-    hipMalloc(&d_samplesPerChannelTensor, noOfAudioFiles * sizeof(Rpp64s));
+    Rpp32u *d_srcLengthTensor;
+    hipMalloc(&d_srcLengthTensor, noOfAudioFiles * sizeof(Rpp32u));
 
     // Run case-wise RPP API and measure time
     rppHandle_t handle;
-    rppCreateWithBatchSize(&handle, srcDescPtr->n);
+    hipStream_t stream;
+    hipStreamCreate(&stream);
+    rppCreateWithStreamAndBatchSize(&handle, stream, noOfAudioFiles);
+
     clock_t start, end;
     double start_omp, end_omp;
     double gpu_time_used, omp_time_used;
@@ -213,23 +216,28 @@ int main(int argc, char **argv)
             test_case_name = "to_decibels";
             Rpp32f cutOffDB = -200.0;
             Rpp32f multiplier = 10.0;
-            Rpp32f referenceMagnitude = 1.0;
+            Rpp32f referenceMagnitude = 0.0;
 
-            hipMemcpy(d_samplesPerChannelTensor, samplesPerChannelTensor, noOfAudioFiles * sizeof(Rpp64s), hipMemcpyHostToDevice);
+            hipMemcpy(d_srcLengthTensor, srcLengthTensor, noOfAudioFiles * sizeof(Rpp32u), hipMemcpyHostToDevice);
 
             start = clock();
             if (ip_bitDepth == 2)
             {
-                rppt_to_decibels_gpu(d_inputf32, srcDescPtr, d_outputf32, d_samplesPerChannelTensor, cutOffDB, multiplier, referenceMagnitude, handle);
+                rppt_to_decibels_gpu(d_inputf32, srcDescPtr, d_outputf32, d_srcLengthTensor, cutOffDB, multiplier, referenceMagnitude, handle);
             }
             else
                 missingFuncFlag = 1;
 
-            // cout<<endl<<"Output in DB: "<<endl;
-            // for(int i = 0; i < samplesPerChannelTensor[0] ; i++)
-            // {
-            //     cout<<d_outputf32[i]<<" ";
-            // }
+
+            hipMemcpy(outputf32, d_outputf32, ioBufferSizeInBytes_f32, hipMemcpyDeviceToHost);
+            cout<<endl<<"Output in DB: "<<endl;
+            int cnt = 0;
+            for(int i = 0; i < srcLengthTensor[0]; i++)
+            {
+                cout<<"output["<<i<<"]: "<<outputf32[i]<<endl;
+            }
+
+            cout<<endl;
 
             break;
         }
@@ -254,11 +262,11 @@ int main(int argc, char **argv)
     cout << "\nGPU Time - Tensor: " << gpu_time_used;
     printf("\n");
 
-    rppDestroyHost(handle);
+    rppDestroyGPU(handle);
 
     // Free memory
     free(inputAudioSize);
-    free(samplesPerChannelTensor);
+    free(srcLengthTensor);
     free(channelsTensor);
     free(inputf32);
     free(outputf32);
@@ -266,7 +274,7 @@ int main(int argc, char **argv)
     {
         hipFree(d_inputf32);
         hipFree(d_outputf32);
-        hipFree(d_samplesPerChannelTensor);
+        hipFree(d_srcLengthTensor);
     }
 
     return 0;
