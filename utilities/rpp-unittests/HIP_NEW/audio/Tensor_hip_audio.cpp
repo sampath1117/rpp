@@ -43,6 +43,9 @@ int main(int argc, char **argv)
         case 1:
             strcpy(funcName, "to_decibels");
             break;
+        case 2:
+            strcpy(funcName, "pre_emphasis_filter");
+            break;
     }
 
     // Initialize tensor descriptors
@@ -239,6 +242,34 @@ int main(int argc, char **argv)
 
             cout<<endl;
 
+            break;
+        }
+        case 2:
+        {
+            test_case_name = "pre_emphasis_filter";
+            Rpp32f coeff[noOfAudioFiles];
+            for (i = 0; i < noOfAudioFiles; i++)
+                coeff[i] = 0.97;
+            RpptAudioBorderType borderType = RpptAudioBorderType::ZERO;
+
+            start_omp = omp_get_wtime();
+            start = clock();
+            if (ip_bitDepth == 2)
+            {
+                rppt_pre_emphasis_filter_gpu(d_inputf32, srcDescPtr, d_outputf32, inputAudioSize, coeff, borderType, handle);
+            }
+            else
+                missingFuncFlag = 1;
+
+            hipMemcpy(outputf32, d_outputf32, ioBufferSizeInBytes_f32, hipMemcpyDeviceToHost);
+            cout<<endl<<"Output in DB: "<<endl;
+            int cnt = 0;
+            for(int i = 0; i < srcLengthTensor[0]; i++)
+            {
+                cout<<"output["<<i<<"]: "<<outputf32[i]<<endl;
+            }
+
+            cout<<endl;
             break;
         }
         default:
