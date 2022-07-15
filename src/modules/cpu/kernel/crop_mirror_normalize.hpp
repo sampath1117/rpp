@@ -70,7 +70,8 @@ RppStatus crop_mirror_normalize_u8_u8_host_tensor(Rpp8u *srcPtr,
                     {
                         __m256 p[6];
                         rpp_simd_load(rpp_load48_u8pkd3_to_f32pln3_avx, srcPtrTemp, p);     //simd loads
-                        compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
+                        if(!(mean == 0.0 && invStdDev == 1.0))
+                            compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
                         rpp_simd_store(rpp_store48_f32pln3_to_u8pln3_avx, dstPtrTempR, dstPtrTempG, dstPtrTempB, p);    // simd stores
 
                         srcPtrTemp += vectorIncrement;
@@ -121,7 +122,8 @@ RppStatus crop_mirror_normalize_u8_u8_host_tensor(Rpp8u *srcPtr,
 
                         __m256 p[6];
                         rpp_simd_load(rpp_load48_u8pkd3_to_f32pln3_mirror_avx, srcPtrTemp, p);      //simd loads
-                        compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
+                        if(!(mean == 0.0 && invStdDev == 1.0))
+                            compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
                         rpp_simd_store(rpp_store48_f32pln3_to_u8pln3_avx, dstPtrTempR, dstPtrTempG, dstPtrTempB, p);    // simd stores
 
                         dstPtrTempR += vectorIncrementPerChannel;
@@ -173,7 +175,8 @@ RppStatus crop_mirror_normalize_u8_u8_host_tensor(Rpp8u *srcPtr,
                     {
                         __m256 p[6];
                         rpp_simd_load(rpp_load48_u8pln3_to_f32pln3_avx, srcPtrTempR, srcPtrTempG, srcPtrTempB, p);    // simd loads
-                        compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
+                        if(!(mean == 0.0 && invStdDev == 1.0))
+                            compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
                         rpp_simd_store(rpp_store48_f32pln3_to_u8pkd3_avx, dstPtrTemp, p);    // simd stores
 
                         srcPtrTempR += vectorIncrementPerChannel;
@@ -225,7 +228,8 @@ RppStatus crop_mirror_normalize_u8_u8_host_tensor(Rpp8u *srcPtr,
 
                         __m256 p[6];
                         rpp_simd_load(rpp_load48_u8pln3_to_f32pln3_mirror_avx, srcPtrTempR, srcPtrTempG, srcPtrTempB, p);    // simd loads
-                        compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
+                        if(!(mean == 0.0 && invStdDev == 1.0))
+                            compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
                         rpp_simd_store(rpp_store48_f32pln3_to_u8pkd3_avx, dstPtrTemp, p);    // simd stores
 
                         dstPtrTemp += vectorIncrement;
@@ -276,7 +280,8 @@ RppStatus crop_mirror_normalize_u8_u8_host_tensor(Rpp8u *srcPtr,
                             __m256 p[2];
 
                             rpp_simd_load(rpp_load16_u8_to_f32_avx, srcPtrTemp, p);    // simd loads
-                            compute_cmn_16_host(p, pCMNParams);  // cmn adjustment
+                            if(!(mean == 0.0 && invStdDev == 1.0))
+                                compute_cmn_16_host(p, pCMNParams);  // cmn adjustment
                             rpp_simd_store(rpp_store16_f32_to_u8_avx, dstPtrTemp, p);    // simd stores
 
                             srcPtrTemp += vectorIncrementPerChannel;
@@ -318,7 +323,8 @@ RppStatus crop_mirror_normalize_u8_u8_host_tensor(Rpp8u *srcPtr,
 
                             __m256 p[6];
                             rpp_simd_load(rpp_load48_u8pkd3_to_f32pln3_mirror_avx, srcPtrTemp, p);      // simd loads
-                            compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
+                            if(!(mean == 0.0 && invStdDev == 1.0))
+                                compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
                             rpp_simd_store(rpp_store48_f32pln3_to_u8pkd3_avx, dstPtrTemp, p);    // simd stores
 
                             dstPtrTemp += vectorIncrement;
@@ -359,7 +365,8 @@ RppStatus crop_mirror_normalize_u8_u8_host_tensor(Rpp8u *srcPtr,
                                 __m256 p[2];
 
                                 rpp_simd_load(rpp_load16_u8_to_f32_mirror_avx, srcPtrTemp, p);    // simd loads
-                                compute_cmn_16_host(p, pCMNParams);  // cmn adjustment
+                                if(!(mean == 0.0 && invStdDev == 1.0))
+                                    compute_cmn_16_host(p, pCMNParams);  // cmn adjustment
                                 rpp_simd_store(rpp_store16_f32_to_u8_avx, dstPtrTemp, p);    // simd stores
 
                                 dstPtrTemp += vectorIncrementPerChannel;
@@ -452,7 +459,8 @@ RppStatus crop_mirror_normalize_f32_f32_host_tensor(Rpp32f *srcPtr,
                     {
                         __m256 p[3];
                         rpp_simd_load(rpp_load24_f32pkd3_to_f32pln3_avx, srcPtrTemp, p);    //simd loads
-                        compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
+                        if(!(mean == 0.0 && invStdDev == 1.0))
+                            compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
                         rpp_simd_store(rpp_store24_f32pln3_to_f32pln3_avx, dstPtrTempR, dstPtrTempG, dstPtrTempB, p);    // simd stores
 
                         srcPtrTemp += vectorIncrement;
@@ -503,7 +511,8 @@ RppStatus crop_mirror_normalize_f32_f32_host_tensor(Rpp32f *srcPtr,
 
                         __m256 p[3];
                         rpp_simd_load(rpp_load24_f32pkd3_to_f32pln3_mirror_avx, srcPtrTemp, p);     // simd loads
-                        compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
+                        if(!(mean == 0.0 && invStdDev == 1.0))
+                            compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
                         rpp_simd_store(rpp_store24_f32pln3_to_f32pln3_avx, dstPtrTempR, dstPtrTempG, dstPtrTempB, p);    // simd stores
 
                         dstPtrTempR += vectorIncrementPerChannel;
@@ -555,7 +564,8 @@ RppStatus crop_mirror_normalize_f32_f32_host_tensor(Rpp32f *srcPtr,
                     {
                         __m256 p[3];
                         rpp_simd_load(rpp_load24_f32pln3_to_f32pln3_avx, srcPtrTempR, srcPtrTempG, srcPtrTempB, p);    // simd loads
-                        compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
+                        if(!(mean == 0.0 && invStdDev == 1.0))
+                            compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
                         rpp_simd_store(rpp_store24_f32pln3_to_f32pkd3_avx, dstPtrTemp, p);    // simd stores
 
                         srcPtrTempR += vectorIncrementPerChannel;
@@ -607,7 +617,8 @@ RppStatus crop_mirror_normalize_f32_f32_host_tensor(Rpp32f *srcPtr,
 
                         __m256 p[3];
                         rpp_simd_load(rpp_load24_f32pln3_to_f32pln3_mirror_avx, srcPtrTempR, srcPtrTempG, srcPtrTempB, p);    // simd loads
-                        compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
+                        if(!(mean == 0.0 && invStdDev == 1.0))
+                            compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
                         rpp_simd_store(rpp_store24_f32pln3_to_f32pkd3_avx, dstPtrTemp, p);    // simd stores
 
                         dstPtrTemp += vectorIncrement;
@@ -658,7 +669,8 @@ RppStatus crop_mirror_normalize_f32_f32_host_tensor(Rpp32f *srcPtr,
                             __m256 p[1];
 
                             rpp_simd_load(rpp_load8_f32_to_f32_avx, srcPtrTemp, p);    // simd loads
-                            compute_cmn_8_host(p, pCMNParams);  // cmn adjustment
+                            if(!(mean == 0.0 && invStdDev == 1.0))
+                                compute_cmn_8_host(p, pCMNParams);  // cmn adjustment
                             rpp_simd_store(rpp_store8_f32_to_f32_avx, dstPtrTemp, p);    // simd stores
 
                             srcPtrTemp += vectorIncrementPerChannel;
@@ -701,7 +713,8 @@ RppStatus crop_mirror_normalize_f32_f32_host_tensor(Rpp32f *srcPtr,
                             __m256 p[3];
 
                             rpp_simd_load(rpp_load24_f32pkd3_to_f32pln3_mirror_avx, srcPtrTemp, p);    // simd loads
-                            compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
+                            if(!(mean == 0.0 && invStdDev == 1.0))
+                                compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
                             rpp_simd_store(rpp_store24_f32pln3_to_f32pkd3_avx, dstPtrTemp, p);    // simd stores
 
                             dstPtrTemp += vectorIncrement;
@@ -742,7 +755,8 @@ RppStatus crop_mirror_normalize_f32_f32_host_tensor(Rpp32f *srcPtr,
                                 __m256 p[1];
 
                                 rpp_simd_load(rpp_load8_f32_to_f32_mirror_avx, srcPtrTemp, p);    // simd loads
-                                compute_cmn_8_host(p, pCMNParams);  // cmn adjustment
+                                if(!(mean == 0.0 && invStdDev == 1.0))
+                                    compute_cmn_8_host(p, pCMNParams);  // cmn adjustment
                                 rpp_simd_store(rpp_store8_f32_to_f32_avx, dstPtrTemp, p);    // simd stores
 
                                 dstPtrTemp += vectorIncrementPerChannel;
@@ -841,7 +855,8 @@ RppStatus crop_mirror_normalize_f16_f16_host_tensor(Rpp16f *srcPtr,
 
                         __m256 p[3];
                         rpp_simd_load(rpp_load24_f32pkd3_to_f32pln3_avx, srcPtrTemp_ps, p);     //simd loads
-                        compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
+                        if(!(mean == 0.0 && invStdDev == 1.0))
+                            compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
                         rpp_simd_store(rpp_store24_f32pln3_to_f32pln3_avx, dstPtrTempR_ps, dstPtrTempG_ps, dstPtrTempB_ps, p);    // simd stores
 
                         for(int cnt = 0; cnt < vectorIncrementPerChannel; cnt++)
@@ -904,7 +919,8 @@ RppStatus crop_mirror_normalize_f16_f16_host_tensor(Rpp16f *srcPtr,
 
                         __m256 p[3];
                         rpp_simd_load(rpp_load24_f32pkd3_to_f32pln3_mirror_avx, srcPtrTemp_ps, p);      // simd loads
-                        compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
+                        if(!(mean == 0.0 && invStdDev == 1.0))
+                            compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
                         rpp_simd_store(rpp_store24_f32pln3_to_f32pln3_avx, dstPtrTempR_ps, dstPtrTempG_ps, dstPtrTempB_ps, p);    // simd stores
 
                         for(int cnt = 0; cnt < vectorIncrementPerChannel; cnt++)
@@ -972,7 +988,8 @@ RppStatus crop_mirror_normalize_f16_f16_host_tensor(Rpp16f *srcPtr,
 
                         __m256 p[3];
                         rpp_simd_load(rpp_load24_f32pln3_to_f32pln3_avx, srcPtrTempR_ps, srcPtrTempG_ps, srcPtrTempB_ps, p);    // simd loads
-                        compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
+                        if(!(mean == 0.0 && invStdDev == 1.0))
+                            compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
                         rpp_simd_store(rpp_store24_f32pln3_to_f32pkd3_avx, dstPtrTemp_ps, p);    // simd stores
 
                         for(int cnt = 0; cnt < vectorIncrement; cnt++)
@@ -1036,7 +1053,8 @@ RppStatus crop_mirror_normalize_f16_f16_host_tensor(Rpp16f *srcPtr,
 
                         __m256 p[3];
                         rpp_simd_load(rpp_load24_f32pln3_to_f32pln3_mirror_avx, srcPtrTempR_ps, srcPtrTempG_ps, srcPtrTempB_ps, p);    // simd loads
-                        compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
+                        if(!(mean == 0.0 && invStdDev == 1.0))
+                            compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
                         rpp_simd_store(rpp_store24_f32pln3_to_f32pkd3_avx, dstPtrTemp_ps, p);    // simd stores
 
                         for(int cnt = 0; cnt < vectorIncrement; cnt++)
@@ -1095,7 +1113,8 @@ RppStatus crop_mirror_normalize_f16_f16_host_tensor(Rpp16f *srcPtr,
                             __m256 p[1];
 
                             rpp_simd_load(rpp_load8_f32_to_f32_avx, srcPtrTemp_ps, p);    // simd loads
-                            compute_cmn_8_host(p, pCMNParams);  // cmn adjustment
+                            if(!(mean == 0.0 && invStdDev == 1.0))
+                                compute_cmn_8_host(p, pCMNParams);  // cmn adjustment
                             rpp_simd_store(rpp_store8_f32_to_f32_avx, dstPtrTemp_ps, p);    // simd stores
 
                             for(int cnt = 0; cnt < vectorIncrementPerChannel; cnt++)
@@ -1145,7 +1164,8 @@ RppStatus crop_mirror_normalize_f16_f16_host_tensor(Rpp16f *srcPtr,
                             __m256 p[3];
 
                             rpp_simd_load(rpp_load24_f32pkd3_to_f32pln3_mirror_avx, srcPtrTemp_ps, p);    // simd loads
-                            compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
+                            if(!(mean == 0.0 && invStdDev == 1.0))
+                                compute_cmn_24_host(p, pCMNParams);  // cmn adjustment
                             rpp_simd_store(rpp_store24_f32pln3_to_f32pkd3_avx, dstPtrTemp_ps, p);    // simd stores
 
                             for(int cnt = 0; cnt < vectorIncrement; cnt++)
@@ -1193,7 +1213,8 @@ RppStatus crop_mirror_normalize_f16_f16_host_tensor(Rpp16f *srcPtr,
                                 __m256 p[1];
 
                                 rpp_simd_load(rpp_load8_f32_to_f32_mirror_avx, srcPtrTemp_ps, p);    // simd loads
-                                compute_cmn_8_host(p, pCMNParams);  // cmn adjustment
+                                if(!(mean == 0.0 && invStdDev == 1.0))
+                                    compute_cmn_8_host(p, pCMNParams);  // cmn adjustment
                                 rpp_simd_store(rpp_store8_f32_to_f32_avx, dstPtrTemp_ps, p);    // simd stores
 
                                 for(int cnt = 0; cnt < vectorIncrementPerChannel; cnt++)
@@ -1289,7 +1310,8 @@ RppStatus crop_mirror_normalize_i8_i8_host_tensor(Rpp8s *srcPtr,
                     {
                         __m256 p[6];
                         rpp_simd_load(rpp_load48_i8pkd3_to_f32pln3_avx, srcPtrTemp, p);     // simd loads
-                        compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
+                        if(!(mean == 0.0 && invStdDev == 1.0))
+                            compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
                         rpp_simd_store(rpp_store48_f32pln3_to_i8pln3_avx, dstPtrTempR, dstPtrTempG, dstPtrTempB, p);    // simd stores
 
                         srcPtrTemp += vectorIncrement;
@@ -1340,7 +1362,8 @@ RppStatus crop_mirror_normalize_i8_i8_host_tensor(Rpp8s *srcPtr,
 
                         __m256 p[6];
                         rpp_simd_load(rpp_load48_i8pkd3_to_f32pln3_mirror_avx, srcPtrTemp, p);      // simd loads
-                        compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
+                        if(!(mean == 0.0 && invStdDev == 1.0))
+                            compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
                         rpp_simd_store(rpp_store48_f32pln3_to_i8pln3_avx, dstPtrTempR, dstPtrTempG, dstPtrTempB, p);    // simd stores
 
                         dstPtrTempR += vectorIncrementPerChannel;
@@ -1392,7 +1415,8 @@ RppStatus crop_mirror_normalize_i8_i8_host_tensor(Rpp8s *srcPtr,
                     {
                         __m256 p[6];
                         rpp_simd_load(rpp_load48_i8pln3_to_f32pln3_avx, srcPtrTempR, srcPtrTempG, srcPtrTempB, p);    // simd loads
-                        compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
+                        if(!(mean == 0.0 && invStdDev == 1.0))
+                            compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
                         rpp_simd_store(rpp_store48_f32pln3_to_i8pkd3_avx, dstPtrTemp, p);    // simd stores
 
                         srcPtrTempR += vectorIncrementPerChannel;
@@ -1444,7 +1468,8 @@ RppStatus crop_mirror_normalize_i8_i8_host_tensor(Rpp8s *srcPtr,
 
                         __m256 p[6];
                         rpp_simd_load(rpp_load48_i8pln3_to_f32pln3_mirror_avx, srcPtrTempR, srcPtrTempG, srcPtrTempB, p);    // simd loads
-                        compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
+                        if(!(mean == 0.0 && invStdDev == 1.0))
+                            compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
                         rpp_simd_store(rpp_store48_f32pln3_to_i8pkd3_avx, dstPtrTemp, p);    // simd store
 
                         dstPtrTemp += vectorIncrement;
@@ -1495,7 +1520,8 @@ RppStatus crop_mirror_normalize_i8_i8_host_tensor(Rpp8s *srcPtr,
                             __m256 p[2];
 
                             rpp_simd_load(rpp_load16_i8_to_f32_avx, srcPtrTemp, p);    // simd loads
-                            compute_cmn_16_host(p, pCMNParams);  // cmn adjustment
+                            if(!(mean == 0.0 && invStdDev == 1.0))
+                                compute_cmn_16_host(p, pCMNParams);  // cmn adjustment
                             rpp_simd_store(rpp_store16_f32_to_i8_avx, dstPtrTemp, p);    // simd stores
 
                             srcPtrTemp += vectorIncrementPerChannel;
@@ -1538,7 +1564,8 @@ RppStatus crop_mirror_normalize_i8_i8_host_tensor(Rpp8s *srcPtr,
 
                             __m256 p[6];
                             rpp_simd_load(rpp_load48_i8pkd3_to_f32pln3_mirror_avx, srcPtrTemp, p);      // simd loads
-                            compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
+                            if(!(mean == 0.0 && invStdDev == 1.0))
+                                compute_cmn_48_host(p, pCMNParams);  // cmn adjustment
                             rpp_simd_store(rpp_store48_f32pln3_to_i8pkd3_avx, dstPtrTemp, p);    // simd stores
 
                             dstPtrTemp += vectorIncrement;
@@ -1578,7 +1605,8 @@ RppStatus crop_mirror_normalize_i8_i8_host_tensor(Rpp8s *srcPtr,
                                 __m256 p[2];
 
                                 rpp_simd_load(rpp_load16_i8_to_f32_mirror_avx, srcPtrTemp, p);    // simd loads
-                                compute_cmn_16_host(p, pCMNParams);  // cmn adjustment
+                                if(!(mean == 0.0 && invStdDev == 1.0))
+                                    compute_cmn_16_host(p, pCMNParams);  // cmn adjustment
                                 rpp_simd_store(rpp_store16_f32_to_i8_avx, dstPtrTemp, p);    // simd stores
 
                                 dstPtrTemp += vectorIncrementPerChannel;
