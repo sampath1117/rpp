@@ -23,14 +23,7 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
 
         // Compute maximum value in the input buffer
         if(!referenceMax)
-        {
-            referenceMagnitude = srcPtrTemp[0];
-            for(int i = 1 ; i < bufferLength ; i++)
-            {
-                if(srcPtrTemp[i] > referenceMagnitude)
-                    referenceMagnitude = srcPtrTemp[i];
-            }
-        }
+            referenceMagnitude = *(std::max_element(srcPtrTemp, srcPtrTemp + bufferLength));
 
         // Avoid division by zero
         if(referenceMagnitude == 0.0)

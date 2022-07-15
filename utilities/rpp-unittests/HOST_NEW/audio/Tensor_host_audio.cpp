@@ -265,12 +265,12 @@ int main(int argc, char **argv)
             else
                 missingFuncFlag = 1;
 
-            cout<<endl<<"Output in DB: "<<endl;
-            int cnt = 0;
-            for(int i = 0; i < srcLengthTensor[0]; i++)
-            {
-                cout<<"output["<<i<<"]: "<<outputf32[i]<<endl;
-            }
+            // cout<<endl<<"Output in DB: "<<endl;
+            // int cnt = 0;
+            // for(int i = 0; i < srcLengthTensor[0]; i++)
+            // {
+            //     cout<<"output["<<i<<"]: "<<outputf32[i]<<endl;
+            // }
 
             break;
         }
