@@ -3,14 +3,14 @@
 
 __device__ void to_decibels_hip_compute(d_float8 *src_f8, d_float8 *dst_f8, float minRatio, float multiplier, float invReferenceMagnitude)
 {
-    dst_f8->f1[0] = multiplier * log10(fmaxf(minRatio, src_f8->f1[0] * invReferenceMagnitude));
-    dst_f8->f1[1] = multiplier * log10(fmaxf(minRatio, src_f8->f1[1] * invReferenceMagnitude));
-    dst_f8->f1[2] = multiplier * log10(fmaxf(minRatio, src_f8->f1[2] * invReferenceMagnitude));
-    dst_f8->f1[3] = multiplier * log10(fmaxf(minRatio, src_f8->f1[3] * invReferenceMagnitude));
-    dst_f8->f1[4] = multiplier * log10(fmaxf(minRatio, src_f8->f1[4] * invReferenceMagnitude));
-    dst_f8->f1[5] = multiplier * log10(fmaxf(minRatio, src_f8->f1[5] * invReferenceMagnitude));
-    dst_f8->f1[6] = multiplier * log10(fmaxf(minRatio, src_f8->f1[6] * invReferenceMagnitude));
-    dst_f8->f1[7] = multiplier * log10(fmaxf(minRatio, src_f8->f1[7] * invReferenceMagnitude));
+    dst_f8->f1[0] = multiplier * log10f(fmaxf(minRatio, src_f8->f1[0] * invReferenceMagnitude));
+    dst_f8->f1[1] = multiplier * log10f(fmaxf(minRatio, src_f8->f1[1] * invReferenceMagnitude));
+    dst_f8->f1[2] = multiplier * log10f(fmaxf(minRatio, src_f8->f1[2] * invReferenceMagnitude));
+    dst_f8->f1[3] = multiplier * log10f(fmaxf(minRatio, src_f8->f1[3] * invReferenceMagnitude));
+    dst_f8->f1[4] = multiplier * log10f(fmaxf(minRatio, src_f8->f1[4] * invReferenceMagnitude));
+    dst_f8->f1[5] = multiplier * log10f(fmaxf(minRatio, src_f8->f1[5] * invReferenceMagnitude));
+    dst_f8->f1[6] = multiplier * log10f(fmaxf(minRatio, src_f8->f1[6] * invReferenceMagnitude));
+    dst_f8->f1[7] = multiplier * log10f(fmaxf(minRatio, src_f8->f1[7] * invReferenceMagnitude));
 }
 
 __global__ void to_decibels_tensor(float *srcPtr,
@@ -32,12 +32,8 @@ __global__ void to_decibels_tensor(float *srcPtr,
 
     uint loc = (id_z * srcStridesNH.x) + id_x;
     referenceMagnitude = (referenceMagnitude == 0.0) ? maxValues[id_z] : referenceMagnitude;
-    // if(id_x == 0)
-    // {
-    //     printf("max for id_z %d = %f\n", id_z, referenceMagnitude);
-    // }
     float invreferenceMagnitude = (1.0f / referenceMagnitude);
-    float minRatio = pow(10, cutOffDB / multiplier);
+    float minRatio = powf(10, cutOffDB / multiplier);
 
     d_float8 src_f8, dst_f8;
     rpp_hip_load8_and_unpack_to_float8(srcPtr + loc, &src_f8);

@@ -141,6 +141,9 @@ int main(int argc, char **argv)
     srcDescPtr->strides.wStride = srcDescPtr->c;
     srcDescPtr->strides.cStride = 1;
 
+    // Optionally set w stride as a multiple of 8 for src/dst
+    srcDescPtr->w = ((srcDescPtr->w / 8) * 8) + 8;
+
     // Set buffer sizes for src/dst
     ioBufferSize = (unsigned long long)srcDescPtr->h * (unsigned long long)srcDescPtr->w * (unsigned long long)srcDescPtr->c * (unsigned long long)srcDescPtr->n;
     unsigned long long ioBufferSizeInBytes_f32 = (ioBufferSize * 4) + srcDescPtr->offsetInBytes;
@@ -264,7 +267,7 @@ int main(int argc, char **argv)
             hipMemcpy(outputf32, d_outputf32, ioBufferSizeInBytes_f32, hipMemcpyDeviceToHost);
             cout<<endl<<"Output in DB: "<<endl;
             int cnt = 0;
-            for(int i = 0; i < srcLengthTensor[0]; i++)
+            for(int i = 0; i < 100000; i++)
             {
                 cout<<"output["<<i<<"]: "<<outputf32[i]<<endl;
             }
