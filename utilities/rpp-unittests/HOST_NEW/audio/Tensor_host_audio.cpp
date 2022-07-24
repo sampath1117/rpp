@@ -10,6 +10,7 @@
 #include <omp.h>
 #include <half.hpp>
 #include <fstream>
+#include <experimental/filesystem>
 
 // Include this header file to use functions from libsndfile
 #include <sndfile.h>
@@ -21,6 +22,87 @@ using namespace std;
 using half_float::half;
 
 typedef half Rpp16f;
+
+void remove_substring(string &str, string &pattern)
+{
+    std::string::size_type i = str.find(pattern);
+    while (i != std::string::npos)
+    {
+        str.erase(i, pattern.length());
+        i = str.find(pattern, i);
+   }
+}
+
+void verify_output(Rpp32f *dstPtr, int *srcLength, int bs, string test_case, Rpp32u stride, char audioNames[][1000])
+{
+    fstream ref_file;
+    string ref_path = get_current_dir_name();
+    string pattern = "build";
+    remove_substring(ref_path, pattern);
+    ref_path = ref_path + "ReferenceOutputs/";
+    int file_match = 0;
+    for (int i = 0; i < bs; i++)
+    {
+        string current_file_name = audioNames[i];
+        size_t last_index = current_file_name.find_last_of(".");
+        current_file_name = current_file_name.substr(0, last_index);  // Remove extension from file name
+        string out_file = ref_path + test_case + "/" + test_case + "_ref_" + current_file_name + ".txt";
+        ref_file.open(out_file, ios::in);
+        int offset = i * stride;
+        int matched_indices = 0;
+        for(int j = 0; j < srcLength[i]; j++)
+        {
+            Rpp32f ref_val, out_val;
+            ref_file>>ref_val;
+            out_val = dstPtr[offset + j];
+            if(abs(out_val - ref_val) < 1e-4)
+                matched_indices += 1;
+        }
+        ref_file.close();
+        if(matched_indices == srcLength[i])
+            file_match++;
+    }
+
+    std::cerr<<std::endl<<"Results for Test case: "<<test_case<<std::endl;
+    if(file_match == bs)
+        std::cerr<<"PASSED!"<<std::endl;
+    else
+        std::cerr<<"FAILED! "<<file_match<<"/"<<bs<<" outputs are matching with reference outputs"<<std::endl;
+}
+
+void verify_non_silent_region_detection(int *detectionIndex, int *detectionLength, string test_case, int bs, char audioNames[][1000])
+{
+    fstream ref_file;
+    string ref_path = get_current_dir_name();
+    string pattern = "build";
+    remove_substring(ref_path, pattern);
+    ref_path = ref_path + "ReferenceOutputs/";
+    int file_match = 0;
+    for (int i = 0; i < bs; i++)
+    {
+        string current_file_name = audioNames[i];
+        size_t last_index = current_file_name.find_last_of(".");
+        current_file_name = current_file_name.substr(0, last_index);  // Remove extension from file name
+        string out_file = ref_path + test_case + "/" + test_case + "_ref_" + current_file_name + ".txt";
+        ref_file.open(out_file, ios::in);
+
+        Rpp32s ref_index, ref_length;
+        Rpp32s out_index, out_length;
+        ref_file>>ref_index;
+        ref_file>>ref_length;
+        out_index = detectionIndex[i];
+        out_length = detectionLength[i];
+
+        if((out_index == ref_index) && (out_length == ref_length))
+            file_match += 1;
+        ref_file.close();
+    }
+    std::cerr<<std::endl<<"Results for Test case: "<<test_case<<std::endl;
+    if(file_match == bs)
+        std::cerr<<"PASSED!"<<std::endl;
+    else
+        std::cerr<<"FAILED! "<<file_match<<"/"<<bs<<" outputs are matching with reference outputs"<<std::endl;
+}
 
 int main(int argc, char **argv)
 {
@@ -35,6 +117,7 @@ int main(int argc, char **argv)
     }
 
     char *src = argv[1];
+    std::cerr<<"src: "<<argv[0]<<std::endl;
     int ip_bitDepth = atoi(argv[2]);
     int test_case = atoi(argv[3]);
     int ip_channel = 1;
@@ -100,7 +183,7 @@ int main(int argc, char **argv)
 
     // Initialize the AudioPatch for source
     Rpp32s *inputAudioSize = (Rpp32s *) calloc(noOfAudioFiles, sizeof(Rpp32s));
-    Rpp32u *srcLengthTensor = (Rpp32u *) calloc(noOfAudioFiles, sizeof(Rpp32u));
+    Rpp32s *srcLengthTensor = (Rpp32s *) calloc(noOfAudioFiles, sizeof(Rpp32s));
     Rpp32s *channelsTensor = (Rpp32s *) calloc(noOfAudioFiles, sizeof(Rpp32s));
 
     // Set maxLength
@@ -146,6 +229,9 @@ int main(int argc, char **argv)
     srcDescPtr->h = 1;
     srcDescPtr->w = maxLength;
     srcDescPtr->c = ip_channel;
+
+    // Optionally set w stride as a multiple of 8 for src
+    srcDescPtr->w = ((srcDescPtr->w / 8) * 8) + 8;
 
     // Set n/c/h/w strides for src/dst
     srcDescPtr->strides.nStride = srcDescPtr->c * srcDescPtr->w * srcDescPtr->h;
@@ -213,16 +299,15 @@ int main(int argc, char **argv)
         case 0:
         {
             test_case_name = "non_silent_region_detection";
-            Rpp32s detectionIndex[srcDescPtr->n];
-            Rpp32s detectionLength[srcDescPtr->n];
+            Rpp32s detectionIndex[noOfAudioFiles];
+            Rpp32s detectionLength[noOfAudioFiles];
+            Rpp32f cutOffDB[noOfAudioFiles];
+            Rpp32s windowLength[noOfAudioFiles];
+            Rpp32f referencePower[noOfAudioFiles];
+            Rpp32s resetInterval[noOfAudioFiles];
+            bool referenceMax[noOfAudioFiles];
 
-            Rpp32f cutOffDB[srcDescPtr->n];
-            Rpp32s windowLength[srcDescPtr->n];
-            Rpp32f referencePower[srcDescPtr->n];
-            Rpp32s resetInterval[srcDescPtr->n];
-            bool referenceMax[srcDescPtr->n];
-
-            for (i = 0; i < srcDescPtr->n; i++)
+            for (i = 0; i < noOfAudioFiles; i++)
             {
                 cutOffDB[i] = -60.0;
                 windowLength[i] = 3;
@@ -240,13 +325,7 @@ int main(int argc, char **argv)
             else
                 missingFuncFlag = 1;
 
-            // Print the detection index and length
-            for(int i = 0; i < srcDescPtr->n; i++)
-            {
-                cout<<endl<<"Audiofile: "<<audioNames[i];
-                cout<<endl<<"Index, Length: "<<detectionIndex[i]<<" "<<detectionLength[i];
-            }
-
+            verify_non_silent_region_detection(detectionIndex, detectionLength, test_case_name, noOfAudioFiles, audioNames);
             break;
         }
         case 1:
@@ -265,20 +344,14 @@ int main(int argc, char **argv)
             else
                 missingFuncFlag = 1;
 
-            // cout<<endl<<"Output in DB: "<<endl;
-            // int cnt = 0;
-            // for(int i = 0; i < srcLengthTensor[0]; i++)
-            // {
-            //     cout<<"output["<<i<<"]: "<<outputf32[i]<<endl;
-            // }
-
+            verify_output(outputf32, srcLengthTensor, noOfAudioFiles, test_case_name, srcDescPtr->strides.nStride, audioNames);
             break;
         }
         case 2:
         {
             test_case_name = "pre_emphasis_filter";
-            Rpp32f coeff[srcDescPtr->n];
-            for (i = 0; i < srcDescPtr->n; i++)
+            Rpp32f coeff[noOfAudioFiles];
+            for (i = 0; i < noOfAudioFiles; i++)
                 coeff[i] = 0.97;
             RpptAudioBorderType borderType = RpptAudioBorderType::CLAMP;
 
@@ -291,16 +364,7 @@ int main(int argc, char **argv)
             else
                 missingFuncFlag = 1;
 
-            // cout<<endl<<"Output from preemphasis filter: ";
-            // for(int i = 0; i < srcDescPtr->n; i++)
-            // {
-            //     cout<<endl<<"Audiofile: "<<audioNames[i]<<endl;
-            //     for(int j = 0; j < inputAudioSize[i]; j++)
-            //     {
-            //         cout<<outputf32[j]<<endl;
-            //     }
-            //     cout<<endl;
-            // }
+            verify_output(outputf32, srcLengthTensor, noOfAudioFiles, test_case_name, srcDescPtr->strides.nStride, audioNames);
             break;
         }
         case 3:
@@ -312,24 +376,12 @@ int main(int argc, char **argv)
             start = clock();
             if (ip_bitDepth == 2)
             {
-                // rppt_down_mixing_host(inputf32, srcDescPtr, outputf32, srcLengthTensor, channelsTensor, normalizeWeights);
+                rppt_down_mixing_host(inputf32, srcDescPtr, outputf32, srcLengthTensor, channelsTensor, normalizeWeights);
             }
             else
                 missingFuncFlag = 1;
 
-            // Print the mono output
-            // cout<<endl<<"Printing downmixed output: "<<endl;
-            // for(int i = 0; i < srcDescPtr->n; i++)
-            // {
-            //     int idxstart = i * srcDescPtr->strides.nStride;
-            //     int idxend = idxstart + srcLengthTensor[i];
-            //     for(int j = idxstart; j < idxend; j++)
-            //     {
-            //         cout<<"out["<<j<<"]: "<<outputf32[j]<<endl;
-            //     }
-            //     cout<<endl;
-            // }
-
+            verify_output(outputf32, srcLengthTensor, noOfAudioFiles, test_case_name, srcDescPtr->strides.nStride, audioNames);
             break;
         }
         default:

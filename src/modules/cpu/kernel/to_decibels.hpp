@@ -1,9 +1,10 @@
 #include "rppdefs.h"
+#include <omp.h>
 
 RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
                                   RpptDescPtr srcDescPtr,
                                   Rpp32f *dstPtr,
-                                  Rpp32u *srcLengthTensor,
+                                  Rpp32s *srcLengthTensor,
                                   Rpp32f cutOffDB,
                                   Rpp32f multiplier,
                                   Rpp32f referenceMagnitude)
@@ -15,11 +16,13 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
     if(minRatio == 0.0f)
         minRatio = std::nextafter(0.0f, 1.0f);
 
+    omp_set_dynamic(0);
+#pragma omp parallel for num_threads(srcDescPtr->n)
     for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
     {
         Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
         Rpp32f *dstPtrTemp = dstPtr + batchCount * srcDescPtr->strides.nStride;
-        Rpp32u bufferLength = srcLengthTensor[batchCount];
+        Rpp32s bufferLength = srcLengthTensor[batchCount];
 
         // Compute maximum value in the input buffer
         if(!referenceMax)

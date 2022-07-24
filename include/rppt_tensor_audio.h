@@ -62,7 +62,7 @@ RppStatus rppt_non_silent_region_detection_host(RppPtr_t srcPtr, RpptDescPtr src
 // *retval RPP_SUCCESS : successful completion
 // *retval RPP_ERROR : Error
 
-RppStatus rppt_to_decibels_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, Rpp32u *srcLengthTensor, Rpp32f cutOffDB, Rpp32f multiplier, Rpp32f referenceMagnitude);
+RppStatus rppt_to_decibels_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, Rpp32s *srcLengthTensor, Rpp32f cutOffDB, Rpp32f multiplier, Rpp32f referenceMagnitude);
 #ifdef GPU_SUPPORT
 RppStatus rppt_to_decibels_gpu(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, Rpp32u *srcLengthTensor, Rpp32f cutOffDB, Rpp32f multiplier, Rpp32f referenceMagnitude, rppHandle_t rppHandle);
 #endif // GPU_SUPPORT
@@ -88,18 +88,18 @@ RppStatus rppt_pre_emphasis_filter_gpu(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, 
 
 /******************** down_mixing ********************/
 
-// Downmix stereo audio buffer to mono audio buffer
+// Downmix multi channel audio buffer to single channel audio buffer
 
 // *param[in] srcPtr source tensor memory
 // *param[in] srcDesc source tensor descriptor
 // *param[out] dstPtr destination tensor memory
-// *param[in] samplesPerChannelTensor number of samples per channel
+// *param[in] srcLengthTensor number of samples per channel
 // *param[in] channelsTensor number of channels in audio buffer
 // *returns a  RppStatus enumeration.
 // *retval RPP_SUCCESS : successful completion
 // *retval RPP_ERROR : Error
 
-RppStatus rppt_down_mixing_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, Rpp64s *samplesPerChannelTensor, Rpp32s *channelsTensor, bool normalizeWeights = false);
+RppStatus rppt_down_mixing_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, Rpp32s *srcLengthTensor, Rpp32s *channelsTensor, bool normalizeWeights = false);
 
 #ifdef __cplusplus
 }

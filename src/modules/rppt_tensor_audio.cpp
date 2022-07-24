@@ -60,7 +60,7 @@ RppStatus rppt_non_silent_region_detection_host(RppPtr_t srcPtr,
 RppStatus rppt_to_decibels_host(RppPtr_t srcPtr,
                                 RpptDescPtr srcDescPtr,
                                 RppPtr_t dstPtr,
-                                Rpp32u *srcLengthTensor,
+                                Rpp32s *srcLengthTensor,
                                 Rpp32f cutOffDB,
                                 Rpp32f multiplier,
                                 Rpp32f referenceMagnitude)
@@ -96,14 +96,14 @@ RppStatus rppt_pre_emphasis_filter_host(RppPtr_t srcPtr,
 RppStatus rppt_down_mixing_host(RppPtr_t srcPtr,
                                 RpptDescPtr srcDescPtr,
                                 RppPtr_t dstPtr,
-                                Rpp64s *samplesPerChannelTensor,
+                                Rpp32s *srcLengthTensor,
                                 Rpp32s *channelsTensor,
                                 bool  normalizeWeights)
 {
     down_mixing_host_tensor((Rpp32f*)srcPtr,
                             srcDescPtr,
                             (Rpp32f*)dstPtr,
-                            samplesPerChannelTensor,
+                            srcLengthTensor,
                             channelsTensor,
                             normalizeWeights);
 

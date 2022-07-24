@@ -52,6 +52,9 @@ int main(int argc, char **argv)
         case 2:
             strcpy(funcName, "pre_emphasis_filter");
             break;
+        case 3:
+            strcpy(funcName, "down_mixing");
+            break;
         default:
             strcpy(funcName, "test_case");
             break;
@@ -96,6 +99,8 @@ int main(int argc, char **argv)
 
     // Initialize the AudioPatch for source
     Rpp32s *inputAudioSize = (Rpp32s *) calloc(noOfAudioFiles, sizeof(Rpp32s));
+    Rpp32s *srcLengthTensor = (Rpp32s *) calloc(noOfAudioFiles, sizeof(Rpp32s));
+    Rpp32s *channelsTensor = (Rpp32s *) calloc(noOfAudioFiles, sizeof(Rpp32s));
 
     // Set maxLength
     char audioNames[noOfAudioFiles][1000];
@@ -123,6 +128,8 @@ int main(int argc, char **argv)
         }
 
         inputAudioSize[count] = sfinfo.frames * sfinfo.channels;
+        srcLengthTensor[count] = sfinfo.frames;
+        channelsTensor[count] = sfinfo.channels;
         maxLength = std::max(maxLength, inputAudioSize[count]);
 
         // Close input
@@ -138,6 +145,9 @@ int main(int argc, char **argv)
     srcDescPtr->h = 1;
     srcDescPtr->w = maxLength;
     srcDescPtr->c = ip_channel;
+
+    // Optionally set w stride as a multiple of 8 for src
+    srcDescPtr->w = ((srcDescPtr->w / 8) * 8) + 8;
 
     // Set n/c/h/w strides for src/dst
     srcDescPtr->strides.nStride = ip_channel * srcDescPtr->w * srcDescPtr->h;
@@ -241,23 +251,19 @@ int main(int argc, char **argv)
             case 1:
             {
                 test_case_name = "to_decibels";
-                int numElements = 8;
-                Rpp32f inputMag[8] = {0.1369617, -0.23021328, -0.4590265, -0.48347238, 0.3132702, 0.41275555, 0.10663575, 0.22949654};
-
-                Rpp32f *outDB = (Rpp32f *)calloc(numElements, sizeof(Rpp32f));
                 Rpp32f cutOffDB = -200.0;
                 Rpp32f multiplier = 10.0;
+                Rpp32f referenceMagnitude = 0.0;
 
                 start_omp = omp_get_wtime();
                 start = clock();
                 if (ip_bitDepth == 2)
                 {
-                    rppt_to_decibels_host(inputMag, outDB, numElements, cutOffDB, multiplier);
+                    rppt_to_decibels_host(inputf32, srcDescPtr, outputf32, srcLengthTensor, cutOffDB, multiplier, referenceMagnitude);
                 }
                 else
                     missingFuncFlag = 1;
 
-                free(outDB);
                 break;
             }
             case 2:
@@ -273,6 +279,22 @@ int main(int argc, char **argv)
                 if (ip_bitDepth == 2)
                 {
                     rppt_pre_emphasis_filter_host(inputf32, srcDescPtr, outputf32, inputAudioSize, coeff, borderType);
+                }
+                else
+                    missingFuncFlag = 1;
+
+                break;
+            }
+            case 3:
+            {
+                test_case_name = "down_mixing";
+                bool normalizeWeights = false;
+
+                start_omp = omp_get_wtime();
+                start = clock();
+                if (ip_bitDepth == 2)
+                {
+                    rppt_down_mixing_host(inputf32, srcDescPtr, outputf32, srcLengthTensor, channelsTensor, normalizeWeights);
                 }
                 else
                     missingFuncFlag = 1;
@@ -295,7 +317,6 @@ int main(int argc, char **argv)
             return -1;
         }
 
-        // Display measured times
         cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
         omp_time_used = end_omp - start_omp;
         if (cpu_time_used > max_time_used)
@@ -306,14 +327,16 @@ int main(int argc, char **argv)
     }
 
     avg_time_used /= 100;
-    // Display measured times
 
+    // Display measured times
     cout << fixed << "\nmax,min,avg = " << max_time_used << "," << min_time_used << "," << avg_time_used << endl;
 
     rppDestroyHost(handle);
 
     // Free memory
     free(inputAudioSize);
+    free(srcLengthTensor);
+    free(channelsTensor);
     free(inputf32);
     free(outputf32);
 
