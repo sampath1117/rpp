@@ -4,15 +4,23 @@
 
 cwd=$(pwd)
 
-# Input AUDIO_FILES - Three AUDIO_FILES
-DEFAULT_SRC_FOLDER_1="$cwd/../../../TEST_AUDIO_FILES/single_channel/"
+# Input audio files - Eight audio files
+DEFAULT_SRC_FOLDER="$cwd/../../../TEST_AUDIO_FILES/eight_samples_single_channel_src1/"
+
+# # Inputs for Testing Downmixing
+# # Input audio file - single audio file - multi channel
+# DEFAULT_SRC_FOLDER="$cwd/../../../TEST_AUDIO_FILES/single_sample_multi_channel_src1/"
+
+# # Inputs for Testing Non Silent Region Detection
+# # Input audio files - three audio files - single channel
+# DEFAULT_SRC_FOLDER="$cwd/../../../TEST_AUDIO_FILES/three_samples_single_channel_src1/"
 
 # Output AUDIO_FILES
 mkdir "$cwd/../../OUTPUT_AUDIO_FILES_HIP_NEW"
 DEFAULT_DST_FOLDER="$cwd/../../OUTPUT_AUDIO_FILES_HIP_NEW"
 
 # <<<<<<<<<<<<<< FOR MANUAL OVERRIDE, JUST REPLACE AND POINT TO THE SOURCE AND DESTINATION FOLDERS HERE >>>>>>>>>>>>>>
-SRC_FOLDER_1="$DEFAULT_SRC_FOLDER_1"
+SRC_FOLDER="$DEFAULT_SRC_FOLDER"
 DST_FOLDER="$DEFAULT_DST_FOLDER"
 
 # <<<<<<<<<<<<<< EXECUTION OF ALL FUNCTIONALITIES (NEED NOT CHANGE) >>>>>>>>>>>>>>
@@ -70,8 +78,8 @@ do
     for ((bitDepth=2;bitDepth<3;bitDepth++))
     do
         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
-        printf "\n./Tensor_HIP_audio $SRC_FOLDER_1 $bitDepth $case "
-        ./Tensor_hip_audio "$SRC_FOLDER_1" "$bitDepth" "$case"
+        printf "\n./Tensor_HIP_audio $SRC_FOLDER $bitDepth $case "
+        ./Tensor_hip_audio "$SRC_FOLDER" "$bitDepth" "$case"
 
         echo "------------------------------------------------------------------------------------------"
     done

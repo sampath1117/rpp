@@ -5,7 +5,7 @@
 cwd=$(pwd)
 
 # Input audio files - Eight audio files
-DEFAULT_SRC_FOLDER="$cwd/../../../TEST_AUDIO_FILES/eight_samples_src1/"
+DEFAULT_SRC_FOLDER="$cwd/../../../TEST_AUDIO_FILES/eight_samples_single_channel_src1/"
 
 # # Inputs for Testing Downmixing
 # # Input audio file - single audio file - multi channel

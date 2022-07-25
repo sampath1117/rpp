@@ -16,7 +16,7 @@ __device__ void to_decibels_hip_compute(d_float8 *src_f8, d_float8 *dst_f8, floa
 __global__ void to_decibels_tensor(float *srcPtr,
                                    uint2 srcStridesNH,
                                    float *dstPtr,
-                                   uint *srcLengthTensor,
+                                   int *srcLengthTensor,
                                    float cutOffDB,
                                    float multiplier,
                                    float referenceMagnitude,
@@ -43,7 +43,7 @@ __global__ void to_decibels_tensor(float *srcPtr,
 
 
 __global__ void get_max(float *srcPtr,
-                        uint *srcLength,
+                        int *srcLength,
                         uint1 srcStride,
                         float *max,
                         int *mutex)
@@ -86,14 +86,14 @@ __global__ void get_max(float *srcPtr,
 RppStatus hip_exec_to_decibels_tensor(Rpp32f *srcPtr,
                                       RpptDescPtr srcDescPtr,
                                       Rpp32f *dstPtr,
-                                      Rpp32u *srcLengthTensor,
+                                      Rpp32s *srcLengthTensor,
                                       Rpp32f cutOffDB,
                                       Rpp32f multiplier,
                                       Rpp32f referenceMagnitude,
                                       rpp::Handle& handle)
 {
     int localThreads_x = LOCAL_THREADS_X;
-    int localThreads_y = 1;
+    int localThreads_y = LOCAL_THREADS_Z;
     int localThreads_z = LOCAL_THREADS_Z;
     int globalThreads_x = (srcDescPtr->strides.hStride + 7) >> 3;
     int globalThreads_y = 1;

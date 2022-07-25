@@ -93,6 +93,7 @@ if( "${BACKEND}" STREQUAL "HIP")
     # Set HIP compiler and flags
     set(CMAKE_CXX_COMPILER ${COMPILER_FOR_HIP})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${HIP_HIPCC_FLAGS} -fopenmp -Ofast -msse4.2 -msse4.1 -mssse3 -mavx2 -mfma -g3 -std=c++14")
+    set_source_files_properties(rppt_tensor_audio.cpp PROPERTIES COMPILE_FLAGS -mno-fma)
 
     # Add HIP specific preprocessor flags
     add_definitions(-DGPU_SUPPORT)
@@ -115,7 +116,7 @@ elseif( "${BACKEND}" STREQUAL "OCL")
     set(CMAKE_CXX_COMPILER ${COMPILER_FOR_OPENCL}) # GCC and G++ donst work for creating .so file
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -Ofast -msse4.2 -msse4.1 -mssse3 -mavx2 -mfma -g3 -std=c++14 -Wno-deprecated-declarations")
     set_source_files_properties(rppt_tensor_audio.cpp PROPERTIES COMPILE_FLAGS -mno-fma)
-    
+
     # Add OpenCL specific preprocessor flags
     add_definitions(-DGPU_SUPPORT)
     add_definitions(-DOCL_COMPILE)
@@ -133,6 +134,7 @@ elseif( "${BACKEND}" STREQUAL "CPU")
     # Set CPU compiler and flags
     set(CMAKE_CXX_COMPILER ${COMPILER_FOR_CPU}) # GCC and G++ donst work for creating .so file
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -Ofast -msse4.2 -msse4.1 -mssse3 -mavx2 -mfma -g3 -std=c++14 -Wno-deprecated-declarations")
+    set_source_files_properties(rppt_tensor_audio.cpp PROPERTIES COMPILE_FLAGS -mno-fma)
 
     # Add CPU specific includes
     set(ROCM_INC "/opt/rocm/include")

@@ -37,9 +37,9 @@ void verify_output(Rpp32f *dstPtr, int *srcLength, int bs, string test_case, Rpp
 {
     fstream ref_file;
     string ref_path = get_current_dir_name();
-    string pattern = "build";
+    string pattern = "HOST_NEW/audio/build";
     remove_substring(ref_path, pattern);
-    ref_path = ref_path + "ReferenceOutputs/";
+    ref_path = ref_path + "REFERENCE_AUDIO_OUTPUTS/";
     int file_match = 0;
     for (int i = 0; i < bs; i++)
     {

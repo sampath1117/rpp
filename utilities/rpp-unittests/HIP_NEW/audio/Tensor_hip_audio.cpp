@@ -19,6 +19,53 @@
 #define	MAX_CHANNELS 6
 using namespace std;
 
+void remove_substring(string &str, string &pattern)
+{
+    std::string::size_type i = str.find(pattern);
+    while (i != std::string::npos)
+    {
+        str.erase(i, pattern.length());
+        i = str.find(pattern, i);
+   }
+}
+
+void verify_output(Rpp32f *dstPtr, int *srcLength, int bs, string test_case, Rpp32u stride, char audioNames[][1000])
+{
+    fstream ref_file;
+    string ref_path = get_current_dir_name();
+    string pattern = "HIP_NEW/audio/build";
+    remove_substring(ref_path, pattern);
+    ref_path = ref_path + "REFERENCE_AUDIO_OUTPUTS/";
+    int file_match = 0;
+    for (int i = 0; i < bs; i++)
+    {
+        string current_file_name = audioNames[i];
+        size_t last_index = current_file_name.find_last_of(".");
+        current_file_name = current_file_name.substr(0, last_index);  // Remove extension from file name
+        string out_file = ref_path + test_case + "/" + test_case + "_ref_" + current_file_name + ".txt";
+        ref_file.open(out_file, ios::in);
+        int offset = i * stride;
+        int matched_indices = 0;
+        for(int j = 0; j < srcLength[i]; j++)
+        {
+            Rpp32f ref_val, out_val;
+            ref_file>>ref_val;
+            out_val = dstPtr[offset + j];
+            if(abs(out_val - ref_val) < 1e-4)
+                matched_indices += 1;
+        }
+        ref_file.close();
+        if(matched_indices == srcLength[i])
+            file_match++;
+    }
+
+    std::cerr<<std::endl<<"Results for Test case: "<<test_case<<std::endl;
+    if(file_match == bs)
+        std::cerr<<"PASSED!"<<std::endl;
+    else
+        std::cerr<<"FAILED! "<<file_match<<"/"<<bs<<" outputs are matching with reference outputs"<<std::endl;
+}
+
 int main(int argc, char **argv)
 {
     // Handle inputs
@@ -88,7 +135,7 @@ int main(int argc, char **argv)
 
     // Initialize the AudioPatch for source
     Rpp32s *inputAudioSize = (Rpp32s *) calloc(noOfAudioFiles, sizeof(Rpp32s));
-    Rpp32u *srcLengthTensor = (Rpp32u *) calloc(noOfAudioFiles, sizeof(Rpp32u));
+    Rpp32s *srcLengthTensor = (Rpp32s *) calloc(noOfAudioFiles, sizeof(Rpp32s));
     Rpp32s *channelsTensor = (Rpp32s *) calloc(noOfAudioFiles, sizeof(Rpp32s));
 
     // Set maxLength
@@ -201,8 +248,8 @@ int main(int argc, char **argv)
         hipMemcpy(d_outputf32, outputf32, ioBufferSizeInBytes_f32, hipMemcpyHostToDevice);
     }
 
-    Rpp32u *d_srcLengthTensor;
-    hipMalloc(&d_srcLengthTensor, noOfAudioFiles * sizeof(Rpp32u));
+    Rpp32s *d_srcLengthTensor;
+    hipMalloc(&d_srcLengthTensor, noOfAudioFiles * sizeof(Rpp32s));
 
     // Run case-wise RPP API and measure time
     rppHandle_t handle;
@@ -224,7 +271,7 @@ int main(int argc, char **argv)
             Rpp32f multiplier = 10.0;
             Rpp32f referenceMagnitude = 0.0;
 
-            hipMemcpy(d_srcLengthTensor, srcLengthTensor, noOfAudioFiles * sizeof(Rpp32u), hipMemcpyHostToDevice);
+            hipMemcpy(d_srcLengthTensor, srcLengthTensor, noOfAudioFiles * sizeof(Rpp32s), hipMemcpyHostToDevice);
 
             start = clock();
             if (ip_bitDepth == 2)
@@ -236,15 +283,7 @@ int main(int argc, char **argv)
 
 
             hipMemcpy(outputf32, d_outputf32, ioBufferSizeInBytes_f32, hipMemcpyDeviceToHost);
-            cout<<endl<<"Output in DB: "<<endl;
-            int cnt = 0;
-            for(int i = 0; i < srcLengthTensor[0]; i++)
-            {
-                cout<<"output["<<i<<"]: "<<outputf32[i]<<endl;
-            }
-
-            cout<<endl;
-
+            verify_output(outputf32, srcLengthTensor, noOfAudioFiles, test_case_name, srcDescPtr->strides.nStride, audioNames);
             break;
         }
         case 2:
@@ -253,7 +292,7 @@ int main(int argc, char **argv)
             Rpp32f coeff[noOfAudioFiles];
             for (i = 0; i < noOfAudioFiles; i++)
                 coeff[i] = 0.97;
-            RpptAudioBorderType borderType = RpptAudioBorderType::ZERO;
+            RpptAudioBorderType borderType = RpptAudioBorderType::CLAMP;
 
             start_omp = omp_get_wtime();
             start = clock();
@@ -265,14 +304,7 @@ int main(int argc, char **argv)
                 missingFuncFlag = 1;
 
             hipMemcpy(outputf32, d_outputf32, ioBufferSizeInBytes_f32, hipMemcpyDeviceToHost);
-            cout<<endl<<"Output in DB: "<<endl;
-            int cnt = 0;
-            for(int i = 0; i < 100000; i++)
-            {
-                cout<<"output["<<i<<"]: "<<outputf32[i]<<endl;
-            }
-
-            cout<<endl;
+            verify_output(outputf32, srcLengthTensor, noOfAudioFiles, test_case_name, srcDescPtr->strides.nStride, audioNames);
             break;
         }
         default:
