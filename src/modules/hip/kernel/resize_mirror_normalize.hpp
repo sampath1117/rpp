@@ -318,9 +318,9 @@ RppStatus hip_exec_resize_mirror_normalize_tensor(T *srcPtr,
     if (roiType == RpptRoiType::XYWH)
         hip_exec_roi_converison_xywh_to_ltrb(roiTensorPtrSrc, handle);
 
-    int localThreads_x = 16;
-    int localThreads_y = 16;
-    int localThreads_z = 1;
+    int localThreads_x = LOCAL_THREADS_X;
+    int localThreads_y = LOCAL_THREADS_Y;
+    int localThreads_z = LOCAL_THREADS_Z;
     int globalThreads_x = (dstDescPtr->strides.hStride + 7) >> 3;
     int globalThreads_y = dstDescPtr->h;
     int globalThreads_z = handle.GetBatchSize();

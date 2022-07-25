@@ -1274,6 +1274,7 @@ int main(int argc, char **argv)
         roiTypeSrc = RpptRoiType::LTRB;
         roiTypeDst = RpptRoiType::LTRB;*/
 
+        start_omp = omp_get_wtime();
         start = clock();
         if (ip_bitDepth == 0)
             rppt_resize_crop_mirror_host(input, srcDescPtr, output, dstDescPtr, dstImgSizes, interpolationType, mirror, roiTensorPtrSrc, roiTypeSrc, handle);

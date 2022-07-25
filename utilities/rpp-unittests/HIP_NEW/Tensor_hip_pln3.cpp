@@ -1444,17 +1444,17 @@ int main(int argc, char **argv)
         Rpp32u mirror[images];
         for (i = 0; i < images; i++)
         {
-            mirror[i] = 0;
+            mirror[i] = 1;
         }
 
         for (i = 0; i < images; i++)
         {
             roiTensorPtrSrc[i].xywhROI.xy.x = 0;
             roiTensorPtrSrc[i].xywhROI.xy.y = 0;
+            dstImgSizes[i].width = roiTensorPtrSrc[i].xywhROI.roiWidth / 1.1;
+            dstImgSizes[i].height = roiTensorPtrSrc[i].xywhROI.roiHeight / 3;
             roiTensorPtrSrc[i].xywhROI.roiWidth = 50;
             roiTensorPtrSrc[i].xywhROI.roiHeight = 50;
-            dstImgSizes[i].width = 100;
-            dstImgSizes[i].height = 100;
         }
 
         // Uncomment to run test case with an ltrbROI override

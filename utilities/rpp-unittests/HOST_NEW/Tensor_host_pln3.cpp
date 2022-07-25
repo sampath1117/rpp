@@ -157,13 +157,11 @@ int main(int argc, char **argv)
     case 38:
         strcpy(funcName, "crop_mirror_normalize");
         break;
-<<<<<<< HEAD
     case 39:
         strcpy(funcName, "resize_crop_mirror");
-=======
+        break;
     case 70:
         strcpy(funcName, "copy");
->>>>>>> sr/opt_rmn
         break;
     case 80:
         strcpy(funcName, "resize_mirror_normalize");
@@ -1352,6 +1350,7 @@ int main(int argc, char **argv)
         roiTypeSrc = RpptRoiType::LTRB;
         roiTypeDst = RpptRoiType::LTRB;*/
 
+        start_omp = omp_get_wtime();
         start = clock();
         if (ip_bitDepth == 0)
             rppt_resize_crop_mirror_host(input, srcDescPtr, output, dstDescPtr, dstImgSizes, interpolationType, mirror, roiTensorPtrSrc, roiTypeSrc, handle);
