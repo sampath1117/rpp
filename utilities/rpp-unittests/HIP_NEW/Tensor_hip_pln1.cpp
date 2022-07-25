@@ -79,7 +79,7 @@ int main(int argc, char **argv)
     if (argc < MIN_ARG_COUNT)
     {
         printf("\nImproper Usage! Needs all arguments!\n");
-        printf("\nUsage: ./Tensor_hip_pln1 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:84> <verbosity = 0/1>\n");
+        printf("\nUsage: ./Tensor_hip_pln1 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <verbosity = 0/1>\n");
         return -1;
     }
     if (atoi(argv[5]) != 0)
@@ -111,7 +111,7 @@ int main(int argc, char **argv)
         printf("\ndst = %s", argv[3]);
         printf("\nu8 / f16 / f32 / u8->f16 / u8->f32 / i8 / u8->i8 (0/1/2/3/4/5/6) = %s", argv[4]);
         printf("\noutputFormatToggle (pkd->pkd = 0 / pkd->pln = 1) = %s", argv[5]);
-        printf("\ncase number (0:84) = %s", argv[6]);
+        printf("\ncase number (0:86) = %s", argv[6]);
     }
 
     int ip_channel = 1;
@@ -187,7 +187,11 @@ int main(int argc, char **argv)
         strcpy(funcName, "box_filter");
         outputFormatToggle = 0;
         break;
-    case 80:
+    case 70:
+        strcpy(funcName, "copy");
+        outputFormatToggle = 0;
+        break;
+     case 80:
         strcpy(funcName, "resize_mirror_normalize");
         outputFormatToggle = 0;
         break;
@@ -197,6 +201,14 @@ int main(int argc, char **argv)
         break;
     case 84:
         strcpy(funcName, "spatter");
+        outputFormatToggle = 0;
+        break;
+    case 85:
+        strcpy(funcName, "swap_channels");
+        outputFormatToggle = 0;
+        break;
+    case 86:
+        strcpy(funcName, "color_to_greyscale");
         outputFormatToggle = 0;
         break;
     default:
@@ -1443,6 +1455,30 @@ int main(int argc, char **argv)
 
         break;
     }
+    case 70:
+    {
+        test_case_name = "copy";
+
+        start = clock();
+        if (ip_bitDepth == 0)
+            rppt_copy_gpu(d_input, srcDescPtr, d_output, dstDescPtr, handle);
+        else if (ip_bitDepth == 1)
+            rppt_copy_gpu(d_inputf16, srcDescPtr, d_outputf16, dstDescPtr, handle);
+        else if (ip_bitDepth == 2)
+            rppt_copy_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, handle);
+        else if (ip_bitDepth == 3)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 4)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 5)
+            rppt_copy_gpu(d_inputi8, srcDescPtr, d_outputi8, dstDescPtr, handle);
+        else if (ip_bitDepth == 6)
+            missingFuncFlag = 1;
+        else
+            missingFuncFlag = 1;
+
+        break;
+    }
     case 80:
     {
         test_case_name = "resize_mirror_normalize";
@@ -1459,21 +1495,16 @@ int main(int argc, char **argv)
             dstImgSizes[i].height = roiTensorPtrDst[i].xywhROI.roiHeight = roiTensorPtrSrc[i].xywhROI.roiHeight / 3;
         }
 
-        Rpp32f mean[images * 3];
-        Rpp32f stdDev[images * 3];
+        Rpp32f mean[images];
+        Rpp32f stdDev[images];
         Rpp32u mirror[images];
         for (i = 0; i < images; i++)
         {
-            mean[3 * i] = 100.0;
-            stdDev[3 * i] = 1.0;
-
-            mean[3 * i + 1] = 100.0;
-            stdDev[3 * i + 1] = 1.0;
-
-            mean[3 * i + 2] = 100.0;
-            stdDev[3 * i + 2] = 1.0;
+            mean[i] = 100.0;
+            stdDev[i] = 1.0;
             mirror[i] = 1;
         }
+
         // Uncomment to run test case with an xywhROI override
         // for (i = 0; i < images; i++)
         // {
@@ -1507,9 +1538,9 @@ int main(int argc, char **argv)
         else if (ip_bitDepth == 2)
             rppt_resize_mirror_normalize_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, d_dstImgSizes, interpolationType, mean, stdDev, mirror, d_roiTensorPtrSrc, roiTypeSrc, handle);
         else if (ip_bitDepth == 3)
-            missingFuncFlag = 1;
+            rppt_resize_mirror_normalize_gpu(d_input, srcDescPtr, d_outputf16, dstDescPtr, d_dstImgSizes, interpolationType, mean, stdDev, mirror, d_roiTensorPtrSrc, roiTypeSrc, handle);
         else if (ip_bitDepth == 4)
-            missingFuncFlag = 1;
+            rppt_resize_mirror_normalize_gpu(d_input, srcDescPtr, d_outputf32, dstDescPtr, d_dstImgSizes, interpolationType, mean, stdDev, mirror, d_roiTensorPtrSrc, roiTypeSrc, handle);
         else if (ip_bitDepth == 5)
             rppt_resize_mirror_normalize_gpu(d_inputi8, srcDescPtr, d_outputi8, dstDescPtr, d_dstImgSizes, interpolationType, mean, stdDev, mirror, d_roiTensorPtrSrc, roiTypeSrc, handle);
         else if (ip_bitDepth == 6)
