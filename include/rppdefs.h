@@ -592,6 +592,7 @@ typedef struct
     hipMemRpp8s charArr[10];
     hipMemRpptRGB rgbArr;
     hipMemRpp32f maskArr;
+    RpptROIPtr tempRoi;
     Rpp64u* srcBatchIndex;
     Rpp64u* dstBatchIndex;
     Rpp32u* inc;
