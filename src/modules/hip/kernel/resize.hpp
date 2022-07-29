@@ -199,8 +199,10 @@ RppStatus hip_exec_resize_tensor(T *srcPtr,
                                  RpptRoiType roiType,
                                  rpp::Handle& handle)
 {
+    hipMemcpy(handle.GetInitHandle()->mem.mgpu.tempRoi, roiTensorPtrSrc, handle.GetBatchSize() * sizeof(RpptROI), hipMemcpyDeviceToDevice);
+
     if (roiType == RpptRoiType::XYWH)
-        hip_exec_roi_converison_xywh_to_ltrb(roiTensorPtrSrc, handle);
+        hip_exec_roi_converison_xywh_to_ltrb(handle.GetInitHandle()->mem.mgpu.tempRoi, handle);
 
     int localThreads_x = 16;
     int localThreads_y = 16;
@@ -223,7 +225,7 @@ RppStatus hip_exec_resize_tensor(T *srcPtr,
                             dstPtr,
                             make_uint2(dstDescPtr->strides.nStride, dstDescPtr->strides.hStride),
                             dstImgSize,
-                            roiTensorPtrSrc);
+                            handle.GetInitHandle()->mem.mgpu.tempRoi);
         }
         else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
         {
@@ -238,7 +240,7 @@ RppStatus hip_exec_resize_tensor(T *srcPtr,
                             make_uint3(dstDescPtr->strides.nStride, dstDescPtr->strides.cStride, dstDescPtr->strides.hStride),
                             dstDescPtr->c,
                             dstImgSize,
-                            roiTensorPtrSrc);
+                            handle.GetInitHandle()->mem.mgpu.tempRoi);
         }
         else if ((srcDescPtr->c == 3) && (dstDescPtr->c == 3))
         {
@@ -254,7 +256,7 @@ RppStatus hip_exec_resize_tensor(T *srcPtr,
                                 dstPtr,
                                 make_uint3(dstDescPtr->strides.nStride, dstDescPtr->strides.cStride, dstDescPtr->strides.hStride),
                                 dstImgSize,
-                                roiTensorPtrSrc);
+                                handle.GetInitHandle()->mem.mgpu.tempRoi);
             }
             else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NHWC))
             {
@@ -268,7 +270,7 @@ RppStatus hip_exec_resize_tensor(T *srcPtr,
                                 dstPtr,
                                 make_uint2(dstDescPtr->strides.nStride, dstDescPtr->strides.hStride),
                                 dstImgSize,
-                                roiTensorPtrSrc);
+                                handle.GetInitHandle()->mem.mgpu.tempRoi);
             }
         }
     }
