@@ -17,7 +17,7 @@ __global__ void to_decibels_tensor(float *srcPtr,
                                    uint2 srcStridesNH,
                                    float *dstPtr,
                                    int *srcLengthTensor,
-                                   float cutOffDB,
+                                   float minRatio,
                                    float multiplier,
                                    float referenceMagnitude,
                                    float *maxValues)
@@ -33,7 +33,6 @@ __global__ void to_decibels_tensor(float *srcPtr,
     uint loc = (id_z * srcStridesNH.x) + id_x;
     referenceMagnitude = (referenceMagnitude == 0.0) ? maxValues[id_z] : referenceMagnitude;
     float invreferenceMagnitude = (1.0f / referenceMagnitude);
-    float minRatio = powf(10, cutOffDB / multiplier);
 
     d_float8 src_f8, dst_f8;
     rpp_hip_load8_and_unpack_to_float8(srcPtr + loc, &src_f8);
@@ -121,6 +120,7 @@ RppStatus hip_exec_to_decibels_tensor(Rpp32f *srcPtr,
         hipFree(mutex);
     }
 
+    float minRatio = powf(10, cutOffDB / multiplier);
     globalThreads_x = (srcDescPtr->strides.hStride + 7) >> 3;
     hipLaunchKernelGGL(to_decibels_tensor,
                        dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
@@ -131,7 +131,7 @@ RppStatus hip_exec_to_decibels_tensor(Rpp32f *srcPtr,
                        make_uint2(srcDescPtr->strides.nStride, srcDescPtr->strides.hStride),
                        dstPtr,
                        srcLengthTensor,
-                       cutOffDB,
+                       minRatio,
                        multiplier,
                        referenceMagnitude,
                        handle.GetInitHandle()->mem.mgpu.floatArr[0].floatmem);

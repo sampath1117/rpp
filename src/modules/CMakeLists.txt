@@ -96,11 +96,10 @@ if( "${BACKEND}" STREQUAL "HIP")
     set_source_files_properties(rppt_tensor_audio.cpp PROPERTIES COMPILE_FLAGS -mno-fma)
 
     # Add HIP specific preprocessor flags
-    add_definitions(-DGPU_SUPPORT)
     add_definitions(-DHIP_COMPILE)
 
     # Add HIP specific includes
-    set(HIP_INC "/opt/rocm/hip/include")
+    set(HIP_INC ${ROCM_PATH}/include/)
     list(APPEND HIP_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/src/include/hip/ ${CMAKE_SOURCE_DIR}/src/include/common/)
     set(INCLUDE_LIST ${HIP_INCLUDE_DIRS} ${HIP_INC} ${INCLUDE_LIST})
     message("-- ${Blue}HIP include directories -- ${INCLUDE_LIST}${ColourReset}")
@@ -118,15 +117,16 @@ elseif( "${BACKEND}" STREQUAL "OCL")
     set_source_files_properties(rppt_tensor_audio.cpp PROPERTIES COMPILE_FLAGS -mno-fma)
 
     # Add OpenCL specific preprocessor flags
-    add_definitions(-DGPU_SUPPORT)
     add_definitions(-DOCL_COMPILE)
     add_definitions(-DRPP_CACHE_DIR="${CACHE_DIR}")
     add_definitions(-DMOD_CL_PATH="${CMAKE_CURRENT_LIST_DIR}/cl/kernel/")
 
     # Add OpenCL specific includes
-    set(ROCM_INC "/opt/rocm/include")
-    list(APPEND OpenCL_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/src/include/cl/ ${CMAKE_SOURCE_DIR}/src/include/common/)
-    set(INCLUDE_LIST ${OpenCL_INCLUDE_DIRS} ${INCLUDE_LIST} ${ROCM_INC})
+    set(ROCM_INC ${ROCM_PATH}/include/)
+    # list(APPEND OpenCL_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/src/include/cl/ ${CMAKE_SOURCE_DIR}/src/include/common/) # using substitute since OpenCL_INCLUDE_DIRS points to a deprecated /opt/rocm/opencl/include
+    # set(INCLUDE_LIST ${OpenCL_INCLUDE_DIRS} ${INCLUDE_LIST} ${ROCM_INC}) # using substitute since OpenCL_INCLUDE_DIRS points to a deprecated /opt/rocm/opencl/include
+    list(APPEND INCLUDE_LIST ${CMAKE_SOURCE_DIR}/src/include/cl/ ${CMAKE_SOURCE_DIR}/src/include/common/)
+    set(INCLUDE_LIST ${INCLUDE_LIST} ${ROCM_INC})
     message("-- ${Blue}OpenCL include directories -- ${INCLUDE_LIST}${ColourReset}")
 
 elseif( "${BACKEND}" STREQUAL "CPU")
@@ -137,7 +137,7 @@ elseif( "${BACKEND}" STREQUAL "CPU")
     set_source_files_properties(rppt_tensor_audio.cpp PROPERTIES COMPILE_FLAGS -mno-fma)
 
     # Add CPU specific includes
-    set(ROCM_INC "/opt/rocm/include")
+    set(ROCM_INC ${ROCM_PATH}/include/)
     set(INCLUDE_LIST ${ROCM_INC} ${CMAKE_SOURCE_DIR}/src/include/common/)
     message("-- ${Blue}CPU include directories -- ${INCLUDE_LIST}${ColourReset}")
 

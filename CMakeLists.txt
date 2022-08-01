@@ -84,6 +84,11 @@ if( "${BACKEND}" STREQUAL "HIP" OR "${BACKEND}" STREQUAL "hip")
     find_package(HIP QUIET)    # Find package HIP
     if(HIP_FOUND)
 
+        # Set external flag to notify GPU_SUPPORT and HIP backend availability - Compatible with rocAL and MIVisionX
+        add_definitions(-DGPU_SUPPORT)
+        set(RPP_BACKEND_HIP 1) # For cmakedefine01 in rpp_backend.h.in
+        add_definitions(-DRPP_BACKEND_HIP=${RPP_BACKEND_HIP}) # To use RPP_BACKEND_HIP
+
         # Add modules
         set(BACKEND "HIP")
         set(MODULES_LIST modules)
@@ -109,6 +114,11 @@ elseif("${BACKEND}" STREQUAL "OCL" OR "${BACKEND}" STREQUAL "OPENCL" OR "${BACKE
     find_package(OpenCL QUIET)    # Find package OpenCL
     if(OpenCL_FOUND)
 
+        # Set external flag to notify GPU_SUPPORT and OPENCL backend availability - Compatible with rocAL and MIVisionX
+        add_definitions(-DGPU_SUPPORT)
+        set(RPP_BACKEND_OPENCL 1) # For cmakedefine01 in rpp_backend.h.in
+        add_definitions(-DRPP_BACKEND_OPENCL=${RPP_BACKEND_OPENCL}) # To use RPP_BACKEND_HIP
+
         # Add modules
         set(BACKEND "OCL")
         set(MODULES_LIST modules)
@@ -120,7 +130,8 @@ elseif("${BACKEND}" STREQUAL "OCL" OR "${BACKEND}" STREQUAL "OPENCL" OR "${BACKE
         set(CMAKE_CXX_COMPILER ${COMPILER_FOR_OPENCL}) # GCC and G++ donst work for creating .so file
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -Ofast -msse4.2 -msse4.1 -mssse3 -mavx2 -mfma")
         set(LINK_LIST ${OpenCL_LIBRARIES} ${LINK_LIST})
-        set(INCLUDE_LIST ${OpenCL_INCLUDE_DIRS} ${INCLUDE_LIST})
+        # set(INCLUDE_LIST ${OpenCL_INCLUDE_DIRS} ${INCLUDE_LIST})  # using substitute since OpenCL_INCLUDE_DIRS points to a deprecated /opt/rocm/opencl/include
+        set(INCLUDE_LIST ${INCLUDE_LIST})
         add_definitions(-DRPP_CACHE_DIR="${CACHE_DIR}")
 
         message("-- ${Green}${PROJECT_NAME} set to build with GPU_SUPPORT using OpenCL backend${ColourReset}")
@@ -188,13 +199,11 @@ target_include_directories(${PROJECT_NAME}
 )
 
 if( "${BACKEND}" STREQUAL "HIP")
-    add_definitions(-DGPU_SUPPORT)
     target_include_directories(${PROJECT_NAME}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/include/hip
     )
 elseif( "${BACKEND}" STREQUAL "OCL")
-    add_definitions(-DGPU_SUPPORT)
     target_include_directories(${PROJECT_NAME}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/include/cl

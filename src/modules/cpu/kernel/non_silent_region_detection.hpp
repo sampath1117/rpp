@@ -68,7 +68,7 @@ RppStatus non_silent_region_detection_host_tensor(Rpp32f *srcPtr,
 
 		// Convert cutOff from DB to magnitude
 		Rpp32f base = (referenceMax) ? getMax(mmsBuffer, mmsBufferSize) : referencePower;
-		Rpp32f cutOffMag = base * pow(10.0f, cutOffDB * 0.1f);
+		Rpp32f cutOffMag = base * std::pow(10.0f, cutOffDB * 0.1f);
 
 		// Calculate begining index, length of non silent region from the mms buffer
 		int endIdx = mmsBufferSize;

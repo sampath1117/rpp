@@ -4,6 +4,7 @@
 RppStatus down_mixing_host_tensor(Rpp32f *srcPtr,
                                   RpptDescPtr srcDescPtr,
                                   Rpp32f *dstPtr,
+                                  RpptDescPtr dstDescPtr,
                                   Rpp32s *srcLengthTensor,
                                   Rpp32s *channelsTensor,
                                   bool normalizeWeights)
@@ -13,7 +14,7 @@ RppStatus down_mixing_host_tensor(Rpp32f *srcPtr,
     for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
     {
         Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
-        Rpp32f *dstPtrTemp = dstPtr + batchCount * srcDescPtr->strides.nStride;
+        Rpp32f *dstPtrTemp = dstPtr + batchCount * dstDescPtr->strides.nStride;
 
         Rpp32s channels = channelsTensor[batchCount];
         Rpp32s samples = srcLengthTensor[batchCount];

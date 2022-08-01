@@ -5,6 +5,7 @@
 RppStatus pre_emphasis_filter_host_tensor(Rpp32f *srcPtr,
                                           RpptDescPtr srcDescPtr,
                                           Rpp32f *dstPtr,
+										  RpptDescPtr dstDescPtr,
                                           Rpp32s *srcSizeTensor,
                                           Rpp32f *coeffTensor,
                                           Rpp32u borderType)
@@ -14,7 +15,7 @@ RppStatus pre_emphasis_filter_host_tensor(Rpp32f *srcPtr,
 	for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
 	{
 		Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
-		Rpp32f *dstPtrTemp = dstPtr + batchCount * srcDescPtr->strides.nStride;
+		Rpp32f *dstPtrTemp = dstPtr + batchCount * dstDescPtr->strides.nStride;
 		Rpp32s srcSize = srcSizeTensor[batchCount];
 		Rpp32f coeff = coeffTensor[batchCount];
 
