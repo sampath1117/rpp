@@ -4,6 +4,7 @@
 __global__ void pre_emphasis_filter_tensor(float *srcPtr,
                                            uint2 srcStridesNH,
                                            float *dstPtr,
+                                           uint2 dstStridesNH,
                                            int *srcSizeTensor,
                                            float *coeffTensor,
                                            RpptAudioBorderType borderType)
@@ -17,25 +18,27 @@ __global__ void pre_emphasis_filter_tensor(float *srcPtr,
         return;
     }
 
-    uint loc = (id_z * srcStridesNH.x) + id_x;
+    uint srcIdx = (id_z * srcStridesNH.x) + id_x;
+    uint dstIdx = (id_z * dstStridesNH.x) + id_x;
     float coeff = coeffTensor[id_z];
     if(id_x == 0)
     {
         if(borderType == RpptAudioBorderType::ZERO)
-            dstPtr[loc] = srcPtr[loc];
+            dstPtr[dstIdx] = srcPtr[srcIdx];
         else
         {
-            float border = (borderType == RpptAudioBorderType::CLAMP) ? srcPtr[loc] : srcPtr[loc + 1];
-            dstPtr[loc] = srcPtr[loc] - coeff * border;
+            float border = (borderType == RpptAudioBorderType::CLAMP) ? srcPtr[srcIdx] : srcPtr[srcIdx + 1];
+            dstPtr[dstIdx] = srcPtr[srcIdx] - coeff * border;
         }
     }
     else
-        dstPtr[loc] = srcPtr[loc] - coeff * srcPtr[loc - 1];
+        dstPtr[dstIdx] = srcPtr[srcIdx] - coeff * srcPtr[srcIdx - 1];
 }
 
 RppStatus hip_exec_pre_emphasis_filter_tensor(Rpp32f *srcPtr,
                                               RpptDescPtr srcDescPtr,
                                               Rpp32f *dstPtr,
+                                              RpptDescPtr dstDescPtr,
                                               RpptAudioBorderType borderType,
                                               rpp::Handle& handle)
 {
@@ -54,6 +57,7 @@ RppStatus hip_exec_pre_emphasis_filter_tensor(Rpp32f *srcPtr,
                        srcPtr,
                        make_uint2(srcDescPtr->strides.nStride, srcDescPtr->strides.hStride),
                        dstPtr,
+                       make_uint2(dstDescPtr->strides.nStride, dstDescPtr->strides.hStride),
                        handle.GetInitHandle()->mem.mgpu.intArr[0].intmem,
                        handle.GetInitHandle()->mem.mgpu.floatArr[1].floatmem,
                        borderType);

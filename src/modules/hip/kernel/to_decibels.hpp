@@ -16,6 +16,7 @@ __device__ void to_decibels_hip_compute(d_float8 *src_f8, d_float8 *dst_f8, floa
 __global__ void to_decibels_tensor(float *srcPtr,
                                    uint2 srcStridesNH,
                                    float *dstPtr,
+                                   uint2 dstStridesNH,
                                    int *srcLengthTensor,
                                    float minRatio,
                                    float multiplier,
@@ -30,14 +31,16 @@ __global__ void to_decibels_tensor(float *srcPtr,
         return;
     }
 
-    uint loc = (id_z * srcStridesNH.x) + id_x;
+    uint srcIdx = (id_z * srcStridesNH.x) + id_x;
     referenceMagnitude = (referenceMagnitude == 0.0) ? maxValues[id_z] : referenceMagnitude;
     float invreferenceMagnitude = (1.0f / referenceMagnitude);
 
     d_float8 src_f8, dst_f8;
-    rpp_hip_load8_and_unpack_to_float8(srcPtr + loc, &src_f8);
+    rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx, &src_f8);
     to_decibels_hip_compute(&src_f8, &dst_f8, minRatio, multiplier, invreferenceMagnitude);
-    rpp_hip_pack_float8_and_store8(dstPtr + loc, &dst_f8);
+
+    uint dstIdx = (id_z * dstStridesNH.x) + id_x;
+    rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &dst_f8);
 }
 
 
@@ -85,6 +88,7 @@ __global__ void get_max(float *srcPtr,
 RppStatus hip_exec_to_decibels_tensor(Rpp32f *srcPtr,
                                       RpptDescPtr srcDescPtr,
                                       Rpp32f *dstPtr,
+                                      RpptDescPtr dstDescPtr,
                                       Rpp32s *srcLengthTensor,
                                       Rpp32f cutOffDB,
                                       Rpp32f multiplier,
@@ -130,6 +134,7 @@ RppStatus hip_exec_to_decibels_tensor(Rpp32f *srcPtr,
                        srcPtr,
                        make_uint2(srcDescPtr->strides.nStride, srcDescPtr->strides.hStride),
                        dstPtr,
+                       make_uint2(dstDescPtr->strides.nStride, dstDescPtr->strides.hStride),
                        srcLengthTensor,
                        minRatio,
                        multiplier,
