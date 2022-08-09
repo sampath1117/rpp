@@ -24,7 +24,7 @@ RppStatus resize_mirror_normalize_u8_u8_host_tensor(Rpp8u *srcPtr,
     }
 
 omp_set_dynamic(0);
-#pragma omp parallel for num_threads(dstDescPtr->n)
+#pragma omp parallel for num_threads(64)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         RpptROI roi;
