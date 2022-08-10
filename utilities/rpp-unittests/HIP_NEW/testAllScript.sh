@@ -96,33 +96,36 @@ directory_name_generator() {
     elif [[ "$case" -lt 69 ]]
     then
         FUNCTIONALITY_GROUP="logical_operations"
-    else
+    elif [[ "$case" -lt 79 ]]
+    then
         FUNCTIONALITY_GROUP="computer_vision"
+    else
+        FUNCTIONALITY_GROUP="miscellaneous"
     fi
 
     DST_FOLDER_TEMP="$DST_FOLDER""/rpp_""$AFFINITY""_""$TYPE""_""$FUNCTIONALITY_GROUP"
 }
 
-if [[ "$1" -lt 0 ]] | [[ "$1" -gt 84 ]]; then
-    echo "The starting case# must be in the 0-84 range!"
+if [[ "$1" -lt 0 ]] | [[ "$1" -gt 86 ]]; then
+    echo "The starting case# must be in the 0:86 range!"
     echo
     echo "The rawLogsGenScript.sh bash script runs the RPP performance testsuite for AMDRPP functionalities in HOST/OCL/HIP backends."
     echo
     echo "Syntax: ./rawLogsGenScript.sh <S> <E> <U>"
-    echo "S     CASE_START (Starting case# (0-84))"
-    echo "E     CASE_END (Ending case# (0-84))"
+    echo "S     CASE_START (Starting case# (0:86))"
+    echo "E     CASE_END (Ending case# (0:86))"
     echo "U     UNIQUE_FUNC (0 = Skip / 1 = Run)"
     exit 1
 fi
 
-if [[ "$2" -lt 0 ]] | [[ "$2" -gt 84 ]]; then
-    echo "The ending case# must be in the 0-84 range!"
+if [[ "$2" -lt 0 ]] | [[ "$2" -gt 86 ]]; then
+    echo "The ending case# must be in the 0:86 range!"
     echo
     echo "The rawLogsGenScript.sh bash script runs the RPP performance testsuite for AMDRPP functionalities in HOST/OCL/HIP backends."
     echo
     echo "Syntax: ./rawLogsGenScript.sh <S> <E> <U>"
-    echo "S     CASE_START (Starting case# (0-84))"
-    echo "E     CASE_END (Ending case# (0-84))"
+    echo "S     CASE_START (Starting case# (0:86))"
+    echo "E     CASE_END (Ending case# (0:86))"
     echo "U     UNIQUE_FUNC (0 = Skip / 1 = Run)"
     exit 1
 fi
@@ -134,8 +137,8 @@ if [ "$3" -ne 0 ]; then
         echo "The rawLogsGenScript.sh bash script runs the RPP performance testsuite for AMDRPP functionalities in HOST/OCL/HIP backends."
         echo
         echo "Syntax: ./rawLogsGenScript.sh <S> <E> <U>"
-        echo "S     CASE_START (Starting case# (0-84))"
-        echo "E     CASE_END (Ending case# (0-84))"
+        echo "S     CASE_START (Starting case# (0:86))"
+        echo "E     CASE_END (Ending case# (0:86))"
         echo "U     UNIQUE_FUNC (0 = Skip / 1 = Run)"
         exit 1
     fi
@@ -143,7 +146,7 @@ fi
 
 if (( "$#" < 3 )); then
     CASE_START="0"
-    CASE_END="84"
+    CASE_END="86"
     UNIQUE_FUNC="0"
 else
     CASE_START="$1"
@@ -164,7 +167,7 @@ echo "##########################################################################
 echo "Running all PKD3 Inputs..."
 echo "##########################################################################################"
 
-printf "\n\nUsage: ./BatchPD_hip_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:84> <verbosity = 0/1>"
+printf "\n\nUsage: ./BatchPD_hip_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <verbosity = 0/1>"
 
 for ((case=$CASE_START;case<=$CASE_END;case++))
 do
@@ -236,8 +239,8 @@ do
     done
 done
 
-# mkdir "$DST_FOLDER/PKD3"
-# mv "$DST_FOLDER/"!(PKD3) "$DST_FOLDER/PKD3"
+mkdir "$DST_FOLDER/PKD3"
+mv "$DST_FOLDER/"!(PKD3) "$DST_FOLDER/PKD3"
 
 
 
@@ -247,7 +250,7 @@ done
 # echo "Running all PLN1 Inputs..."
 # echo "##########################################################################################"
 
-# printf "\n\nUsage: ./BatchPD_hip_pln1 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:84> <verbosity = 0/1>"
+# printf "\n\nUsage: ./BatchPD_hip_pln1 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <verbosity = 0/1>"
 
 # for ((case=$CASE_START;case<=$CASE_END;case++))
 # do
@@ -258,7 +261,7 @@ done
 #     echo "--------------------------------"
 #     printf "Running a New Functionality...\n"
 #     echo "--------------------------------"
-#     for ((bitDepth=0;bitDepth<1;bitDepth++))
+#     for ((bitDepth=0;bitDepth<7;bitDepth++))
 #     do
 #         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
 #         for ((outputFormatToggle=0;outputFormatToggle<1;outputFormatToggle++))
@@ -295,9 +298,9 @@ done
 #                     printf "\n./Tensor_hip_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $kernelSize 0"
 #                     ./Tensor_hip_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0"
 #                 done
-#             elif [ "$case" -eq 21 ] || [ "$case" -eq 24 ]
+#             elif [[ "$case" -eq 24 ]]
 #             then
-#                 for ((interpolationType=4;interpolationType<5;interpolationType++))
+#                 for ((interpolationType=0;interpolationType<6;interpolationType++))
 #                 do
 #                     printf "\n./Tensor_hip_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $interpolationType 0"
 #                     ./Tensor_hip_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$interpolationType" "0"
@@ -330,7 +333,7 @@ done
 # echo "Running all PLN3 Inputs..."
 # echo "##########################################################################################"
 
-# printf "\n\nUsage: ./BatchPD_hip_pln3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:84> <verbosity = 0/1>"
+# printf "\n\nUsage: ./BatchPD_hip_pln3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <verbosity = 0/1>"
 
 # for ((case=$CASE_START;case<=$CASE_END;case++))
 # do
@@ -341,10 +344,10 @@ done
 #     echo "--------------------------------"
 #     printf "Running a New Functionality...\n"
 #     echo "--------------------------------"
-#     for ((bitDepth=0;bitDepth<1;bitDepth++))
+#     for ((bitDepth=0;bitDepth<7;bitDepth++))
 #     do
 #         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
-#         for ((outputFormatToggle=0;outputFormatToggle<1;outputFormatToggle++))
+#         for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
 #         do
 
 #             if [[ "$case" -eq 74 ]]
@@ -378,9 +381,9 @@ done
 #                     printf "\n./Tensor_hip_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $kernelSize 0"
 #                     ./Tensor_hip_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0"
 #                 done
-#             elif [ "$case" -eq 21 ] || [ "$case" -eq 24 ]
+#             elif [[ "$case" -eq 24 ]]
 #             then
-#                 for ((interpolationType=4;interpolationType<5;interpolationType++))
+#                 for ((interpolationType=0;interpolationType<6;interpolationType++))
 #                 do
 #                     printf "\n./Tensor_hip_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $interpolationType 0"
 #                     ./Tensor_hip_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$interpolationType" "0"
@@ -423,7 +426,7 @@ done
 #         echo "--------------------------------" | tee -a "$DST_FOLDER/uniqueFunctionalities_hip_log.txt"
 #         printf "Running a New Functionality...\n" | tee -a "$DST_FOLDER/uniqueFunctionalities_hip_log.txt"
 #         echo "--------------------------------" | tee -a "$DST_FOLDER/uniqueFunctionalities_hip_log.txt"
-#         for ((bitDepth=0;bitDepth<1;bitDepth++))
+#         for ((bitDepth=0;bitDepth<7;bitDepth++))
 #         do
 #             printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n" | tee -a "$DST_FOLDER/uniqueFunctionalities_hip_log.txt"
 #             echo "./uniqueFunctionalities_hip $bitDepth $case" | tee -a "$DST_FOLDER/uniqueFunctionalities_hip_log.txt"
