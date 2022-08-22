@@ -5,7 +5,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
 #include <iostream>
-#include "/media/rpp/include/rppi.h"
+#include "rppi.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -3013,7 +3013,8 @@ int main(int argc, char **argv)
     }
 
     gpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-    cout << "\nGPU Time - BatchPD : " << gpu_time_used;
+    gpu_time_used = gpu_time_used * 1000;
+    cout << "\nGPU Time - BatchPD : " << gpu_time_used << " ms." << endl;
     printf("\n");
 
     string fileName = std::to_string(ip_bitDepth);

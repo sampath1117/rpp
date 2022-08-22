@@ -1858,7 +1858,8 @@ int main(int argc, char **argv)
     // Display measured times
 
     gpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-    cout << "\nGPU Time - BatchPD : " << gpu_time_used << "s";
+    gpu_time_used = gpu_time_used * 1000;
+    cout << "\nGPU Time - BatchPD : " << gpu_time_used << " ms." << endl;
     printf("\n");
 
     // Reconvert other bit depths to 8u for output display purposes
