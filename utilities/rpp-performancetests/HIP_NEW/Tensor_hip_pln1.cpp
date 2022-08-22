@@ -118,97 +118,97 @@ int main(int argc, char **argv)
 
     // Set case names
 
-    char funcType[1000] = {"Tensor_HIP_PLN1_toPLN1"};
+    string funcType = "Tensor_HOST_PLN1";
+    string funcName="";
 
-    char funcName[1000];
     switch (test_case)
     {
     case 0:
-        strcpy(funcName, "brightness");
+        funcName = "brightness";
         outputFormatToggle = 0;
         break;
     case 1:
-        strcpy(funcName, "gamma_correction");
+        funcName = "gamma_correction";
         outputFormatToggle = 0;
         break;
     case 2:
-        strcpy(funcName, "blend");
+        funcName = "blend";
         outputFormatToggle = 0;
         break;
     case 4:
-        strcpy(funcName, "contrast");
+        funcName= "contrast";
         outputFormatToggle = 0;
         break;
     case 8:
-        strcpy(funcName, "noise");
+        funcName= "noise";
         outputFormatToggle = 0;
         break;
     case 13:
-        strcpy(funcName, "exposure");
+        funcName= "exposure";
         outputFormatToggle = 0;
         break;
     case 20:
-        strcpy(funcName, "flip");
+        funcName= "flip";
         outputFormatToggle = 0;
         break;
     case 24:
-        strcpy(funcName, "warp_affine");
+        funcName= "warp_affine";
         outputFormatToggle = 0;
         break;
     case 31:
-        strcpy(funcName, "color_cast");
+        funcName= "color_cast";
         outputFormatToggle = 0;
         break;
     case 36:
-        strcpy(funcName, "color_twist");
+        funcName= "color_twist";
         outputFormatToggle = 0;
         break;
     case 37:
-        strcpy(funcName, "crop");
+        funcName = "crop";
         outputFormatToggle = 0;
         break;
     case 38:
-        strcpy(funcName, "crop_mirror_normalize");
+        funcName= "crop_mirror_normalize";
         outputFormatToggle = 0;
         break;
     case 40:
-        strcpy(funcName, "erode");
+        funcName= "erode";
         outputFormatToggle = 0;
         break;
     case 41:
-        strcpy(funcName, "dilate");
+        funcName= "dilate";
         outputFormatToggle = 0;
         break;
     case 49:
-        strcpy(funcName, "box_filter");
+        funcName= "box_filter";
         outputFormatToggle = 0;
         break;
     case 70:
-        strcpy(funcName, "copy");
+        funcName= "copy";
         outputFormatToggle = 0;
         break;
     case 80:
-        strcpy(funcName, "resize_mirror_normalize");
+        funcName= "resize_mirror_normalize";
         outputFormatToggle = 0;
         break;
     case 83:
-        strcpy(funcName, "gridmask");
+        funcName= "gridmask";
         outputFormatToggle = 0;
         break;
     case 84:
-        strcpy(funcName, "spatter");
+        funcName= "spatter";
         outputFormatToggle = 0;
         break;
     case 85:
-        strcpy(funcName, "swap_channels");
+        funcName= "swap_channels";
         outputFormatToggle = 0;
         break;
     case 86:
-        strcpy(funcName, "color_to_greyscale");
+        funcName= "color_to_greyscale";
         outputFormatToggle = 0;
         break;
     default:
-        strcpy(funcName, "test_case");
+        funcName= "test_case";
         break;
     }
 
@@ -228,43 +228,43 @@ int main(int argc, char **argv)
 
     if (ip_bitDepth == 0)
     {
-        strcat(funcName, "_u8_");
+        funcName += "_u8_";
         srcDescPtr->dataType = RpptDataType::U8;
         dstDescPtr->dataType = RpptDataType::U8;
     }
     else if (ip_bitDepth == 1)
     {
-        strcat(funcName, "_f16_");
+        funcName += "_f16_";
         srcDescPtr->dataType = RpptDataType::F16;
         dstDescPtr->dataType = RpptDataType::F16;
     }
     else if (ip_bitDepth == 2)
     {
-        strcat(funcName, "_f32_");
+        funcName += "_f32_";
         srcDescPtr->dataType = RpptDataType::F32;
         dstDescPtr->dataType = RpptDataType::F32;
     }
     else if (ip_bitDepth == 3)
     {
-        strcat(funcName, "_u8_f16_");
+        funcName += "_u8_f16_";
         srcDescPtr->dataType = RpptDataType::U8;
         dstDescPtr->dataType = RpptDataType::F16;
     }
     else if (ip_bitDepth == 4)
     {
-        strcat(funcName, "_u8_f32_");
+        funcName += "_u8_f32_";
         srcDescPtr->dataType = RpptDataType::U8;
         dstDescPtr->dataType = RpptDataType::F32;
     }
     else if (ip_bitDepth == 5)
     {
-        strcat(funcName, "_i8_");
+        funcName += "_i8_";
         srcDescPtr->dataType = RpptDataType::I8;
         dstDescPtr->dataType = RpptDataType::I8;
     }
     else if (ip_bitDepth == 6)
     {
-        strcat(funcName, "_u8_i8_");
+        funcName += "_u8_i8_";
         srcDescPtr->dataType = RpptDataType::U8;
         dstDescPtr->dataType = RpptDataType::I8;
     }
@@ -283,38 +283,38 @@ int main(int argc, char **argv)
 
     // String ops on function name
 
-    char src1[1000];
-    strcpy(src1, src);
-    strcat(src1, "/");
-    char src1_second[1000];
-    strcpy(src1_second, src_second);
-    strcat(src1_second, "/");
+    string src1 = "";
+    src1 =  src;
+    src1 += "/";
+    string src1_second = "";
+    src1_second =  src_second;
+    src1_second += "/";
 
-    char func[1000];
-    strcpy(func, funcName);
-    strcat(func, funcType);
+    string func = "";
+    func = funcName;
+    func += funcType;
 
     RpptInterpolationType interpolationType = RpptInterpolationType::BILINEAR;
     if (kernelSizeCase)
     {
         char additionalParam_char[2];
         std::sprintf(additionalParam_char, "%u", additionalParam);
-        strcat(func, "_kSize");
-        strcat(func, additionalParam_char);
+        func+= "_kSize";
+        func+= additionalParam_char;
     }
     else if (interpolationTypeCase)
     {
         std::string interpolationTypeName;
         interpolationTypeName = get_interpolation_type(additionalParam, interpolationType);
-        strcat(func, "_interpolationType");
-        strcat(func, interpolationTypeName.c_str());
+        func+= "_interpolationType";
+        func+= interpolationTypeName.c_str();
     }
     else if (noiseTypeCase)
     {
         std::string noiseTypeName;
         noiseTypeName = get_noise_type(additionalParam);
-        strcat(func, "_noiseType");
-        strcat(func, noiseTypeName.c_str());
+        func+= "_noiseType";
+        func+= noiseTypeName.c_str();
     }
 
     // Get number of images
@@ -356,17 +356,18 @@ int main(int argc, char **argv)
     // Set maxHeight, maxWidth and ROIs for src/dst
 
     const int images = noOfImages;
-    char imageNames[images][1000];
+    string imageNames[images] ;
 
     DIR *dr1 = opendir(src);
     while ((de = readdir(dr1)) != NULL)
     {
         if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
             continue;
-        strcpy(imageNames[count], de->d_name);
-        char temp[1000];
-        strcpy(temp, src1);
-        strcat(temp, imageNames[count]);
+        imageNames[count] =  de->d_name;
+        string temp = "";
+        temp =  src1;
+        temp += imageNames[count];
+
 
         image = imread(temp, 0);
 
@@ -478,13 +479,13 @@ int main(int argc, char **argv)
         if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
             continue;
 
-        char temp[1000];
-        strcpy(temp, src1);
-        strcat(temp, de->d_name);
+        string temp;
+        temp = src1;
+        temp += de->d_name;
 
-        char temp_second[1000];
-        strcpy(temp_second, src1_second);
-        strcat(temp_second, de->d_name);
+        string temp_second = "";
+        temp_second =  src1_second;
+        temp_second += de->d_name;
 
         image = imread(temp, 0);
         image_second = imread(temp_second, 0);
@@ -664,7 +665,7 @@ int main(int argc, char **argv)
 
     string test_case_name;
 
-    printf("\nRunning %s %d times (each time with a batch size of %d images) and computing mean statistics...", func, num_iterations, noOfImages);
+    printf("\nRunning %s %d times (each time with a batch size of %d images) and computing mean statistics...", func.c_str(), num_iterations, noOfImages);
 
     for (int perfRunCount = 0; perfRunCount < num_iterations; perfRunCount++)
     {
@@ -1604,7 +1605,7 @@ int main(int argc, char **argv)
 
         if (missingFuncFlag == 1)
         {
-            printf("\nThe functionality %s doesn't yet exist in RPP\n", func);
+            printf("\nThe functionality %s doesn't yet exist in RPP\n", func.c_str());
             return -1;
         }
 
