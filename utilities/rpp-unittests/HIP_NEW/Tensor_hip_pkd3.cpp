@@ -5,7 +5,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
 #include <iostream>
-#include "/media/rpp/include/rpp.h"
+#include "rpp.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     if (argc < MIN_ARG_COUNT)
     {
         printf("\nImproper Usage! Needs all arguments!\n");
-        printf("\nUsage: ./Tensor_hip_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <verbosity = 0/1>\n");
+        printf("\nUsage: ./Tensor_hip_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <number of iterations > 0> <verbosity = 0/1>>\n");
         return -1;
     }
 
@@ -88,6 +88,7 @@ int main(int argc, char **argv)
     int ip_bitDepth = atoi(argv[4]);
     unsigned int outputFormatToggle = atoi(argv[5]);
     int test_case = atoi(argv[6]);
+    int num_iterations = atoi(argv[7]);
 
     bool additionalParamCase = (test_case == 8 || test_case == 24 || test_case == 40 || test_case == 41 || test_case == 49);
     bool kernelSizeCase = (test_case == 40 || test_case == 41 || test_case == 49);
@@ -107,6 +108,8 @@ int main(int argc, char **argv)
         printf("\nu8 / f16 / f32 / u8->f16 / u8->f32 / i8 / u8->i8 (0/1/2/3/4/5/6) = %s", argv[4]);
         printf("\noutputFormatToggle (pkd->pkd = 0 / pkd->pln = 1) = %s", argv[5]);
         printf("\ncase number (0:86) = %s", argv[6]);
+        printf("\nNumber of times to run = %s", argv[7]);
+
     }
 
     int ip_channel = 3;
