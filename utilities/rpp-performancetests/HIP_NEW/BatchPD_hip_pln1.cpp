@@ -59,6 +59,7 @@ int main(int argc, char **argv)
         printf("\nu8 / f16 / f32 / u8->f16 / u8->f32 / i8 / u8->i8 (0/1/2/3/4/5/6) = %s", argv[3]);
         printf("\noutputFormatToggle (pkd->pkd = 0 / pkd->pln = 1) = %s", argv[4]);
         printf("\ncase number (0:81) = %s", argv[5]);
+        printf("\nNumber of times to run = %s", argv[6]);
     }
 
     char *src = argv[1];
@@ -66,6 +67,7 @@ int main(int argc, char **argv)
     int ip_bitDepth = atoi(argv[3]);
     unsigned int outputFormatToggle = atoi(argv[4]);
     int test_case = atoi(argv[5]);
+    int num_iterations = atoi(argv[6]);
 
     int ip_channel = 1;
 
@@ -3021,6 +3023,11 @@ int main(int argc, char **argv)
     }
 
     avg_time_used /= 100;
+    //Convert time to milliseconds
+    max_time_used = max_time_used * 1000;
+    min_time_used = min_time_used * 1000;
+    avg_time_used = avg_time_used * 1000;
+
     cout << fixed << "\nmax,min,avg = " << max_time_used << "," << min_time_used << "," << avg_time_used << endl;
 
     rppDestroyGPU(handle);
