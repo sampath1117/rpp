@@ -5,7 +5,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
 #include <iostream>
-#include "rppi.h"
+#include "/media/rpp/include/rppi.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
