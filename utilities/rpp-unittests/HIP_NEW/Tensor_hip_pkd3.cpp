@@ -361,7 +361,7 @@ int main(int argc, char **argv)
     // Set maxHeight, maxWidth and ROIs for src/dst
 
     const int images = noOfImages;
-string imageNames[images];[[]]
+string imageNames[images];
 
     DIR *dr1 = opendir(src);
     while ((de = readdir(dr1)) != NULL)

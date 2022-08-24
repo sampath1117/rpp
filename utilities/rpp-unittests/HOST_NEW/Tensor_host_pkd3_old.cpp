@@ -76,37 +76,21 @@ int main(int argc, char **argv)
 {
     // Handle inputs
 
-    const int MIN_ARG_COUNT = 10;
-
-    char *src = argv[1];
-    char *src_second = argv[2];
-    string dst = argv[3];
-    printf("destination is --------------------------> %s", dst.c_str());
-    int ip_bitDepth = atoi(argv[4]);
-    unsigned int outputFormatToggle = atoi(argv[5]);
-    int test_case = atoi(argv[6]);
-    int num_iterations = atoi(argv[7]);
-    int test_type =atoi(argv[8]); // 0 for unit and 1 for performance test
-    printf("NMum iteratons... %d",num_iterations);
-    if(test_type == 0){
-        printf("****************UNIT test %d",test_type);
-    }
-    else{
-        printf("****************PERFORMNACE test %d",test_type);
-    }
+    const int MIN_ARG_COUNT = 8;
 
     if (argc < MIN_ARG_COUNT)
     {
         printf("\nImproper Usage! Needs all arguments!\n");
-        if(test_type == 0){
-            printf("\nUsage: ./Tensor_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <verbosity = 0/1>\n");
-        }
-        else{
-            printf("\nUsage: ./Tensor_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <verbosity = 0/1>\n");
-        }
+        printf("\nUsage: ./Tensor_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <verbosity = 0/1>\n");
         return -1;
     }
-    
+
+    char *src = argv[1];
+    char *src_second = argv[2];
+    char *dst = argv[3];
+    int ip_bitDepth = atoi(argv[4]);
+    unsigned int outputFormatToggle = atoi(argv[5]);
+    int test_case = atoi(argv[6]);
 
     bool additionalParamCase = (test_case == 8 || test_case == 21);
     bool kernelSizeCase = false;
@@ -119,7 +103,6 @@ int main(int argc, char **argv)
 
     if (verbosity == 1)
     {
-       if(test_type == 0){
         printf("\nInputs for this test case are:");
         printf("\nsrc1 = %s", argv[1]);
         printf("\nsrc2 = %s", argv[2]);
@@ -127,88 +110,76 @@ int main(int argc, char **argv)
         printf("\nu8 / f16 / f32 / u8->f16 / u8->f32 / i8 / u8->i8 (0/1/2/3/4/5/6) = %s", argv[4]);
         printf("\noutputFormatToggle (pkd->pkd = 0 / pkd->pln = 1) = %s", argv[5]);
         printf("\ncase number (0:86) = %s", argv[6]);
-        printf("\nUNIT/PERFORMANCE - 0/1 = %s", argv[8]);
-       } 
-       else{
-        printf("\nInputs for this test case are:");
-        printf("\nsrc1 = %s", argv[1]);
-        printf("\nsrc2 = %s", argv[2]);
-        printf("\nu8 / f16 / f32 / u8->f16 / u8->f32 / i8 / u8->i8 (0/1/2/3/4/5/6) = %s", argv[4]);
-        printf("\noutputFormatToggle (pkd->pkd = 0 / pkd->pln = 1) = %s", argv[5]);
-        printf("\ncase number (0:86) = %s", argv[6]);
-        printf("\nNumber of times to run = %s", argv[7]);
-        printf("\nUNIT/PERFORMANCE - 0/1 = %s", argv[8]);
-       }
     }
 
-     int ip_channel = 3;
+    int ip_channel = 3;
 
     // Set case names
 
-    string funcType = "Tensor_HOST_PKD3";
+    char funcType[1000] = {"Tensor_HOST_PKD3"};
 
-    string funcName="";
+    char funcName[1000];
     switch (test_case)
     {
     case 0:
-        funcName= "brightness";
+        strcpy(funcName, "brightness");
         break;
     case 1:
-        funcName= "gamma_correction";
+        strcpy(funcName, "gamma_correction");
         break;
     case 2:
-        funcName= "blend";
+        strcpy(funcName, "blend");
         break;
     case 4:
-        funcName= "contrast";
+        strcpy(funcName, "contrast");
         break;
     case 8:
-        funcName= "noise";
+        strcpy(funcName, "noise");
         break;
     case 13:
-        funcName= "exposure";
+        strcpy(funcName, "exposure");
         break;
     case 20:
-        funcName= "flip";
+        strcpy(funcName, "flip");
         break;
     case 21:
-        funcName= "resize";
+        strcpy(funcName, "resize");
         break;
     case 31:
-        funcName= "color_cast";
+        strcpy(funcName, "color_cast");
         break;
     case 36:
-        funcName= "color_twist";
+        strcpy(funcName, "color_twist");
         break;
     case 37:
-        funcName= "crop";
+        strcpy(funcName, "crop");
         break;
     case 38:
-        funcName= "crop_mirror_normalize";
+        strcpy(funcName, "crop_mirror_normalize");
         break;
     case 70:
-        funcName= "copy";
+        strcpy(funcName, "copy");
         break;
     case 80:
-        funcName= "resize_mirror_normalize";
+        strcpy(funcName, "resize_mirror_normalize");
         break;
     case 81:
-        funcName= "color_jitter";
+        strcpy(funcName, "color_jitter");
         break;
     case 83:
-        funcName= "gridmask";
+        strcpy(funcName, "gridmask");
         break;
     case 84:
-        funcName= "spatter";
+        strcpy(funcName, "spatter");
         break;
     case 85:
-        funcName= "swap_channels";
+        strcpy(funcName, "swap_channels");
         break;
     case 86:
-        funcName= "color_to_greyscale";
+        strcpy(funcName, "color_to_greyscale");
         break;
     default:
-        funcName= "test_case";
+        strcpy(funcName, "test_case");
         break;
     }
 
@@ -224,19 +195,19 @@ int main(int argc, char **argv)
     srcDescPtr->layout = RpptLayout::NHWC;
     if (pln1OutTypeCase)
     {
-        funcType += "_toPLN1";
+        strcat(funcType, "_toPLN1");
         dstDescPtr->layout = RpptLayout::NCHW;
     }
     else
     {
         if (outputFormatToggle == 0)
         {
-            funcType+= "_toPKD3";
+            strcat(funcType, "_toPKD3");
             dstDescPtr->layout = RpptLayout::NHWC;
         }
         else if (outputFormatToggle == 1)
         {
-            funcType+= "_toPLN3";
+            strcat(funcType, "_toPLN3");
             dstDescPtr->layout = RpptLayout::NCHW;
         }
     }
@@ -245,43 +216,43 @@ int main(int argc, char **argv)
 
     if (ip_bitDepth == 0)
     {
-        funcName += "_u8_";
+        strcat(funcName, "_u8_");
         srcDescPtr->dataType = RpptDataType::U8;
         dstDescPtr->dataType = RpptDataType::U8;
     }
     else if (ip_bitDepth == 1)
     {
-        funcName += "_f16_";
+        strcat(funcName, "_f16_");
         srcDescPtr->dataType = RpptDataType::F16;
         dstDescPtr->dataType = RpptDataType::F16;
     }
     else if (ip_bitDepth == 2)
     {
-        funcName += "_f32_";
+        strcat(funcName, "_f32_");
         srcDescPtr->dataType = RpptDataType::F32;
         dstDescPtr->dataType = RpptDataType::F32;
     }
     else if (ip_bitDepth == 3)
     {
-        funcName += "_u8_f16_";
+        strcat(funcName, "_u8_f16_");
         srcDescPtr->dataType = RpptDataType::U8;
         dstDescPtr->dataType = RpptDataType::F16;
     }
     else if (ip_bitDepth == 4)
     {
-        funcName += "_u8_f32_";
+        strcat(funcName, "_u8_f32_");
         srcDescPtr->dataType = RpptDataType::U8;
         dstDescPtr->dataType = RpptDataType::F32;
     }
     else if (ip_bitDepth == 5)
     {
-        funcName += "_i8_";
+        strcat(funcName, "_i8_");
         srcDescPtr->dataType = RpptDataType::I8;
         dstDescPtr->dataType = RpptDataType::I8;
     }
     else if (ip_bitDepth == 6)
     {
-        funcName += "_u8_i8_";
+        strcat(funcName, "_u8_i8_");
         srcDescPtr->dataType = RpptDataType::U8;
         dstDescPtr->dataType = RpptDataType::I8;
     }
@@ -300,57 +271,50 @@ int main(int argc, char **argv)
 
     // String ops on function name
 
-    string src1 = "";
-    src1 =  src;
-    src1 += "/";
-    string src1_second = "";
-    src1_second =  src_second;
-    src1_second += "/";
+    char src1[1000];
+    strcpy(src1, src);
+    strcat(src1, "/");
+    char src1_second[1000];
+    strcpy(src1_second, src_second);
+    strcat(src1_second, "/");
 
-    string func = "";
-    func = funcName;
-    func += funcType;
-
-    if(test_type == 0){
-        funcName+= funcType;
-        dst+= "/";
-        dst+= funcName;
-    }
+    char func[1000];
+    strcpy(func, funcName);
+    strcat(func, funcType);
+    strcat(funcName, funcType);
+    strcat(dst, "/");
+    strcat(dst, funcName);
 
     RpptInterpolationType interpolationType = RpptInterpolationType::BILINEAR;
     if (kernelSizeCase)
     {
         char additionalParam_char[2];
         std::sprintf(additionalParam_char, "%u", additionalParam);
-        func+= "_kSize";
-        func+= additionalParam_char;
-        if(test_type == 0){
-            dst+= "_kSize";
-            dst+= additionalParam_char;
-        }
+        strcat(func, "_kSize");
+        strcat(func, additionalParam_char);
+        strcat(dst, "_kSize");
+        strcat(dst, additionalParam_char);
     }
     else if (interpolationTypeCase)
     {
         std::string interpolationTypeName;
         interpolationTypeName = get_interpolation_type(additionalParam, interpolationType);
-        func+= "_interpolationType";
-        func+= interpolationTypeName.c_str();
-        if(test_type == 0){
-            dst+= "_interpolationType";
-            dst+= interpolationTypeName.c_str();
-        }
+        strcat(func, "_interpolationType");
+        strcat(func, interpolationTypeName.c_str());
+        strcat(dst, "_interpolationType");
+        strcat(dst, interpolationTypeName.c_str());
     }
     else if (noiseTypeCase)
     {
         std::string noiseTypeName;
         noiseTypeName = get_noise_type(additionalParam);
-        func+= "_noiseType";
-        func+= noiseTypeName.c_str();
-        if(test_type == 0){
-            dst+= "_noiseType";
-            dst+= noiseTypeName.c_str();
-        }
+        strcat(func, "_noiseType");
+        strcat(func, noiseTypeName.c_str());
+        strcat(dst, "_noiseType");
+        strcat(dst, noiseTypeName.c_str());
     }
+
+    printf("\nRunning %s...", func);
 
     // Get number of images
 
@@ -383,17 +347,17 @@ int main(int argc, char **argv)
     // Set maxHeight, maxWidth and ROIs for src/dst
 
     const int images = noOfImages;
-    string imageNames[images] ;
+    char imageNames[images][1000];
 
     DIR *dr1 = opendir(src);
     while ((de = readdir(dr1)) != NULL)
     {
         if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
             continue;
-        imageNames[count] =  de->d_name;
-        string temp = "";
-        temp =  src1;
-        temp += imageNames[count];
+        strcpy(imageNames[count], de->d_name);
+        char temp[1000];
+        strcpy(temp, src1);
+        strcat(temp, imageNames[count]);
 
         image = imread(temp, 1);
 
@@ -505,13 +469,13 @@ int main(int argc, char **argv)
         if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
             continue;
 
-        string temp;
-        temp = src1;
-        temp += de->d_name;
+        char temp[1000];
+        strcpy(temp, src1);
+        strcat(temp, de->d_name);
 
-        string temp_second = "";
-        temp_second =  src1_second;
-        temp_second += de->d_name;
+        char temp_second[1000];
+        strcpy(temp_second, src1_second);
+        strcat(temp_second, de->d_name);
 
         image = imread(temp, 1);
         image_second = imread(temp_second, 1);
@@ -535,7 +499,7 @@ int main(int argc, char **argv)
     }
     closedir(dr2);
 
-     // Convert inputs to test various other bit depths
+    // Convert inputs to test various other bit depths
 
     if (ip_bitDepth == 1)
     {
@@ -601,35 +565,16 @@ int main(int argc, char **argv)
         }
     }
 
-    // Run case-wise RPP API and measure time for Unit test
+    // Run case-wise RPP API and measure time
 
     rppHandle_t handle;
     rppCreateWithBatchSize(&handle, noOfImages);
-
-    double max_time_used = 0, min_time_used = 500, avg_time_used = 0;
-
-    string test_case_name;
-
     clock_t start, end;
     double start_omp, end_omp;
     double cpu_time_used, omp_time_used;
 
-    int count_loop;
-    if(test_type == 0){
-        count_loop = 1;
-    }
-    else{
-        count_loop = num_iterations;
-    }
+    string test_case_name;
 
-    
-    // case-wise RPP API and measure time script for Unit and Performance test
-
-    
-    printf("\nRunning %s %d times (each time with a batch size of %d images) and computing mean statistics...", func.c_str(), num_iterations, noOfImages);
-    for (int perfRunCount = 0; perfRunCount < count_loop; perfRunCount++)
-    {
-        printf("\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ITERATION COUNT is %d @@@@@@@@@@@@@@@@@@@@@@@@@@\n", perfRunCount );
     switch (test_case)
     {
     case 0:
@@ -1615,44 +1560,23 @@ int main(int argc, char **argv)
         break;
     }
 
-
     end = clock();
     end_omp = omp_get_wtime();
 
     if (missingFuncFlag == 1)
     {
-        printf("\nThe functionality %s doesn't yet exist in RPP\n", func.c_str());
+        printf("\nThe functionality %s doesn't yet exist in RPP\n", func);
         return -1;
     }
 
+    // Display measured times
+
     cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
     omp_time_used = end_omp - start_omp;
-    if (cpu_time_used > max_time_used)
-        max_time_used = cpu_time_used;
-    if (cpu_time_used < min_time_used)
-        min_time_used = cpu_time_used;
-    avg_time_used += cpu_time_used;
+    cout << "\nCPU Time - BatchPD : " << cpu_time_used;
+    cout << "\nOMP Time - BatchPD : " << omp_time_used;
+    printf("\n");
 
-    }
-    if(test_type == 0){
-            cpu_time_used = cpu_time_used * 1000;
-            omp_time_used = omp_time_used * 1000;
-            cout << "\nCPU Time - BatchPD : " << cpu_time_used;
-            cout << "\nOMP Time - BatchPD : " << omp_time_used;
-            printf("\n");
-    }
-    else{
-        avg_time_used /= num_iterations;
-        max_time_used = max_time_used * 1000;
-        min_time_used = min_time_used * 1000;
-        avg_time_used = avg_time_used * 1000;
-        // Display measured times
-
-        cout << fixed << "\nmax,min,avg in ms = " << max_time_used << "," << min_time_used << "," << avg_time_used << endl; 
-    }
-
-    if(test_type == 0){
-        
     // Reconvert other bit depths to 8u for output display purposes
 
     string fileName = std::to_string(ip_bitDepth);
@@ -1814,15 +1738,13 @@ int main(int argc, char **argv)
 
         free(outputCopy);
     }
-    } 
 
     rppDestroyHost(handle);
 
-    // OpenCV dump (if test_type is unit test)
+    // OpenCV dump
 
-    if(test_type == 0){
-        mkdir(dst.c_str(), 0700);
-        dst+= "/";
+    mkdir(dst, 0700);
+    strcat(dst, "/");
 
     count = 0;
     Rpp32u elementsInRowMax = dstDescPtr->w * dstDescPtr->c;
@@ -1847,9 +1769,9 @@ int main(int argc, char **argv)
         }
         count += dstDescPtr->strides.nStride;
 
-        string temp;
-        temp= dst;
-        temp+= imageNames[j];
+        char temp[1000];
+        strcpy(temp, dst);
+        strcat(temp, imageNames[j]);
 
         Mat mat_op_image;
         mat_op_image = (pln1OutTypeCase) ? Mat(height, width, CV_8UC1, temp_output) : Mat(height, width, CV_8UC3, temp_output);
@@ -1857,9 +1779,8 @@ int main(int argc, char **argv)
 
         free(temp_output);
     }
-    }
 
-     // Free memory
+    // Free memory
 
     free(roiTensorPtrSrc);
     free(roiTensorPtrDst);
@@ -1878,7 +1799,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-
-
-
-
