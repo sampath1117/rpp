@@ -13,6 +13,7 @@
 #include <omp.h>
 #include <half/half.hpp>
 #include <fstream>
+#include "helpers/testSuite_helper.hpp"
 
 using namespace cv;
 using namespace std;
@@ -95,18 +96,7 @@ int main(int argc, char **argv)
         printf("****************PERFORMNACE test %d",test_type);
     }
 
-    if (argc < MIN_ARG_COUNT)
-    {
-        printf("\nImproper Usage! Needs all arguments!\n");
-        if(test_type == 0){
-            printf("\nUsage: ./Tensor_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <verbosity = 0/1>\n");
-        }
-        else{
-            printf("\nUsage: ./Tensor_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <verbosity = 0/1>\n");
-        }
-        return -1;
-    }
-    
+   
 
     bool additionalParamCase = (test_case == 8 || test_case == 21);
     bool kernelSizeCase = false;
@@ -140,12 +130,72 @@ int main(int argc, char **argv)
         printf("\nUNIT/PERFORMANCE - 0/1 = %s", argv[8]);
        }
     }
+    
+    
+    Rpp32u elementsInRow;
+    int layout_switch;
 
-     int ip_channel = 3;
+    for(layout_switch = 0 ; layout_switch <=2 ; layout_switch++){
 
+        if (argc < MIN_ARG_COUNT)
+    {
+        printf("\nImproper Usage! Needs all arguments!\n");
+        if(test_type == 0){
+            if(layout_switch == 0)
+                //printf("\nUsage: ./Tensor_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <verbosity = 0/1>\n");
+                printf("\n~~~~~~~~~~~~~~~~~~~~Usage: --> pkd3 --> UNIT TESTING~~~~~~~~~~~~~~~~~~~~\n");
+            if(layout_switch == 1)
+                printf("\n~~~~~~~~~~~~~~~~~~~~Usage: --> pln3 --> UNIT TESTING~~~~~~~~~~~~~~~~~~~~\n");
+            if(layout_switch == 2){
+                printf("\n~~~~~~~~~~~~~~~~~~~~Usage: --> pln1 --> UNIT TESTING~~~~~~~~~~~~~~~~~~~~\n");
+                if (atoi(argv[5]) != 0)
+                    {
+                        printf("\nPLN1 cases don't have outputFormatToggle! Please input outputFormatToggle = 0\n");
+                        return -1;
+                    }
+                }
+                
+
+        }
+        else{
+            //printf("\nUsage: ./Tensor_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <verbosity = 0/1>\n");
+            if(layout_switch == 0)
+                //printf("\nUsage: ./Tensor_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <verbosity = 0/1>\n");
+                printf("\n~~~~~~~~~~~~~~~~~~~~Usage: --> pkd3 --> PERFORMNACE TESTING~~~~~~~~~~~~~~~~~~~~\n");
+            if(layout_switch == 1)
+                printf("\n~~~~~~~~~~~~~~~~~~~~Usage: --> pln3 --> PERFORMNACE TESTING~~~~~~~~~~~~~~~~~~~~\n");
+            if(layout_switch == 2)
+                printf("\n~~~~~~~~~~~~~~~~~~~~Usage: --> pln1 --> PERFORMNACE TESTING~~~~~~~~~~~~~~~~~~~~\n");{
+                if (atoi(argv[5]) != 0)
+                    {
+                        printf("\nPLN1 cases don't have outputFormatToggle! Please input outputFormatToggle = 0\n");
+                        return -1;
+                    }
+                    }
+        }
+        return -1;
+    }
+    int ip_channel;
+    if(layout_switch == 0 || layout_switch == 1)
+    {
+         ip_channel = 3;
+    }
+    else{
+         ip_channel = 1;
+    }
+    
     // Set case names
-
-    string funcType = "Tensor_HOST_PKD3";
+    string funcType;
+    if(layout_switch == 0){
+        funcType = "Tensor_HOST_PKD3";
+    }
+    if(layout_switch == 1){
+        funcType = "Tensor_HOST_PLN3";
+    }
+    if(layout_switch == 2){
+        funcType = "Tensor_HOST_PLN1";
+    }
+        
 
     string funcName="";
     switch (test_case)
@@ -220,7 +270,7 @@ int main(int argc, char **argv)
     dstDescPtr = &dstDesc;
 
     // Set src/dst layouts in tensor descriptors
-
+    if(layout_switch == 0){
     srcDescPtr->layout = RpptLayout::NHWC;
     if (pln1OutTypeCase)
     {
@@ -239,6 +289,33 @@ int main(int argc, char **argv)
             funcType+= "_toPLN3";
             dstDescPtr->layout = RpptLayout::NCHW;
         }
+    }
+    }
+    if(layout_switch == 1){
+        srcDescPtr->layout = RpptLayout::NCHW;
+    if (pln1OutTypeCase)
+    {
+        funcType+= "_toPLN1";
+        dstDescPtr->layout = RpptLayout::NCHW;
+    }
+    else
+    {
+        if (outputFormatToggle == 0)
+        {
+            funcType+= "_toPLN3";
+            dstDescPtr->layout = RpptLayout::NCHW;
+        }
+        else if (outputFormatToggle == 1)
+        {
+            funcType+= "_toPKD3";
+            dstDescPtr->layout = RpptLayout::NHWC;
+        }
+    }
+    }
+    if(layout_switch ==2){
+         srcDescPtr->layout = RpptLayout::NCHW;
+         dstDescPtr->layout = RpptLayout::NCHW;
+
     }
 
     // Set src/dst data types in tensor descriptors
@@ -349,8 +426,11 @@ int main(int argc, char **argv)
         if(test_type == 0){
             dst+= "_noiseType";
             dst+= noiseTypeName.c_str();
+
         }
     }
+
+    printf("\nRunning %s...", func.c_str());
 
     // Get number of images
 
@@ -394,8 +474,13 @@ int main(int argc, char **argv)
         string temp = "";
         temp =  src1;
         temp += imageNames[count];
-
+        if(layout_switch == 0 || layout_switch == 1)
+        {
         image = imread(temp, 1);
+        }
+        else{
+            image = imread(temp, 0);
+        }
 
         roiTensorPtrSrc[count].xywhROI.xy.x = 0;
         roiTensorPtrSrc[count].xywhROI.xy.y = 0;
@@ -437,7 +522,14 @@ int main(int argc, char **argv)
     dstDescPtr->n = noOfImages;
     dstDescPtr->h = maxDstHeight;
     dstDescPtr->w = maxDstWidth;
+    if(layout_switch == 0 || layout_switch == 1)
+    {
     dstDescPtr->c = (pln1OutTypeCase) ? 1 : ip_channel;
+    }
+    else{
+        dstDescPtr->c = ip_channel;
+    }
+
 
     // Optionally set w stride as a multiple of 8 for src/dst
 
@@ -445,22 +537,56 @@ int main(int argc, char **argv)
     dstDescPtr->w = ((dstDescPtr->w / 8) * 8) + 8;
 
     // Set n/c/h/w strides for src/dst
-
-    srcDescPtr->strides.nStride = srcDescPtr->c * srcDescPtr->w * srcDescPtr->h;
-    srcDescPtr->strides.hStride = srcDescPtr->c * srcDescPtr->w;
-    srcDescPtr->strides.wStride = srcDescPtr->c;
-    srcDescPtr->strides.cStride = 1;
+    if(layout_switch == 0){
+        srcDescPtr->strides.nStride = srcDescPtr->c * srcDescPtr->w * srcDescPtr->h;
+        srcDescPtr->strides.hStride = srcDescPtr->c * srcDescPtr->w;
+        srcDescPtr->strides.wStride = srcDescPtr->c;
+        srcDescPtr->strides.cStride = 1;
+    }
+    if(layout_switch == 1){
+        srcDescPtr->strides.nStride = srcDescPtr->c * srcDescPtr->w * srcDescPtr->h;
+        srcDescPtr->strides.cStride = srcDescPtr->w * srcDescPtr->h;
+        srcDescPtr->strides.hStride = srcDescPtr->w;
+        srcDescPtr->strides.wStride = 1;
+    }
+    if(layout_switch == 2 ){
+        srcDescPtr->strides.nStride = ip_channel * srcDescPtr->w * srcDescPtr->h;
+        srcDescPtr->strides.cStride = srcDescPtr->w * srcDescPtr->h;
+        srcDescPtr->strides.hStride = srcDescPtr->w;
+        srcDescPtr->strides.wStride = 1;
+    }
 
     if (dstDescPtr->layout == RpptLayout::NHWC)
     {
-        dstDescPtr->strides.nStride = dstDescPtr->c * dstDescPtr->w * dstDescPtr->h;
-        dstDescPtr->strides.hStride = dstDescPtr->c * dstDescPtr->w;
-        dstDescPtr->strides.wStride = dstDescPtr->c;
-        dstDescPtr->strides.cStride = 1;
+        if(layout_switch == 0){
+        srcDescPtr->strides.nStride = srcDescPtr->c * srcDescPtr->w * srcDescPtr->h;
+        srcDescPtr->strides.hStride = srcDescPtr->c * srcDescPtr->w;
+        srcDescPtr->strides.wStride = srcDescPtr->c;
+        srcDescPtr->strides.cStride = 1;
+        }
+        if(layout_switch == 1){
+            dstDescPtr->strides.nStride = dstDescPtr->c * dstDescPtr->w * dstDescPtr->h;
+            dstDescPtr->strides.hStride = dstDescPtr->c * dstDescPtr->w;
+            dstDescPtr->strides.wStride = dstDescPtr->c;
+            dstDescPtr->strides.cStride = 1;
+
+        }
+        if(layout_switch == 2){
+            dstDescPtr->strides.nStride = ip_channel * dstDescPtr->w * dstDescPtr->h;
+            dstDescPtr->strides.hStride = ip_channel * dstDescPtr->w;
+            dstDescPtr->strides.wStride = ip_channel;
+            dstDescPtr->strides.cStride = 1;
+        }
+       
     }
     else if (dstDescPtr->layout == RpptLayout::NCHW)
     {
-        dstDescPtr->strides.nStride = dstDescPtr->c * dstDescPtr->w * dstDescPtr->h;
+        if(layout_switch == 2){
+            dstDescPtr->strides.nStride = ip_channel * dstDescPtr->w * dstDescPtr->h;
+        }
+        else{
+            dstDescPtr->strides.nStride = dstDescPtr->c * dstDescPtr->w * dstDescPtr->h;
+        }
         dstDescPtr->strides.cStride = dstDescPtr->w * dstDescPtr->h;
         dstDescPtr->strides.hStride = dstDescPtr->w;
         dstDescPtr->strides.wStride = 1;
@@ -468,8 +594,14 @@ int main(int argc, char **argv)
 
     // Set buffer sizes for src/dst
 
+    if(layout_switch == 0 || layout_switch == 1){
     ioBufferSize = (unsigned long long)srcDescPtr->h * (unsigned long long)srcDescPtr->w * (unsigned long long)srcDescPtr->c * (unsigned long long)noOfImages;
     oBufferSize = (unsigned long long)dstDescPtr->h * (unsigned long long)dstDescPtr->w * (unsigned long long)dstDescPtr->c * (unsigned long long)noOfImages;
+    }
+    else{
+        ioBufferSize = (unsigned long long)srcDescPtr->h * (unsigned long long)srcDescPtr->w * (unsigned long long)ip_channel * (unsigned long long)noOfImages;
+        oBufferSize = (unsigned long long)dstDescPtr->h * (unsigned long long)dstDescPtr->w * (unsigned long long)ip_channel * (unsigned long long)noOfImages;
+    }
 
     // Initialize host buffers for src/dst
 
@@ -496,6 +628,14 @@ int main(int argc, char **argv)
     count = 0;
     i = 0;
 
+    Rpp32u elementsInRowMax;
+    if(layout_switch == 1){
+        elementsInRowMax = srcDescPtr->w * srcDescPtr->c;
+    }
+    if(layout_switch == 2){
+        elementsInRowMax = srcDescPtr->w * ip_channel;
+    }
+
     while ((de = readdir(dr2)) != NULL)
     {
         Rpp8u *input_temp, *input_second_temp;
@@ -513,13 +653,30 @@ int main(int argc, char **argv)
         temp_second =  src1_second;
         temp_second += de->d_name;
 
-        image = imread(temp, 1);
-        image_second = imread(temp_second, 1);
+        if(layout_switch == 0 ||layout_switch == 1)
+           { 
+            image = imread(temp, 1);
+            image_second = imread(temp_second, 1);
+           }
+        if(layout_switch == 2)
+        {
+            image = imread(temp, 0);
+            image_second = imread(temp_second, 0);
+            
+        }
+        
 
         Rpp8u *ip_image = image.data;
         Rpp8u *ip_image_second = image_second.data;
 
-        Rpp32u elementsInRow = roiTensorPtrSrc[i].xywhROI.roiWidth * srcDescPtr->c;
+        Rpp32u elementsInRow;
+        if(layout_switch == 0 || layout_switch ==1){
+            elementsInRow = roiTensorPtrSrc[i].xywhROI.roiWidth * srcDescPtr->c;
+        }
+        if(layout_switch == 2)
+        {
+            elementsInRow = roiTensorPtrSrc[i].xywhROI.roiWidth * ip_channel;
+        }        
 
         for (j = 0; j < roiTensorPtrSrc[i].xywhROI.roiHeight; j++)
         {
@@ -527,13 +684,96 @@ int main(int argc, char **argv)
             memcpy(input_second_temp, ip_image_second, elementsInRow * sizeof (Rpp8u));
             ip_image += elementsInRow;
             ip_image_second += elementsInRow;
-            input_temp += srcDescPtr->strides.hStride;
-            input_second_temp += srcDescPtr->strides.hStride;
+            if(layout_switch ==0){
+                input_temp += srcDescPtr->strides.hStride;
+                input_second_temp += srcDescPtr->strides.hStride;
+            }
+            if(layout_switch == 1 || layout_switch ==2){
+                input_temp += elementsInRowMax;
+                input_second_temp += elementsInRowMax;
+            }         
         }
         i++;
         count += srcDescPtr->strides.nStride;
     }
     closedir(dr2);
+
+    if(layout_switch == 1)
+    {
+        // Convert default OpenCV PKD3 to PLN3 for first input batch
+
+        Rpp8u *inputCopy = (Rpp8u *)calloc(ioBufferSize, sizeof(Rpp8u));
+        memcpy(inputCopy, input, ioBufferSize * sizeof(Rpp8u));
+
+        Rpp8u *inputTemp, *inputCopyTemp;
+        inputTemp = input;
+        inputCopyTemp = inputCopy;
+
+        for (int count = 0; count < noOfImages; count++)
+        {
+            Rpp8u *inputTempR, *inputTempG, *inputTempB;
+            inputTempR = inputTemp;
+            inputTempG = inputTempR + srcDescPtr->strides.cStride;
+            inputTempB = inputTempG + srcDescPtr->strides.cStride;
+
+            for (int i = 0; i < srcDescPtr->h; i++)
+            {
+                for (int j = 0; j < srcDescPtr->w; j++)
+                {
+                    *inputTempR = *inputCopyTemp;
+                    inputCopyTemp++;
+                    inputTempR++;
+                    *inputTempG = *inputCopyTemp;
+                    inputCopyTemp++;
+                    inputTempG++;
+                    *inputTempB = *inputCopyTemp;
+                    inputCopyTemp++;
+                    inputTempB++;
+                }
+            }
+
+            inputTemp += srcDescPtr->strides.nStride;
+        }
+
+        free(inputCopy);
+
+        // Convert default OpenCV PKD3 to PLN3 for second input batch
+
+        Rpp8u *inputSecondCopy = (Rpp8u *)calloc(ioBufferSize, sizeof(Rpp8u));
+        memcpy(inputSecondCopy, input_second, ioBufferSize * sizeof(Rpp8u));
+
+        Rpp8u *inputSecondTemp, *inputSecondCopyTemp;
+        inputSecondTemp = input_second;
+        inputSecondCopyTemp = inputSecondCopy;
+
+        for (int count = 0; count < noOfImages; count++)
+        {
+            Rpp8u *inputSecondTempR, *inputSecondTempG, *inputSecondTempB;
+            inputSecondTempR = inputSecondTemp;
+            inputSecondTempG = inputSecondTempR + srcDescPtr->strides.cStride;
+            inputSecondTempB = inputSecondTempG + srcDescPtr->strides.cStride;
+
+            for (int i = 0; i < srcDescPtr->h; i++)
+            {
+                for (int j = 0; j < srcDescPtr->w; j++)
+                {
+                    *inputSecondTempR = *inputSecondCopyTemp;
+                    inputSecondCopyTemp++;
+                    inputSecondTempR++;
+                    *inputSecondTempG = *inputSecondCopyTemp;
+                    inputSecondCopyTemp++;
+                    inputSecondTempG++;
+                    *inputSecondTempB = *inputSecondCopyTemp;
+                    inputSecondCopyTemp++;
+                    inputSecondTempB++;
+                }
+            }
+
+            inputSecondTemp += srcDescPtr->strides.nStride;
+        }
+
+        free(inputSecondCopy);
+    }
 
      // Convert inputs to test various other bit depths
 
@@ -629,7 +869,7 @@ int main(int argc, char **argv)
     printf("\nRunning %s %d times (each time with a batch size of %d images) and computing mean statistics...", func.c_str(), num_iterations, noOfImages);
     for (int perfRunCount = 0; perfRunCount < count_loop; perfRunCount++)
     {
-        printf("\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ITERATION COUNT is %d @@@@@@@@@@@@@@@@@@@@@@@@@@\n", perfRunCount );
+        printf("\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ITERATION COUNT is %d @@@@@@@@@@@@@@@@@@@@@@@@@@ and layout = %d..\n", perfRunCount,layout_switch );
     switch (test_case)
     {
     case 0:
@@ -1178,6 +1418,7 @@ int main(int argc, char **argv)
 
         break;
     }
+    
     case 37:
     {
         test_case_name = "crop";
@@ -1321,20 +1562,36 @@ int main(int argc, char **argv)
             dstImgSizes[i].width = roiTensorPtrDst[i].xywhROI.roiWidth = roiTensorPtrSrc[i].xywhROI.roiWidth / 1.1;
             dstImgSizes[i].height = roiTensorPtrDst[i].xywhROI.roiHeight = roiTensorPtrSrc[i].xywhROI.roiHeight / 3;
         }
-
-        Rpp32f mean[images * 3];
-        Rpp32f stdDev[images * 3];
+        int size_mean;
+        if(layout_switch == 0 || layout_switch ==1){
+            size_mean = images * 3;
+            
+        }
+        else{
+            size_mean = images;
+        
+        }
+        Rpp32f mean[size_mean];
+        Rpp32f stdDev[size_mean];
+        
         Rpp32u mirror[images];
         for (i = 0, j = 0; i < images; i++, j += 3)
         {
-            mean[j] = 60.0;
-            stdDev[j] = 1.0;
+            if(layout_switch == 2){
+                mean[i] = 100.0;
+                stdDev[i] = 1.0;
+            }
+            else{
+                mean[j] = 60.0;
+                stdDev[j] = 1.0;
 
-            mean[j + 1] = 80.0;
-            stdDev[j + 1] = 1.0;
+                mean[j + 1] = 80.0;
+                stdDev[j + 1] = 1.0;
 
-            mean[j + 2] = 100.0;
-            stdDev[j + 2] = 1.0;
+                mean[j + 2] = 100.0;
+                stdDev[j + 2] = 1.0;
+            }
+            
             mirror[i] = 1;
         }
 
@@ -1651,7 +1908,7 @@ int main(int argc, char **argv)
         cout << fixed << "\nmax,min,avg in ms = " << max_time_used << "," << min_time_used << "," << avg_time_used << endl; 
     }
 
-    if(test_type == 0){
+    if(test_type == 0){ 
         
     // Reconvert other bit depths to 8u for output display purposes
 
@@ -1776,7 +2033,7 @@ int main(int argc, char **argv)
     }
 
     // Convert any PLN3 outputs to the corresponding PKD3 version for OpenCV dump
-
+    if(layout_switch == 0 || layout_switch ==1){
     if ((dstDescPtr->c == 3) && (dstDescPtr->layout == RpptLayout::NCHW))
     {
         Rpp8u *outputCopy = (Rpp8u *)calloc(oBufferSize, sizeof(Rpp8u));
@@ -1814,6 +2071,7 @@ int main(int argc, char **argv)
 
         free(outputCopy);
     }
+    }
     } 
 
     rppDestroyHost(handle);
@@ -1821,22 +2079,50 @@ int main(int argc, char **argv)
     // OpenCV dump (if test_type is unit test)
 
     if(test_type == 0){
+        printf("\n ~~~~~~~~~~~~~~~~~~~~``Before mkdir.. %s" , dst.c_str());
         mkdir(dst.c_str(), 0700);
+        printf("\n ~~~~~~~~~~~~~~~~~~~`` After mkdir.. %s" , dst.c_str());
         dst+= "/";
 
     count = 0;
-    Rpp32u elementsInRowMax = dstDescPtr->w * dstDescPtr->c;
+    if(layout_switch == 0){
+        elementsInRowMax = dstDescPtr->w * dstDescPtr->c;
+    }
+    if(layout_switch == 1){
+        elementsInRowMax = dstDescPtr->w * dstDescPtr->c;
+    }
+    if(layout_switch == 2){
+         elementsInRowMax = dstDescPtr->w * ip_channel;
+    }
+    
 
     for (j = 0; j < dstDescPtr->n; j++)
     {
         int height = dstImgSizes[j].height;
         int width = dstImgSizes[j].width;
 
-        int op_size = height * width * dstDescPtr->c;
+        int op_size;
+        if(layout_switch ==0 || layout_switch == 1){
+            op_size = height * width * dstDescPtr->c;
+        }
+        
+        if(layout_switch == 2){
+            op_size = height * width * ip_channel;
+        }
+
+        printf("\nHeight -> %d",height);
+        printf("\nWidth  -> %d",width);
+        printf("\nop_size-> %d",op_size);
+                
         Rpp8u *temp_output = (Rpp8u *)calloc(op_size, sizeof(Rpp8u));
         Rpp8u *temp_output_row;
         temp_output_row = temp_output;
-        Rpp32u elementsInRow = width * dstDescPtr->c;
+        if(layout_switch ==0 || layout_switch == 1){
+            elementsInRow = width * dstDescPtr->c;
+        }
+        if(layout_switch == 2){
+            elementsInRow = width * ip_channel;
+        }
         Rpp8u *output_row = output + count;
 
         for (int k = 0; k < height; k++)
@@ -1848,11 +2134,18 @@ int main(int argc, char **argv)
         count += dstDescPtr->strides.nStride;
 
         string temp;
+        printf("!!!!!!!!!!!!!!!!!!!!!!DST path is .. %s",dst.c_str());
         temp= dst;
         temp+= imageNames[j];
+        printf("Temp path(for imwrite) -> %s",temp.c_str());
 
         Mat mat_op_image;
+        if(layout_switch ==0 || layout_switch == 1){
         mat_op_image = (pln1OutTypeCase) ? Mat(height, width, CV_8UC1, temp_output) : Mat(height, width, CV_8UC3, temp_output);
+        }
+        if(layout_switch == 2){
+        mat_op_image = Mat(height, width, CV_8UC1, temp_output);
+        }
         imwrite(temp, mat_op_image);
 
         free(temp_output);
@@ -1869,12 +2162,14 @@ int main(int argc, char **argv)
     free(inputf16);
     free(inputf16_second);
     free(outputf16);
-    free(inputf32);
+    //free(inputf32);
     free(inputf32_second);
     free(outputf32);
     free(inputi8);
     free(inputi8_second);
     free(outputi8);
+
+    }
 
     return 0;
 }

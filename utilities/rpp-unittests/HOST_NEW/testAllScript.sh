@@ -33,7 +33,7 @@ DEFAULT_FAST_CORNER_DETECTOR_IMAGES="$cwd/../TEST_IMAGES/fast_corner_detector"
 DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES="$cwd/../TEST_IMAGES/harris_corner_detector"
 DEFAULT_HOUGH_LINES_IMAGES="$cwd/../TEST_IMAGES/hough_lines"
 DEFAULT_HOG_IMAGES="$cwd/../TEST_IMAGES/hog"
-test_type=1
+test_type=0
 num_iterations=100
 
 # <<<<<<<<<<<<<< DEFAULT SOURCE AND DESTINATION FOLDERS (NEED NOT CHANGE) >>>>>>>>>>>>>>
@@ -153,7 +153,7 @@ shopt -s extglob
 mkdir build
 cd build
 rm -rvf ./*
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=Debug ..
 make -j16
 
 printf "\n\n\n\n\n"
@@ -175,7 +175,7 @@ do
     for ((bitDepth=0;bitDepth<7;bitDepth++))
     do
         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
-        for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
+        for ((outputFormatToggle=0;outputFormatToggle<1;outputFormatToggle++))
         do
 
             if [[ "$case" -eq 74 ]]
