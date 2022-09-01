@@ -28,6 +28,10 @@ DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/three_images_224x224_src2"
 mkdir "$cwd/../OUTPUT_IMAGES_HOST_NEW"
 DEFAULT_DST_FOLDER="$cwd/../OUTPUT_IMAGES_HOST_NEW"
 
+# for logging
+mkdir "$cwd/../OUTPUT_PERFORMANCE_LOGS_HOST_NEW"
+LOGGING_FOLDER="$cwd/../OUTPUT_PERFORMANCE_LOGS_HOST_NEW"
+
 # Images for unique functionalities
 DEFAULT_FAST_CORNER_DETECTOR_IMAGES="$cwd/../TEST_IMAGES/fast_corner_detector"
 DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES="$cwd/../TEST_IMAGES/harris_corner_detector"
@@ -203,7 +207,7 @@ do
             fi
 
             printf "\n./BatchPD_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./BatchPD_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
+            ./BatchPD_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$LOGGING_FOLDER/BatchPD_host_pkd3_host_raw_performance_log.txt"
 
             if [ "$case" -eq 8 ]
             then
@@ -221,8 +225,7 @@ do
                 done
             else
                 printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case ${num_iterations} ${test_type} ${pkd_layout} 0"
-                printf "\n inside else"
-                ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$num_iterations" "$test_type" "$pkd_layout" "0"
+                ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$num_iterations" "$test_type" "$pkd_layout" "0" | tee -a "$LOGGING_FOLDER/Tensor_host_pkd3_host_raw_performance_log.txt"
                 
                 
             fi
@@ -282,7 +285,7 @@ do
             fi
 
             printf "\n./BatchPD_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./BatchPD_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
+            ./BatchPD_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$LOGGING_FOLDER/BatchPD_host_pln1_host_raw_performance_log.txt"
 
             if [ "$case" -eq 8 ]
             then
@@ -300,7 +303,7 @@ do
                 done
             else
                 printf "\n./Tensor_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case ${num_iterations} ${test_type} ${pln1_layout} 0"
-                ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$num_iterations" "$test_type" "$pln1_layout" "0"
+                ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$num_iterations" "$test_type" "$pln1_layout" "0" | tee -a "$LOGGING_FOLDER/Tensor_host_pln1_host_raw_performance_log.txt"
             fi
 
             echo "------------------------------------------------------------------------------------------"
@@ -358,7 +361,7 @@ do
             fi
 
             printf "\n./BatchPD_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./BatchPD_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
+            ./BatchPD_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$LOGGING_FOLDER/BatchPD_host_pln3_host_raw_performance_log.txt"
 
             if [ "$case" -eq 8 ]
             then
@@ -376,7 +379,7 @@ do
                 done
             else
                 printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case ${num_iterations} ${test_type} ${pln3_layout} 0"
-                ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$num_iterations" "$test_type" "$pln3_layout" "0"
+                ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$num_iterations" "$test_type" "$pln3_layout" "0" | tee -a "$LOGGING_FOLDER/Tensor_host_pln3_host_raw_performance_log.txt"
             fi
 
             echo "------------------------------------------------------------------------------------------"

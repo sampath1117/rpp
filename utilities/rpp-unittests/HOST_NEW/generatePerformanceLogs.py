@@ -5,10 +5,12 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--case_start", type=str, default="0", help="Testing range starting case # - (0:86)")
 parser.add_argument("--case_end", type=str, default="86", help="Testing range ending case # - (0:86)")
+#parser.add_argument('--third_func', type=str, default='0', help='Number of iterations to run # (>0)')
 args = parser.parse_args()
 
 caseStart = args.case_start
 caseEnd = args.case_end
+#thirdFunc = args.third_func
 
 if caseEnd < caseStart:
     print("Ending case# must be greater than starting case#. Aborting!")
@@ -22,7 +24,7 @@ if caseEnd < "0" or caseEnd > "86":
     print("Ending case# must be in the 0:86 range. Aborting!")
     exit(0)
 
-subprocess.call(["./rawLogsGenScript.sh", caseStart, caseEnd])
+subprocess.call(["./testAllScript_now.sh", caseStart, caseEnd])
 
 log_file_list = [
     "../OUTPUT_PERFORMANCE_LOGS_HOST_NEW/BatchPD_host_pkd3_host_raw_performance_log.txt",
@@ -76,14 +78,14 @@ for log_file in log_file_list:
                 minVals.extend([" ", " ", " "])
                 avgVals.extend([" ", " ", " "])
 
-        if "max,min,avg" in line:
+        if "max,min,avg in ms" in line:
             split_word_start = "Running "
             split_word_end = " 100"
             prevLine = prevLine.partition(split_word_start)[2].partition(split_word_end)[0]
             if prevLine not in functions:
                 functions.append(prevLine)
                 frames.append("100")
-                split_word_start = "max,min,avg = "
+                split_word_start = "max,min,avg in ms = "
                 split_word_end = "\n"
                 stats = line.partition(split_word_start)[2].partition(split_word_end)[0].split(",")
                 maxVals.append(stats[0])
