@@ -7,6 +7,7 @@
 # <<<<<<<<<<<<<< DEFAULT SOURCE AND DESTINATION FOLDERS (NEED NOT CHANGE) >>>>>>>>>>>>>>
 
 cwd=$(pwd)
+test_type=$4
 
 # Input Images - Single image (224 x 224)
 # DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/single_image_224x224_src1"
@@ -29,19 +30,30 @@ mkdir "$cwd/../OUTPUT_IMAGES_HOST_NEW"
 DEFAULT_DST_FOLDER="$cwd/../OUTPUT_IMAGES_HOST_NEW"
 
 # for logging
-mkdir "$cwd/../OUTPUT_PERFORMANCE_LOGS_HOST_NEW"
-LOGGING_FOLDER="$cwd/../OUTPUT_PERFORMANCE_LOGS_HOST_NEW"
+if [ $test_type -eq 1 ]; then
+    rm -rvf "$cwd/../OUTPUT_PERFORMANCE_LOGS_HOST_NEW"/*
+    mkdir "$cwd/../OUTPUT_PERFORMANCE_LOGS_HOST_NEW"
+    LOGGING_FOLDER="$cwd/../OUTPUT_PERFORMANCE_LOGS_HOST_NEW"
+fi
+
 
 # Images for unique functionalities
 DEFAULT_FAST_CORNER_DETECTOR_IMAGES="$cwd/../TEST_IMAGES/fast_corner_detector"
 DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES="$cwd/../TEST_IMAGES/harris_corner_detector"
 DEFAULT_HOUGH_LINES_IMAGES="$cwd/../TEST_IMAGES/hough_lines"
 DEFAULT_HOG_IMAGES="$cwd/../TEST_IMAGES/hog"
-test_type=1
 num_iterations=100
 pkd_layout=0
 pln3_layout=1
 pln1_layout=2
+
+# <<<<<<<<<<<<<< PRINTING THE TEST TYPE THAT USER SPECIFIED >>>>>>>>>>>>>>>>>>>>>>>>>>>>
+if [ $test_type -eq 0 ]; then
+    printf "\n UNIT TESTING..\n"
+fi
+if [ $test_type -eq 1 ]; then
+    printf "\n PERFORMANCE TESTING..\n"
+fi
 
 # <<<<<<<<<<<<<< DEFAULT SOURCE AND DESTINATION FOLDERS (NEED NOT CHANGE) >>>>>>>>>>>>>>
 
