@@ -7,7 +7,7 @@
 # <<<<<<<<<<<<<< DEFAULT SOURCE AND DESTINATION FOLDERS (NEED NOT CHANGE) >>>>>>>>>>>>>>
 
 cwd=$(pwd)
-test_type=$4
+TEST_TYPE=$4
 
 # Input Images - Single image (224 x 224)
 # DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/single_image_224x224_src1"
@@ -30,8 +30,8 @@ mkdir "$cwd/../OUTPUT_IMAGES_HOST_NEW"
 DEFAULT_DST_FOLDER="$cwd/../OUTPUT_IMAGES_HOST_NEW"
 
 # for logging
-if [ $test_type -eq 1 ]; then
-    rm -rvf "$cwd/../OUTPUT_PERFORMANCE_LOGS_HOST_NEW"/*
+if [ $TEST_TYPE -eq 1 ]; then
+    rm -rvf "$cwd/../OUTPUT_PERFORMANCE_LOGS_HOST_NEW"
     mkdir "$cwd/../OUTPUT_PERFORMANCE_LOGS_HOST_NEW"
     LOGGING_FOLDER="$cwd/../OUTPUT_PERFORMANCE_LOGS_HOST_NEW"
 fi
@@ -42,16 +42,13 @@ DEFAULT_FAST_CORNER_DETECTOR_IMAGES="$cwd/../TEST_IMAGES/fast_corner_detector"
 DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES="$cwd/../TEST_IMAGES/harris_corner_detector"
 DEFAULT_HOUGH_LINES_IMAGES="$cwd/../TEST_IMAGES/hough_lines"
 DEFAULT_HOG_IMAGES="$cwd/../TEST_IMAGES/hog"
-num_iterations=100
-pkd_layout=0
-pln3_layout=1
-pln1_layout=2
+
 
 # <<<<<<<<<<<<<< PRINTING THE TEST TYPE THAT USER SPECIFIED >>>>>>>>>>>>>>>>>>>>>>>>>>>>
-if [ $test_type -eq 0 ]; then
+if [ $TEST_TYPE -eq 0 ]; then
     printf "\n UNIT TESTING..\n"
 fi
-if [ $test_type -eq 1 ]; then
+if [ $TEST_TYPE -eq 1 ]; then
     printf "\n PERFORMANCE TESTING..\n"
 fi
 
@@ -122,24 +119,28 @@ directory_name_generator() {
 if [[ "$1" -lt 0 ]] | [[ "$1" -gt 86 ]]; then
     echo "The starting case# must be in the 0:86 range!"
     echo
-    echo "The rawLogsGenScript.sh bash script runs the RPP performance testsuite for AMDRPP functionalities in HOST/OCL/HIP backends."
+    echo "The testAllScript.sh bash script runs the RPP performance testsuite for AMDRPP functionalities in HOST/OCL/HIP backends."
     echo
-    echo "Syntax: ./rawLogsGenScript.sh <S> <E> <U>"
+    echo "Syntax: ./testAllScript.sh <S> <E> <U> <T> <N>"
     echo "S     CASE_START (Starting case# (0:86))"
     echo "E     CASE_END (Ending case# (0:86))"
     echo "U     UNIQUE_FUNC (0 = Skip / 1 = Run)"
+    echo "T     Type of Test - (0 = Unittests / 1 = Performancetests)"
+    echo "N     Number of Iterations - (0 = Unittests / 1 = Performancetests)"
     exit 1
 fi
 
 if [[ "$2" -lt 0 ]] | [[ "$2" -gt 86 ]]; then
     echo "The ending case# must be in the 0:86 range!"
     echo
-    echo "The rawLogsGenScript.sh bash script runs the RPP performance testsuite for AMDRPP functionalities in HOST/OCL/HIP backends."
+    echo "The testAllScript.sh bash script runs the RPP performance testsuite for AMDRPP functionalities in HOST/OCL/HIP backends."
     echo
-    echo "Syntax: ./rawLogsGenScript.sh <S> <E> <U>"
+    echo "Syntax: ./testAllScript.sh <S> <E> <U> <T> <N>"
     echo "S     CASE_START (Starting case# (0:86))"
     echo "E     CASE_END (Ending case# (0:86))"
     echo "U     UNIQUE_FUNC (0 = Skip / 1 = Run)"
+    echo "T     Type of Test - (0 = Unittests / 1 = Performancetests)"
+    echo "N     Number of Iterations - (0 = Unittests / 1 = Performancetests)"
     exit 1
 fi
 
@@ -147,12 +148,14 @@ if [ "$3" -ne 0 ]; then
     if [ "$3" -ne 1 ]; then
         echo "The unique functionalities option must be 0/1!"
         echo
-        echo "The rawLogsGenScript.sh bash script runs the RPP performance testsuite for AMDRPP functionalities in HOST/OCL/HIP backends."
+        echo "The testAllScript.sh bash script runs the RPP performance testsuite for AMDRPP functionalities in HOST/OCL/HIP backends."
         echo
-        echo "Syntax: ./rawLogsGenScript.sh <S> <E> <U>"
+        echo "Syntax: ./testAllScript.sh <S> <E> <U> <T> <N>"
         echo "S     CASE_START (Starting case# (0:86))"
         echo "E     CASE_END (Ending case# (0:86))"
         echo "U     UNIQUE_FUNC (0 = Skip / 1 = Run)"
+        echo "T     Type of Test - (0 = Unittests / 1 = Performancetests)"
+        echo "N     Number of Iterations - (0 = Unittests / 1 = Performancetests)"
         exit 1
     fi
 fi
@@ -161,10 +164,15 @@ if (( "$#" < 3 )); then
     CASE_START="0"
     CASE_END="86"
     UNIQUE_FUNC="0"
+    TEST_TYPE="0"
+    NUM_ITERATIONS="1"
+
+
 else
     CASE_START="$1"
     CASE_END="$2"
     UNIQUE_FUNC="$3"
+    NUM_ITERATIONS="$5"
 fi
 
 rm -rvf "$DST_FOLDER"/*
@@ -182,228 +190,113 @@ echo "##########################################################################
 
 printf "\n\nUsage: ./BatchPD_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <verbosity = 0/1>"
 
-for ((case=$CASE_START;case<=$CASE_END;case++))
+for ((layout=0;layout<=2;layout++))
 do
-    directory_name_generator "host" "pkd3" "$case"
-    mkdir $DST_FOLDER_TEMP
-
-    printf "\n\n\n\n"
-    echo "--------------------------------"
-    printf "Running a New Functionality...\n"
-    echo "--------------------------------"
-    for ((bitDepth=0;bitDepth<7;bitDepth++))
+    for ((case=$CASE_START;case<=$CASE_END;case++))
     do
-        printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
-        for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
+        if [ $layout -eq 0 ]; then
+            directory_name_generator "host" "pkd3" "$case"
+        fi
+        if [ $layout -eq 1 ]; then
+            directory_name_generator "host" "pln3" "$case"
+        fi
+        if [ $layout -eq 2 ]; then
+            directory_name_generator "host" "pln1" "$case"
+        fi
+        mkdir $DST_FOLDER_TEMP
+        if [ $layout -eq 0 ]; then
+            log_file_layout="pkd3"
+        fi
+        if [ $layout -eq 1 ]; then
+            log_file_layout="pln3"
+        fi
+        if [ $layout -eq 2 ]; then
+            log_file_layout="pln1"
+        fi
+
+        printf "\n\n\n\n"
+        echo "--------------------------------"
+        printf "Running a New Functionality...\n"
+        echo "--------------------------------"
+        for ((bitDepth=0;bitDepth<7;bitDepth++))
         do
+            printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
+            for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
+            do
 
-            if [[ "$case" -eq 74 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES"
-            elif [[ "$case" -eq 75 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_FAST_CORNER_DETECTOR_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_FAST_CORNER_DETECTOR_IMAGES"
-            elif [[ "$case" -eq 77 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_HOUGH_LINES_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_HOUGH_LINES_IMAGES"
-            elif [[ "$case" -eq 78 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_HOG_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_HOG_IMAGES"
-            else
-                SRC_FOLDER_1_TEMP="$SRC_FOLDER_1"
-                SRC_FOLDER_2_TEMP="$SRC_FOLDER_2"
-            fi
+                if [[ "$case" -eq 74 ]]
+                then
+                    SRC_FOLDER_1_TEMP="$DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES"
+                    SRC_FOLDER_2_TEMP="$DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES"
+                elif [[ "$case" -eq 75 ]]
+                then
+                    SRC_FOLDER_1_TEMP="$DEFAULT_FAST_CORNER_DETECTOR_IMAGES"
+                    SRC_FOLDER_2_TEMP="$DEFAULT_FAST_CORNER_DETECTOR_IMAGES"
+                elif [[ "$case" -eq 77 ]]
+                then
+                    SRC_FOLDER_1_TEMP="$DEFAULT_HOUGH_LINES_IMAGES"
+                    SRC_FOLDER_2_TEMP="$DEFAULT_HOUGH_LINES_IMAGES"
+                elif [[ "$case" -eq 78 ]]
+                then
+                    SRC_FOLDER_1_TEMP="$DEFAULT_HOG_IMAGES"
+                    SRC_FOLDER_2_TEMP="$DEFAULT_HOG_IMAGES"
+                else
+                    SRC_FOLDER_1_TEMP="$SRC_FOLDER_1"
+                    SRC_FOLDER_2_TEMP="$SRC_FOLDER_2"
+                fi
 
-            printf "\n./BatchPD_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./BatchPD_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$LOGGING_FOLDER/BatchPD_host_pkd3_host_raw_performance_log.txt"
+                if [[ "$layout" -eq 0 ]]
+                then
+                    printf "\n./BatchPD_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
+                    ./BatchPD_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$LOGGING_FOLDER/BatchPD_host_${log_file_layout}_host_raw_performance_log.txt"
+                elif [[ "$layout" -eq 1 ]]
+                then
+                    printf "\n./BatchPD_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
+                    ./BatchPD_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$LOGGING_FOLDER/BatchPD_host_${log_file_layout}_host_raw_performance_log.txt"
+                else
+                    printf "\n./BatchPD_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
+                    ./BatchPD_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$LOGGING_FOLDER/BatchPD_host_${log_file_layout}_host_raw_performance_log.txt"
+                fi
+        
+                if [ "$case" -eq 8 ]
+                then
+                    for ((noiseType=0;noiseType<3;noiseType++))
+                    do
+                        printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $noiseType 0"
+                        ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$noiseType" "0"
+                    done
+                elif [ "$case" -eq 21 ]
+                then
+                    for ((interpolationType=0;interpolationType<6;interpolationType++))
+                    do
+                        printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $interpolationType 0"
+                        ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$interpolationType" "0"
+                    done
+                else
+                    printf "\n$SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case ${NUM_ITERATIONS} ${TEST_TYPE} ${layout} 0"
+                    ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$NUM_ITERATIONS" "$TEST_TYPE" "$layout" "0" | tee -a "$LOGGING_FOLDER/Tensor_host_${log_file_layout}_host_raw_performance_log.txt"
+                    
+                    
+                fi
 
-            if [ "$case" -eq 8 ]
-            then
-                for ((noiseType=0;noiseType<3;noiseType++))
-                do
-                    printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $noiseType 0"
-                    ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$noiseType" "0"
-                done
-            elif [ "$case" -eq 21 ]
-            then
-                for ((interpolationType=0;interpolationType<6;interpolationType++))
-                do
-                    printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $interpolationType 0"
-                    ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$interpolationType" "0"
-                done
-            else
-                printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case ${num_iterations} ${test_type} ${pkd_layout} 0"
-                ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$num_iterations" "$test_type" "$pkd_layout" "0" | tee -a "$LOGGING_FOLDER/Tensor_host_pkd3_host_raw_performance_log.txt"
-                
-                
-            fi
-
-            echo "------------------------------------------------------------------------------------------"
+                echo "------------------------------------------------------------------------------------------"
+            done
         done
     done
+    if [[ "$layout" -eq 0 ]]
+    then
+        mkdir "$DST_FOLDER/PKD3"
+        mv "$DST_FOLDER/"!(PKD3) "$DST_FOLDER/PKD3"
+    elif [[ "$layout" -eq 1 ]]
+    then
+        mkdir "$DST_FOLDER/PLN3"
+        mv "$DST_FOLDER/"!(PKD3|PLN3) "$DST_FOLDER/PLN3"
+    else
+        mkdir "$DST_FOLDER/PLN1"
+        mv "$DST_FOLDER/"!(PKD3|PLN1|PLN3) "$DST_FOLDER/PLN1"
+    fi
+
 done
-
-mkdir "$DST_FOLDER/PKD3"
-mv "$DST_FOLDER/"!(PKD3) "$DST_FOLDER/PKD3"
-
-
-
-
-printf "\n\n\n\n\n"
-echo "##########################################################################################"
-echo "Running all PLN1 Inputs..."
-echo "##########################################################################################"
-
-printf "\n\nUsage: ./BatchPD_host_pln1 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <verbosity = 0/1>"
-
-for ((case=$CASE_START;case<=$CASE_END;case++))
-do
-    directory_name_generator "host" "pln1" "$case"
-    mkdir $DST_FOLDER_TEMP
-
-    printf "\n\n\n\n"
-    echo "--------------------------------"
-    printf "Running a New Functionality...\n"
-    echo "--------------------------------"
-    for ((bitDepth=0;bitDepth<7;bitDepth++))
-    do
-        printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
-        for ((outputFormatToggle=0;outputFormatToggle<1;outputFormatToggle++))
-        do
-
-            if [[ "$case" -eq 74 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES"
-            elif [[ "$case" -eq 75 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_FAST_CORNER_DETECTOR_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_FAST_CORNER_DETECTOR_IMAGES"
-            elif [[ "$case" -eq 77 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_HOUGH_LINES_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_HOUGH_LINES_IMAGES"
-            elif [[ "$case" -eq 78 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_HOG_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_HOG_IMAGES"
-            else
-                SRC_FOLDER_1_TEMP="$SRC_FOLDER_1"
-                SRC_FOLDER_2_TEMP="$SRC_FOLDER_2"
-            fi
-
-            printf "\n./BatchPD_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./BatchPD_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$LOGGING_FOLDER/BatchPD_host_pln1_host_raw_performance_log.txt"
-
-            if [ "$case" -eq 8 ]
-            then
-                for ((noiseType=0;noiseType<3;noiseType++))
-                do
-                    printf "\n./Tensor_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $noiseType 0"
-                    ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$noiseType" "0"
-                done
-            elif [ "$case" -eq 21 ]
-            then
-                for ((interpolationType=0;interpolationType<6;interpolationType++))
-                do
-                    printf "\n./Tensor_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $interpolationType 0"
-                    ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$interpolationType" "0"
-                done
-            else
-                printf "\n./Tensor_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case ${num_iterations} ${test_type} ${pln1_layout} 0"
-                ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$num_iterations" "$test_type" "$pln1_layout" "0" | tee -a "$LOGGING_FOLDER/Tensor_host_pln1_host_raw_performance_log.txt"
-            fi
-
-            echo "------------------------------------------------------------------------------------------"
-        done
-    done
-done
-
-mkdir "$DST_FOLDER/PLN1"
-mv "$DST_FOLDER/"!(PKD3|PLN1) "$DST_FOLDER/PLN1"
-
-
-
-
-printf "\n\n\n\n\n"
-echo "##########################################################################################"
-echo "Running all PLN3 Inputs..."
-echo "##########################################################################################"
-
-printf "\n\nUsage: ./BatchPD_host_pln3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <verbosity = 0/1>"
-
-for ((case=$CASE_START;case<=$CASE_END;case++))
-do
-    directory_name_generator "host" "pln3" "$case"
-    mkdir $DST_FOLDER_TEMP
-
-    printf "\n\n\n\n"
-    echo "--------------------------------"
-    printf "Running a New Functionality...\n"
-    echo "--------------------------------"
-    for ((bitDepth=0;bitDepth<7;bitDepth++))
-    do
-        printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
-        for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
-        do
-
-            if [[ "$case" -eq 74 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES"
-            elif [[ "$case" -eq 75 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_FAST_CORNER_DETECTOR_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_FAST_CORNER_DETECTOR_IMAGES"
-            elif [[ "$case" -eq 77 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_HOUGH_LINES_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_HOUGH_LINES_IMAGES"
-            elif [[ "$case" -eq 78 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_HOG_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_HOG_IMAGES"
-            else
-                SRC_FOLDER_1_TEMP="$SRC_FOLDER_1"
-                SRC_FOLDER_2_TEMP="$SRC_FOLDER_2"
-            fi
-
-            printf "\n./BatchPD_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./BatchPD_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$LOGGING_FOLDER/BatchPD_host_pln3_host_raw_performance_log.txt"
-
-            if [ "$case" -eq 8 ]
-            then
-                for ((noiseType=0;noiseType<3;noiseType++))
-                do
-                    printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $noiseType 0"
-                    ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$noiseType" "0"
-                done
-            elif [ "$case" -eq 21 ]
-            then
-                for ((interpolationType=0;interpolationType<6;interpolationType++))
-                do
-                    printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $interpolationType 0"
-                    ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$interpolationType" "0"
-                done
-            else
-                printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case ${num_iterations} ${test_type} ${pln3_layout} 0"
-                ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$num_iterations" "$test_type" "$pln3_layout" "0" | tee -a "$LOGGING_FOLDER/Tensor_host_pln3_host_raw_performance_log.txt"
-            fi
-
-            echo "------------------------------------------------------------------------------------------"
-        done
-    done
-done
-
-mkdir "$DST_FOLDER/PLN3"
-mv "$DST_FOLDER/"!(PKD3|PLN1|PLN3) "$DST_FOLDER/PLN3"
-
-
-
 
 if [[ "$UNIQUE_FUNC" -eq 1 ]]
 then
