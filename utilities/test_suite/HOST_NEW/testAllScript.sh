@@ -1,9 +1,5 @@
 #!/bin/bash
 
-
-
-
-
 # <<<<<<<<<<<<<< DEFAULT SOURCE AND DESTINATION FOLDERS (NEED NOT CHANGE) >>>>>>>>>>>>>>
 
 cwd=$(pwd)
@@ -36,7 +32,6 @@ if [ $TEST_TYPE -eq 1 ]; then
     LOGGING_FOLDER="$cwd/../OUTPUT_PERFORMANCE_LOGS_HOST_NEW"
 fi
 
-
 # Images for unique functionalities
 DEFAULT_FAST_CORNER_DETECTOR_IMAGES="$cwd/../TEST_IMAGES/fast_corner_detector"
 DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES="$cwd/../TEST_IMAGES/harris_corner_detector"
@@ -54,19 +49,11 @@ fi
 
 # <<<<<<<<<<<<<< DEFAULT SOURCE AND DESTINATION FOLDERS (NEED NOT CHANGE) >>>>>>>>>>>>>>
 
-
-
-
-
 # <<<<<<<<<<<<<< FOR MANUAL OVERRIDE, JUST REPLACE AND POINT TO THE SOURCE AND DESTINATION FOLDERS HERE >>>>>>>>>>>>>>
 SRC_FOLDER_1="$DEFAULT_SRC_FOLDER_1"
 SRC_FOLDER_2="$DEFAULT_SRC_FOLDER_2"
 DST_FOLDER="$DEFAULT_DST_FOLDER"
 # <<<<<<<<<<<<<< FOR MANUAL OVERRIDE, JUST REPLACE AND POINT TO THE SOURCE AND DESTINATION FOLDERS HERE >>>>>>>>>>>>>>
-
-
-
-
 
 # <<<<<<<<<<<<<< EXECUTION OF ALL FUNCTIONALITIES (NEED NOT CHANGE) >>>>>>>>>>>>>>
 
@@ -185,10 +172,8 @@ make -j16
 
 printf "\n\n\n\n\n"
 echo "##########################################################################################"
-echo "Running all PKD3 Inputs..."
+echo "Running all layout Inputs..."
 echo "##########################################################################################"
-
-printf "\n\nUsage: ./BatchPD_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <verbosity = 0/1>"
 
 for ((layout=0;layout<=2;layout++))
 do
@@ -245,36 +230,23 @@ do
                     SRC_FOLDER_2_TEMP="$SRC_FOLDER_2"
                 fi
 
-                if [[ "$layout" -eq 0 ]]
-                then
-                    printf "\n./BatchPD_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
-                    ./BatchPD_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$LOGGING_FOLDER/BatchPD_host_${log_file_layout}_host_raw_performance_log.txt"
-                elif [[ "$layout" -eq 1 ]]
-                then
-                    printf "\n./BatchPD_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
-                    ./BatchPD_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$LOGGING_FOLDER/BatchPD_host_${log_file_layout}_host_raw_performance_log.txt"
-                else
-                    printf "\n./BatchPD_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
-                    ./BatchPD_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$LOGGING_FOLDER/BatchPD_host_${log_file_layout}_host_raw_performance_log.txt"
-                fi
-        
                 if [ "$case" -eq 8 ]
                 then
                     for ((noiseType=0;noiseType<3;noiseType++))
                     do
-                        printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $noiseType 0"
-                        ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$noiseType" "0"
+                        printf "\n./Tensor_host $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $noiseType 0"
+                        ./Tensor_host "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$noiseType" "0"
                     done
                 elif [ "$case" -eq 21 ]
                 then
                     for ((interpolationType=0;interpolationType<6;interpolationType++))
                     do
-                        printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $interpolationType 0"
-                        ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$interpolationType" "0"
+                        printf "\n./Tensor_host $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $interpolationType 0"
+                        ./Tensor_host "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$interpolationType" "0"
                     done
                 else
                     printf "\n$SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case ${NUM_ITERATIONS} ${TEST_TYPE} ${layout} 0"
-                    ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$NUM_ITERATIONS" "$TEST_TYPE" "$layout" "0" | tee -a "$LOGGING_FOLDER/Tensor_host_${log_file_layout}_host_raw_performance_log.txt"
+                    ./Tensor_host "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$NUM_ITERATIONS" "$TEST_TYPE" "$layout" "0" | tee -a "$LOGGING_FOLDER/Tensor_host_${log_file_layout}_raw_performance_log.txt"
                     
                     
                 fi

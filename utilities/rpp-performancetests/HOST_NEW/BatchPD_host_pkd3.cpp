@@ -3438,11 +3438,7 @@ int main(int argc, char **argv)
     }
 
     avg_time_used /= 100;
-    max_time_used = max_time_used * 1000;
-    min_time_used = min_time_used * 1000;
-    avg_time_used = avg_time_used * 1000;
-
-    cout << fixed << "\nmax,min,avg in ms = " << max_time_used << "," << min_time_used << "," << avg_time_used << endl;
+    cout << fixed << "\nmax,min,avg = " << max_time_used << "," << min_time_used << "," << avg_time_used << endl;
 
     rppDestroyHost(handle);
 

@@ -23,7 +23,6 @@ cwd=$(pwd)
 # Input Images - Eight images (224 x 224)
 DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/eight_images_224x224_src1"
 DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/eight_images_224x224_src2"
-num_iterations=100
 
 # Input Images - Two images (mixed size)
 # DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/two_images_mixed_src1"
@@ -172,8 +171,8 @@ do
                     ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$interpolationType" "0" | tee -a "$DST_FOLDER/Tensor_host_pkd3_host_raw_performance_log.txt"
                 done
             else
-                printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case $num_iterations 0"
-                ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$num_iterations" "0" | tee -a "$DST_FOLDER/Tensor_host_pkd3_host_raw_performance_log.txt"
+                printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
+                ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$DST_FOLDER/Tensor_host_pkd3_host_raw_performance_log.txt"
             fi
 
             echo "------------------------------------------------------------------------------------------"
@@ -228,8 +227,8 @@ do
                     ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$interpolationType" "0" | tee -a "$DST_FOLDER/Tensor_host_pln1_host_raw_performance_log.txt"
                 done
             else
-                printf "\n./Tensor_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case $num_iterations 0"
-                ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$num_iterations" "0" | tee -a "$DST_FOLDER/Tensor_host_pln1_host_raw_performance_log.txt"
+                printf "\n./Tensor_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
+                ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$DST_FOLDER/Tensor_host_pln1_host_raw_performance_log.txt"
             fi
 
             echo "------------------------------------------------------------------------------------------"
@@ -284,8 +283,8 @@ do
                     ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$interpolationType" "0" | tee -a "$DST_FOLDER/Tensor_host_pln3_host_raw_performance_log.txt"
                 done
             else
-                printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case $num_iterations 0"
-                ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$num_iterations" "0" | tee -a "$DST_FOLDER/Tensor_host_pln3_host_raw_performance_log.txt"
+                printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
+                ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$DST_FOLDER/Tensor_host_pln3_host_raw_performance_log.txt"
             fi
 
             echo "------------------------------------------------------------------------------------------"

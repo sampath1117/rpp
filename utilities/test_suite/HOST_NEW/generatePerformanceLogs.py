@@ -39,15 +39,12 @@ if testType < "0" or testType > "1":
     exit(0)
 
 
-subprocess.call(["./testAllScript_now.sh", caseStart, caseEnd , uniqueFunc , testType , num_iterations])
+subprocess.call(["./testAllScript.sh", caseStart, caseEnd , uniqueFunc , testType , num_iterations])
 
 log_file_list = [
-    "../OUTPUT_PERFORMANCE_LOGS_HOST_NEW/BatchPD_host_pkd3_host_raw_performance_log.txt",
-    "../OUTPUT_PERFORMANCE_LOGS_HOST_NEW/BatchPD_host_pln3_host_raw_performance_log.txt",
-    "../OUTPUT_PERFORMANCE_LOGS_HOST_NEW/BatchPD_host_pln1_host_raw_performance_log.txt",
-    "../OUTPUT_PERFORMANCE_LOGS_HOST_NEW/Tensor_host_pkd3_host_raw_performance_log.txt",
-    "../OUTPUT_PERFORMANCE_LOGS_HOST_NEW/Tensor_host_pln3_host_raw_performance_log.txt",
-    "../OUTPUT_PERFORMANCE_LOGS_HOST_NEW/Tensor_host_pln1_host_raw_performance_log.txt"
+    "../OUTPUT_PERFORMANCE_LOGS_HOST_NEW/Tensor_host_pkd3_raw_performance_log.txt",
+    "../OUTPUT_PERFORMANCE_LOGS_HOST_NEW/Tensor_host_pln3_raw_performance_log.txt",
+    "../OUTPUT_PERFORMANCE_LOGS_HOST_NEW/Tensor_host_pln1_raw_performance_log.txt"
     ]
 
 functionality_group_list = [

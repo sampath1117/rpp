@@ -1649,8 +1649,8 @@ int main(int argc, char **argv)
 
     cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
     omp_time_used = end_omp - start_omp;
-    cout << "\nCPU Time - BatchPD : " << cpu_time_used*1000;
-    cout << "\nOMP Time - BatchPD : " << omp_time_used*1000;
+    cout << "\nCPU Time - BatchPD : " << cpu_time_used;
+    cout << "\nOMP Time - BatchPD : " << omp_time_used;
     printf("\n");
 
     // Reconvert other bit depths to 8u for output display purposes
