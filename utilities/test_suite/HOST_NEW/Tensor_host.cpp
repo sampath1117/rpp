@@ -645,6 +645,8 @@ int main(int argc, char **argv)
         inputTemp = input;
         inputCopyTemp = inputCopy;
 
+        omp_set_dynamic(0);
+        #pragma omp parallel for num_threads(noOfImages)
         for (int count = 0; count < noOfImages; count++)
         {
             Rpp8u *inputTempR, *inputTempG, *inputTempB;
@@ -681,7 +683,8 @@ int main(int argc, char **argv)
         Rpp8u *inputSecondTemp, *inputSecondCopyTemp;
         inputSecondTemp = input_second;
         inputSecondCopyTemp = inputSecondCopy;
-
+        omp_set_dynamic(0);
+        #pragma omp parallel for num_threads(noOfImages)
         for (int count = 0; count < noOfImages; count++)
         {
             Rpp8u *inputSecondTempR, *inputSecondTempG, *inputSecondTempB;
@@ -1984,6 +1987,8 @@ int main(int argc, char **argv)
                 outputTemp = output;
                 outputCopyTemp = outputCopy;
 
+                omp_set_dynamic(0);
+                #pragma omp parallel for num_threads(dstDescPtr->n)
                 for (int count = 0; count < dstDescPtr->n; count++)
                 {
                     Rpp8u *outputCopyTempR, *outputCopyTempG, *outputCopyTempB;
