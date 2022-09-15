@@ -971,15 +971,26 @@ RppStatus rppt_resize_gpu(RppPtr_t srcPtr,
 #ifdef HIP_COMPILE
     if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
     {
-        hip_exec_resize_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
-                               srcDescPtr,
-                               static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
-                               dstDescPtr,
-                               dstImgSizes,
-                               interpolationType,
-                               roiTensorPtrSrc,
-                               roiType,
-                               rpp::deref(rppHandle));
+        hip_exec_resize_separable_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
+                                         srcDescPtr,
+                                         static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
+                                         dstDescPtr,
+                                         rpp::deref(rppHandle).GetInitHandle()->mem.mgpu.tempFloatmem,
+                                         dstImgSizes,
+                                         interpolationType,
+                                         roiTensorPtrSrc,
+                                         roiType,
+                                         rpp::deref(rppHandle));
+
+        // hip_exec_resize_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
+        //                        srcDescPtr,
+        //                        static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
+        //                        dstDescPtr,
+        //                        dstImgSizes,
+        //                        interpolationType,
+        //                        roiTensorPtrSrc,
+        //                        roiType,
+        //                        rpp::deref(rppHandle));
     }
     else if ((srcDescPtr->dataType == RpptDataType::F16) && (dstDescPtr->dataType == RpptDataType::F16))
     {
