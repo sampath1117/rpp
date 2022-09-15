@@ -808,7 +808,7 @@ __global__ void resample_vertical_tensor(T *srcPtr,
     weight -= vRadius;
 
     // Compute coefficients for Traingular
-    float norm = 0;
+    float norm = 0.0f;
     float coeff = 0;
     uint srcIdx;
     d_float24 pix_f24, dst_f24;
@@ -844,8 +844,11 @@ __global__ void resample_vertical_tensor(T *srcPtr,
     }
 
     // Normalize coefficients
-    norm = 1.0f / norm;
-    divide_by_coeff_sum(&dst_f24, norm);
+    if(!(norm == 0.0f))
+    {
+        norm = 1.0f / norm;
+        divide_by_coeff_sum(&dst_f24, norm);
+    }
     rpp_hip_pack_float24_pln3_and_store24_pkd3(dstPtr + dstIdx, &dst_f24);
 }
 
@@ -903,7 +906,7 @@ __global__ void resample_horizontal_tensor(Rpp32f *srcPtr,
     weight -= hRadius;
 
     // Compute coefficients for Traingular
-    float norm = 0;
+    float norm = 0.0f;
     float coeff;
     uint srcIdx;
 
@@ -927,10 +930,13 @@ __global__ void resample_horizontal_tensor(Rpp32f *srcPtr,
     }
 
     // Normalize coefficients
-    norm = 1.0f / norm;
-    dst_pixR *= norm;
-    dst_pixG *= norm;
-    dst_pixB *= norm;
+    if(!(norm == 0.0f))
+    {
+        norm = 1.0f / norm;
+        dst_pixR *= norm;
+        dst_pixG *= norm;
+        dst_pixB *= norm;
+    }
 
     dstPtr[dstIdx] = (T) dst_pixR;
     dstPtr[dstIdx + 1] = (T) dst_pixG;
@@ -952,8 +958,8 @@ RppStatus hip_exec_resize_separable_tensor(T *srcPtr,
     if (roiType == RpptRoiType::XYWH)
         hip_exec_roi_converison_xywh_to_ltrb(roiTensorPtrSrc, handle);
 
-    int internalBatchSize = 8;
     int batchSize = handle.GetBatchSize();
+    int internalBatchSize = min(8, batchSize);
     int localThreads_x = 16;
     int localThreads_y = 16;
     int localThreads_z = 1;
