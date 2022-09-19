@@ -690,7 +690,7 @@ omp_set_dynamic(0);
         Rpp32u alignedLength = dstImgSize[batchCount].width & ~3;
         Rpp32s srcLocationColumnArray[4] = {0};
         Rpp32s srcLocationRow, srcLocationColumn;
-        
+
         // Resize with 3 channel inputs and outputs
         if (srcDescPtr->c == 3 && dstDescPtr->c == 3)
         {
@@ -1792,6 +1792,115 @@ omp_set_dynamic(0);
 
         compute_separable_vertical_resample(srcPtrImage, tempPtrImage, srcDescPtr, tempDescPtr, srcImgSize, tempImgSize, rowIndex, rowCoeffs, vFilter);
         compute_separable_horizontal_resample(tempPtrImage, dstPtrImage, tempDescPtr, dstDescPtr, tempImgSize, dstImgSize[batchCount], colIndex, colCoeffs, hFilter);
+    }
+
+    return RPP_SUCCESS;
+}
+
+RppStatus resize_triangular_u8_u8_host_tensor(Rpp8u *srcPtr,
+                                              RpptDescPtr srcDescPtr,
+                                              Rpp8u *dstPtr,
+                                              RpptDescPtr dstDescPtr,
+                                              RpptImagePatchPtr dstImgSize,
+                                              RpptROIPtr roiTensorPtrSrc,
+                                              RpptRoiType roiType,
+                                              RppLayoutParams srcLayoutParams)
+{
+    RpptROI roiDefault;
+    RpptROIPtr roiPtrDefault;
+    roiPtrDefault = &roiDefault;
+    roiPtrDefault->xywhROI.xy.x = 0;
+    roiPtrDefault->xywhROI.xy.y = 0;
+    roiPtrDefault->xywhROI.roiWidth = srcDescPtr->w;
+    roiPtrDefault->xywhROI.roiHeight = srcDescPtr->h;
+
+omp_set_dynamic(0);
+#pragma omp parallel for num_threads(dstDescPtr->n)
+    for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
+    {
+        RpptROI roi;
+        RpptROIPtr roiPtr;
+
+        if (&roiTensorPtrSrc[batchCount] == NULL)
+        {
+            roiPtr = roiPtrDefault;
+        }
+        else
+        {
+            RpptROIPtr roiPtrInput = &roiTensorPtrSrc[batchCount];
+
+            RpptROI roiImage;
+            RpptROIPtr roiPtrImage;
+
+            if (roiType == RpptRoiType::LTRB)
+            {
+                roiPtrImage = &roiImage;
+                compute_xywh_from_ltrb_host(roiPtrInput, roiPtrImage);
+            }
+            else if (roiType == RpptRoiType::XYWH)
+            {
+                roiPtrImage = roiPtrInput;
+            }
+
+            roiPtr = &roi;
+            compute_roi_boundary_check_host(roiPtrImage, roiPtr, roiPtrDefault);
+        }
+
+        Rpp32f wRatio = ((Rpp32f)(roiPtr->xywhROI.roiWidth)) / ((Rpp32f)(dstImgSize[batchCount].width));
+        Rpp32f hRatio = ((Rpp32f)(roiPtr->xywhROI.roiHeight)) / ((Rpp32f)(dstImgSize[batchCount].height));
+
+        Rpp32f wScale = 1.0f, hScale = 1.0f, wRadius = 1.0f, hRadius = 1.0f;
+        if(roiPtr->xywhROI.roiWidth > dstImgSize[batchCount].width)
+        {
+            wRadius = wRatio;
+            wScale = (1.0f / wRatio);
+        }
+
+        if(roiPtr->xywhROI.roiHeight > dstImgSize[batchCount].height)
+        {
+            hRadius = hRatio;
+            hScale = (1.0f / hRatio);
+        }
+
+        if(hRatio < 1 && wRatio < 1)
+        {
+            // Triangular interpolation is equivalent to Bilinear interpolation when upsampling
+            // hence the call is directed to bilinear resize function
+            resize_bilinear_u8_u8_host_tensor(srcPtr, srcDescPtr, dstPtr, dstDescPtr, dstImgSize, roiTensorPtrSrc, roiType, srcLayoutParams);
+        }
+        else
+        {
+            compute_dst_size_cap_host(&dstImgSize[batchCount], dstDescPtr);
+            Rpp32u heightLimit = roiPtr->xywhROI.roiHeight - 1;
+            Rpp32u widthLimit = roiPtr->xywhROI.roiWidth - 1;
+            Rpp32f hOffset = (hRatio - 1) * 0.5f - hRadius;
+            Rpp32f wOffset = (wRatio - 1) * 0.5f - wRadius;
+
+            Rpp8u *srcPtrChannel, *dstPtrChannel, *srcPtrImage, *dstPtrImage;
+            srcPtrImage = srcPtr + batchCount * srcDescPtr->strides.nStride;
+            dstPtrImage = dstPtr + batchCount * dstDescPtr->strides.nStride;
+            srcPtrChannel = srcPtrImage + (roiPtr->xywhROI.xy.y * srcDescPtr->strides.hStride) + (roiPtr->xywhROI.xy.x * srcLayoutParams.bufferMultiplier);
+            dstPtrChannel = dstPtrImage;
+
+            if (srcDescPtr->c == 3)
+            {
+                Rpp8u *dstPtrRowChn[3], *srcPtrChn[3];
+                srcPtrChn[0] = srcPtrChannel;
+                srcPtrChn[1] = srcPtrChn[0] + srcDescPtr->strides.cStride;
+                srcPtrChn[2] = srcPtrChn[1] + srcDescPtr->strides.cStride;
+                dstPtrRowChn[0] = dstPtrChannel;
+                dstPtrRowChn[1] = dstPtrRowChn[0] + dstDescPtr->strides.cStride;
+                dstPtrRowChn[2] = dstPtrRowChn[1] + dstDescPtr->strides.cStride;
+                resize_generic_host_kernel(srcPtrChn, srcDescPtr, dstPtrRowChn, dstDescPtr, dstImgSize[batchCount], hRatio, wRatio, heightLimit, widthLimit, RpptInterpolationType::TRIANGULAR, hScale, wScale, hRadius, wRadius);
+            }
+            else if (srcDescPtr->c == 1)
+            {
+                Rpp8u *dstPtrTemp, *srcPtrTemp;
+                srcPtrTemp = srcPtrChannel;
+                dstPtrTemp = dstPtrChannel;
+                resize_generic_host_kernel(srcPtrTemp, srcDescPtr, dstPtrTemp, dstDescPtr, dstImgSize[batchCount], hRatio, wRatio, heightLimit, widthLimit, RpptInterpolationType::TRIANGULAR, hScale, wScale, hRadius, wRadius);
+            }
+        }
     }
 
     return RPP_SUCCESS;
