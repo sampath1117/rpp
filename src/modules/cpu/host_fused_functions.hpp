@@ -3171,7 +3171,7 @@ RppStatus crop_mirror_normalize_host_batch(T* srcPtr, RppiSize *batch_srcSize, R
             else if (mirrorFlag == 1)
             {
                 T  *srcPtrROI;
-                srcPtrROI = srcPtrImage + (y1 * srcElementsInRowMax) + ((x2 - 1) * channel);
+                srcPtrROI = srcPtrImage + (y1 * srcElementsInRowMax) + (x2 * channel);
 
                 Rpp32u srcROIIncrement = srcElementsInRowMax + elementsInRowROI;
 
