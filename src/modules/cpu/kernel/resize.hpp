@@ -1862,44 +1862,35 @@ omp_set_dynamic(0);
             hScale = (1.0f / hRatio);
         }
 
-        if(hRatio < 1 && wRatio < 1)
+        compute_dst_size_cap_host(&dstImgSize[batchCount], dstDescPtr);
+        Rpp32u heightLimit = roiPtr->xywhROI.roiHeight - 1;
+        Rpp32u widthLimit = roiPtr->xywhROI.roiWidth - 1;
+        Rpp32f hOffset = (hRatio - 1) * 0.5f - hRadius;
+        Rpp32f wOffset = (wRatio - 1) * 0.5f - wRadius;
+
+        Rpp8u *srcPtrChannel, *dstPtrChannel, *srcPtrImage, *dstPtrImage;
+        srcPtrImage = srcPtr + batchCount * srcDescPtr->strides.nStride;
+        dstPtrImage = dstPtr + batchCount * dstDescPtr->strides.nStride;
+        srcPtrChannel = srcPtrImage + (roiPtr->xywhROI.xy.y * srcDescPtr->strides.hStride) + (roiPtr->xywhROI.xy.x * srcLayoutParams.bufferMultiplier);
+        dstPtrChannel = dstPtrImage;
+
+        if (srcDescPtr->c == 3)
         {
-            // Triangular interpolation is equivalent to Bilinear interpolation when upsampling
-            // hence the call is directed to bilinear resize function
-            resize_bilinear_u8_u8_host_tensor(srcPtr, srcDescPtr, dstPtr, dstDescPtr, dstImgSize, roiTensorPtrSrc, roiType, srcLayoutParams);
+            Rpp8u *dstPtrRowChn[3], *srcPtrChn[3];
+            srcPtrChn[0] = srcPtrChannel;
+            srcPtrChn[1] = srcPtrChn[0] + srcDescPtr->strides.cStride;
+            srcPtrChn[2] = srcPtrChn[1] + srcDescPtr->strides.cStride;
+            dstPtrRowChn[0] = dstPtrChannel;
+            dstPtrRowChn[1] = dstPtrRowChn[0] + dstDescPtr->strides.cStride;
+            dstPtrRowChn[2] = dstPtrRowChn[1] + dstDescPtr->strides.cStride;
+            resize_generic_host_kernel(srcPtrChn, srcDescPtr, dstPtrRowChn, dstDescPtr, dstImgSize[batchCount], hRatio, wRatio, heightLimit, widthLimit, RpptInterpolationType::TRIANGULAR, hScale, wScale, hRadius, wRadius);
         }
-        else
+        else if (srcDescPtr->c == 1)
         {
-            compute_dst_size_cap_host(&dstImgSize[batchCount], dstDescPtr);
-            Rpp32u heightLimit = roiPtr->xywhROI.roiHeight - 1;
-            Rpp32u widthLimit = roiPtr->xywhROI.roiWidth - 1;
-            Rpp32f hOffset = (hRatio - 1) * 0.5f - hRadius;
-            Rpp32f wOffset = (wRatio - 1) * 0.5f - wRadius;
-
-            Rpp8u *srcPtrChannel, *dstPtrChannel, *srcPtrImage, *dstPtrImage;
-            srcPtrImage = srcPtr + batchCount * srcDescPtr->strides.nStride;
-            dstPtrImage = dstPtr + batchCount * dstDescPtr->strides.nStride;
-            srcPtrChannel = srcPtrImage + (roiPtr->xywhROI.xy.y * srcDescPtr->strides.hStride) + (roiPtr->xywhROI.xy.x * srcLayoutParams.bufferMultiplier);
-            dstPtrChannel = dstPtrImage;
-
-            if (srcDescPtr->c == 3)
-            {
-                Rpp8u *dstPtrRowChn[3], *srcPtrChn[3];
-                srcPtrChn[0] = srcPtrChannel;
-                srcPtrChn[1] = srcPtrChn[0] + srcDescPtr->strides.cStride;
-                srcPtrChn[2] = srcPtrChn[1] + srcDescPtr->strides.cStride;
-                dstPtrRowChn[0] = dstPtrChannel;
-                dstPtrRowChn[1] = dstPtrRowChn[0] + dstDescPtr->strides.cStride;
-                dstPtrRowChn[2] = dstPtrRowChn[1] + dstDescPtr->strides.cStride;
-                resize_generic_host_kernel(srcPtrChn, srcDescPtr, dstPtrRowChn, dstDescPtr, dstImgSize[batchCount], hRatio, wRatio, heightLimit, widthLimit, RpptInterpolationType::TRIANGULAR, hScale, wScale, hRadius, wRadius);
-            }
-            else if (srcDescPtr->c == 1)
-            {
-                Rpp8u *dstPtrTemp, *srcPtrTemp;
-                srcPtrTemp = srcPtrChannel;
-                dstPtrTemp = dstPtrChannel;
-                resize_generic_host_kernel(srcPtrTemp, srcDescPtr, dstPtrTemp, dstDescPtr, dstImgSize[batchCount], hRatio, wRatio, heightLimit, widthLimit, RpptInterpolationType::TRIANGULAR, hScale, wScale, hRadius, wRadius);
-            }
+            Rpp8u *dstPtrTemp, *srcPtrTemp;
+            srcPtrTemp = srcPtrChannel;
+            dstPtrTemp = dstPtrChannel;
+            resize_generic_host_kernel(srcPtrTemp, srcDescPtr, dstPtrTemp, dstDescPtr, dstImgSize[batchCount], hRatio, wRatio, heightLimit, widthLimit, RpptInterpolationType::TRIANGULAR, hScale, wScale, hRadius, wRadius);
         }
     }
 
