@@ -579,6 +579,34 @@ RppStatus rppt_resize_crop_mirror_host(RppPtr_t srcPtr,
     return RPP_SUCCESS;
 }
 
+RppStatus rppt_remap_host(RppPtr_t srcPtr,
+                          RpptDescPtr srcDescPtr,
+                          RppPtr_t dstPtr,
+                          RpptDescPtr dstDescPtr,
+                          Rpp32u *rowRemapTable,
+                          Rpp32u *colRemapTable,
+                          RpptROIPtr roiTensorPtrSrc,
+                          RpptRoiType roiType,
+                          rppHandle_t rppHandle)
+{
+    RppLayoutParams srcLayoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
+
+    if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
+    {
+        remap_u8_u8_host_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
+                                srcDescPtr,
+                                static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
+                                dstDescPtr,
+                                rowRemapTable,
+                                colRemapTable,
+                                roiTensorPtrSrc,
+                                roiType,
+                                srcLayoutParams);
+    }
+
+    return RPP_SUCCESS;
+}
+
 /********************************************************************************************************************/
 /*********************************************** RPP_GPU_SUPPORT = ON ***********************************************/
 /********************************************************************************************************************/

@@ -176,6 +176,24 @@ RppStatus rppt_resize_crop_mirror_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, 
 RppStatus rppt_resize_crop_mirror_gpu(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dstImgSizes, RpptInterpolationType interpolationType, Rpp32u *mirrorTensor, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle);
 #endif // GPU_SUPPORT
 
+/******************** remap ********************/
+
+// Remap augmentation for a NCHW/NHWC layout tensor
+
+// *param[in] srcPtr source tensor memory
+// *param[in] srcDesc source tensor descriptor
+// *param[out] dstPtr destination tensor memory
+// *param[in] dstDescPtr destination tensor descriptor
+// *param[in] rowRemapTable Array of Rpp32u row numbers for every pixel in the input batch of images
+// *param[in] colRemapTable Array of Rpp32u column numbers for every pixel in the input batch of images
+// *param[in] roiTensorSrc ROI data for each image in source tensor (2D tensor of size batchSize * 4, in either format - XYWH(xy.x, xy.y, roiWidth, roiHeight) or LTRB(lt.x, lt.y, rb.x, rb.y))
+// *param[in] roiType ROI type used (RpptRoiType::XYWH or RpptRoiType::LTRB)
+// *returns a  RppStatus enumeration.
+// *retval RPP_SUCCESS : No error, Succesful completion
+// *retval RPP_ERROR : Error
+
+RppStatus rppt_remap_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, Rpp32u *rowRemapTable, Rpp32u *colRemapTable, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle);
+
 #ifdef __cplusplus
 }
 #endif
