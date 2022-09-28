@@ -32,9 +32,103 @@ omp_set_dynamic(0);
         rowRemapTableImage = rowRemapTable;
         colRemapTableImage = colRemapTable;
 
-        
+        // Remap with fused output-layout toggle (NHWC -> NCHW)
+        if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NCHW))
+        {
+            Rpp8u *dstPtrRowR, *dstPtrRowG, *dstPtrRowB;
+            dstPtrRowR = dstPtrChannel;
+            dstPtrRowG = dstPtrRowR + dstDescPtr->strides.cStride;
+            dstPtrRowB = dstPtrRowG + dstDescPtr->strides.cStride;
+
+            for(int dstLocRow = 0; dstLocRow < roi.xywhROI.roiHeight; dstLocRow++)
+            {
+                Rpp8u *dstPtrTempR, *dstPtrTempG, *dstPtrTempB;
+                dstPtrTempR = dstPtrRowR;
+                dstPtrTempG = dstPtrRowG;
+                dstPtrTempB = dstPtrRowB;
+                Rpp32u *rowRemapTableTemp, *colRemapTableTemp;
+                rowRemapTableTemp = rowRemapTableImage + (dstLocRow * roi.xywhROI.roiWidth);
+                colRemapTableTemp = colRemapTableImage + (dstLocRow * roi.xywhROI.roiWidth);
+
+                int vectorLoopCount = 0;
+                for (; vectorLoopCount < roi.xywhROI.roiWidth; vectorLoopCount++)
+                {
+                    Rpp32u remappedSrcLoc = (*rowRemapTableTemp * srcDescPtr->strides.hStride) + (*colRemapTableTemp * srcDescPtr->c);
+                    *dstPtrTempR++ = *(srcPtrChannel + remappedSrcLoc);
+                    *dstPtrTempG++ = *(srcPtrChannel + 1 + remappedSrcLoc);
+                    *dstPtrTempB++ = *(srcPtrChannel + 2 + remappedSrcLoc);
+                    rowRemapTableTemp++;
+                    colRemapTableTemp++;
+                }
+                dstPtrRowR += dstDescPtr->strides.hStride;
+                dstPtrRowG += dstDescPtr->strides.hStride;
+                dstPtrRowB += dstDescPtr->strides.hStride;
+            }
+        }
+
+        // Remap with fused output-layout toggle (NCHW -> NHWC)
+        else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NHWC))
+        {
+            Rpp8u *srcPtrRowR, *srcPtrRowG, *srcPtrRowB;
+            srcPtrRowR = srcPtrChannel;
+            srcPtrRowG = srcPtrRowR + srcDescPtr->strides.cStride;
+            srcPtrRowB = srcPtrRowG + srcDescPtr->strides.cStride;
+            Rpp8u *dstPtrRow;
+            dstPtrRow = dstPtrChannel;
+
+            for(int dstLocRow = 0; dstLocRow < roi.xywhROI.roiHeight; dstLocRow++)
+            {
+                Rpp8u *dstPtrTemp;
+                dstPtrTemp = dstPtrRow;
+                Rpp32u *rowRemapTableTemp, *colRemapTableTemp;
+                rowRemapTableTemp = rowRemapTableImage + (dstLocRow * roi.xywhROI.roiWidth);
+                colRemapTableTemp = colRemapTableImage + (dstLocRow * roi.xywhROI.roiWidth);
+
+                int vectorLoopCount = 0;
+                for (; vectorLoopCount < roi.xywhROI.roiWidth; vectorLoopCount++)
+                {
+                    Rpp32u remappedSrcLoc = (*rowRemapTableTemp * srcDescPtr->strides.hStride) + *colRemapTableTemp;
+
+                    *dstPtrTemp++ = *(srcPtrRowR + remappedSrcLoc);
+                    *dstPtrTemp++ = *(srcPtrRowG + remappedSrcLoc);
+                    *dstPtrTemp++ = *(srcPtrRowB + remappedSrcLoc);
+                    rowRemapTableTemp++;
+                    colRemapTableTemp++;
+                }
+                dstPtrRow += dstDescPtr->strides.hStride;
+            }
+        }
+
+        // Remap without fused output-layout toggle (NHWC -> NHWC)
+        else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
+        {
+            Rpp8u *dstPtrRow;
+            dstPtrRow = dstPtrChannel;
+
+            for(int dstLocRow = 0; dstLocRow < roi.xywhROI.roiHeight; dstLocRow++)
+            {
+                Rpp8u *dstPtrTemp;
+                dstPtrTemp = dstPtrRow;
+                Rpp32u *rowRemapTableTemp, *colRemapTableTemp;
+                rowRemapTableTemp = rowRemapTableImage + (dstLocRow * roi.xywhROI.roiWidth);
+                colRemapTableTemp = colRemapTableImage + (dstLocRow * roi.xywhROI.roiWidth);
+
+                int vectorLoopCount = 0;
+                for (; vectorLoopCount < roi.xywhROI.roiWidth; vectorLoopCount++)
+                {
+                    Rpp32u remappedSrcLoc = (*rowRemapTableTemp * srcDescPtr->strides.hStride) + (*colRemapTableTemp * srcDescPtr->c);
+                    *dstPtrTemp++ = *(srcPtrChannel + remappedSrcLoc);
+                    *dstPtrTemp++ = *(srcPtrChannel + 1 + remappedSrcLoc);
+                    *dstPtrTemp++ = *(srcPtrChannel + 2 + remappedSrcLoc);
+                    rowRemapTableTemp++;
+                    colRemapTableTemp++;
+                }
+                dstPtrRow += dstDescPtr->strides.hStride;
+            }
+        }
+
         // Remap without fused output-layout toggle (NCHW -> NCHW for 1 channel and 3 channel)
-        if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
+        else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
         {
             Rpp8u *dstPtrRow;
             dstPtrRow = dstPtrChannel;
@@ -54,7 +148,7 @@ omp_set_dynamic(0);
                     Rpp8u * srcPtrTempChannel = srcPtrChannel;
                     for (int c = 0; c < dstDescPtr->c; c++)
                     {
-                        *dstPtrTempChannel = *(srcPtrTempChannel + (*rowRemapTableTemp * dstDescPtr->strides.hStride) + *colRemapTableTemp);
+                        *dstPtrTempChannel = *(srcPtrTempChannel + (*rowRemapTableTemp * srcDescPtr->strides.hStride) + *colRemapTableTemp);
                         dstPtrTempChannel += dstDescPtr->strides.cStride;
                         srcPtrTempChannel += srcDescPtr->strides.cStride;
                     }
@@ -64,9 +158,9 @@ omp_set_dynamic(0);
                 }
                 dstPtrRow += dstDescPtr->strides.hStride;
             }
-            rowRemapTableImage += (roi.xywhROI.roiWidth * roi.xywhROI.roiHeight);
-            colRemapTableImage += (roi.xywhROI.roiWidth * roi.xywhROI.roiHeight);
         }
+        rowRemapTableImage += (roi.xywhROI.roiWidth * roi.xywhROI.roiHeight);
+        colRemapTableImage += (roi.xywhROI.roiWidth * roi.xywhROI.roiHeight);
     }
 
     return RPP_SUCCESS;
