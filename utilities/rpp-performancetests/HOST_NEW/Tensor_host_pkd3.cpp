@@ -474,11 +474,11 @@ int main(int argc, char **argv)
     double max_time_used = 0, min_time_used = 500, avg_time_used = 0;
 
     string test_case_name;
-    int numIterations = 100;
+    int numRuns = 100;
 
     printf("\nRunning %s 100 times (each time with a batch size of %d images) and computing mean statistics...", func, batchSize);
 
-    for (int perfRunCount = 0; perfRunCount < numIterations; perfRunCount++)
+    for (int perfRunCount = 0; perfRunCount < numRuns; perfRunCount++)
     {
         for(int t = 0; t < (int)imageNamesVec.size() / batchSize; t++)
         {
@@ -1664,7 +1664,7 @@ int main(int argc, char **argv)
     }
 
     int factor = (int)imageNamesVec.size() / batchSize;
-    avg_time_used /= (factor * numIterations);
+    avg_time_used /= (factor * numRuns);
 
     // Display measured times
 
