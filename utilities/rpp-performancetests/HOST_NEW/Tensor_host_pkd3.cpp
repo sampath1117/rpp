@@ -161,6 +161,9 @@ int main(int argc, char **argv)
     case 70:
         strcpy(funcName, "copy");
         break;
+    case 79:
+        strcpy(funcName, "remap");
+        break;
     case 80:
         strcpy(funcName, "resize_mirror_normalize");
         break;
@@ -1379,6 +1382,87 @@ int main(int argc, char **argv)
             else
                 missingFuncFlag = 1;
 
+            break;
+        }
+        case 79:
+        {
+            test_case_name = "remap";
+
+            // Uncomment to run test case with an xywhROI override
+            // for (i = 0; i < images; i++)
+            // {
+            //     roiTensorPtrSrc[i].xywhROI.xy.x = 0;
+            //     roiTensorPtrSrc[i].xywhROI.xy.y = 0;
+            //     dstImgSizes[i].width = roiTensorPtrSrc[i].xywhROI.roiWidth = 100;
+            //     dstImgSizes[i].height = roiTensorPtrSrc[i].xywhROI.roiHeight = 180;
+            // }
+
+            // Uncomment to run test case with an ltrbROI override
+            /*for (i = 0; i < images; i++)
+            {
+                roiTensorPtrSrc[i].ltrbROI.lt.x = 50;
+                roiTensorPtrSrc[i].ltrbROI.lt.y = 30;
+                roiTensorPtrSrc[i].ltrbROI.rb.x = 210;
+                roiTensorPtrSrc[i].ltrbROI.rb.y = 210;
+                dstImgSizes[i].width = roiTensorPtrSrc[i].ltrbROI.rb.x - roiTensorPtrSrc[i].ltrbROI.lt.x + 1;
+                dstImgSizes[i].height = roiTensorPtrSrc[i].ltrbROI.rb.y - roiTensorPtrSrc[i].ltrbROI.lt.y + 1;
+            }
+            roiTypeSrc = RpptRoiType::LTRB;
+            roiTypeDst = RpptRoiType::LTRB;*/
+            
+            Rpp32u *rowRemapTable = (Rpp32u*) calloc(ioBufferSize, sizeof(Rpp32u));
+            Rpp32u *colRemapTable = (Rpp32u*) calloc(ioBufferSize, sizeof(Rpp32u));
+
+            Rpp32u *rowRemapTableTemp, *colRemapTableTemp;
+            rowRemapTableTemp = rowRemapTable;
+            colRemapTableTemp = colRemapTable;
+
+            for (Rpp32u count = 0; count < images; count++)
+            {
+                Rpp32u halfWidth = roiTensorPtrSrc[count].xywhROI.roiWidth / 2;
+                for (Rpp32u i = 0; i < roiTensorPtrSrc[count].xywhROI.roiHeight; i++)
+                {
+                    Rpp32u j = 0;
+                    for (; j < halfWidth; j++)
+                    {
+                        *rowRemapTableTemp = i;
+                        *colRemapTableTemp = halfWidth - j;
+
+                        rowRemapTableTemp++;
+                        colRemapTableTemp++;
+                    }
+                    for (; j < roiTensorPtrSrc[count].xywhROI.roiWidth; j++)
+                    {
+                        *rowRemapTableTemp = i;
+                        *colRemapTableTemp = j;
+
+                        rowRemapTableTemp++;
+                        colRemapTableTemp++;
+                    }
+                }
+            }
+
+            start_omp = omp_get_wtime();
+            start = clock();
+            if (ip_bitDepth == 0)
+                rppt_remap_host(input, srcDescPtr, output, dstDescPtr, rowRemapTable, colRemapTable, roiTensorPtrSrc, roiTypeSrc, handle);
+            else if (ip_bitDepth == 1)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 2)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 3)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 4)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 5)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 6)
+                missingFuncFlag = 1;
+            else
+                missingFuncFlag = 1;
+            
+            free(rowRemapTable);
+            free(colRemapTable);
             break;
         }
         case 80:
