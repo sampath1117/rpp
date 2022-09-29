@@ -5559,4 +5559,12 @@ inline void compute_separable_horizontal_resample(Rpp32f *inputPtr, T *outputPtr
     }
 }
 
+inline void compute_remap_loc(Rpp32u *rowRemapTablePtr, Rpp32u *colRemapTablePtr, Rpp32s *locArray, __m128 &pStride, const __m128 &pChannel = xmm_p1)
+{
+    __m128 pRowRemapVal = _mm_cvtepi32_ps(_mm_loadu_si128((__m128i *)rowRemapTablePtr));
+    __m128 pColRemapVal = _mm_cvtepi32_ps(_mm_loadu_si128((__m128i *)colRemapTablePtr));
+    __m128i pxRemappedSrcLoc = _mm_cvtps_epi32(_mm_fmadd_ps(pRowRemapVal, pStride, _mm_mul_ps(pColRemapVal, pChannel)));
+    _mm_storeu_si128((__m128i*) locArray, pxRemappedSrcLoc);
+}
+
 #endif //RPP_CPU_COMMON_H

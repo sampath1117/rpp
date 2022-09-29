@@ -14,6 +14,9 @@ RppStatus remap_u8_u8_host_tensor(Rpp8u *srcPtr,
 {
     RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
 
+    __m128 pSrcChannel = _mm_set1_ps(srcDescPtr->c);
+    __m128 pSrcStride = _mm_set1_ps(srcDescPtr->strides.hStride);
+
 omp_set_dynamic(0);
 #pragma omp parallel for num_threads(dstDescPtr->n)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
@@ -27,10 +30,14 @@ omp_set_dynamic(0);
         dstPtrImage = dstPtr + batchCount * dstDescPtr->strides.nStride;
         srcPtrChannel = srcPtrImage + (roi.xywhROI.xy.y * srcDescPtr->strides.hStride) + (roi.xywhROI.xy.x * layoutParams.bufferMultiplier);
         dstPtrChannel = dstPtrImage;
-        
+
         Rpp32u *rowRemapTableImage, *colRemapTableImage;
-        rowRemapTableImage = rowRemapTable;
-        colRemapTableImage = colRemapTable;
+        rowRemapTableImage = rowRemapTable + (roi.xywhROI.roiWidth * roi.xywhROI.roiHeight * batchCount);
+        colRemapTableImage = colRemapTable + (roi.xywhROI.roiWidth * roi.xywhROI.roiHeight * batchCount);
+        Rpp32u alignedLength = roi.xywhROI.roiWidth & ~3;   // Align dst width to process 4 dst pixels per iteration
+        Rpp32s vectorIncrement = 4;
+        Rpp32s vectorIncrementPkd = 12;
+        Rpp32s remapSrcLocArray[4] = {0};     // Since 4 dst pixels are processed per iteration
 
         // Remap with fused output-layout toggle (NHWC -> NCHW)
         if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NCHW))
@@ -114,6 +121,16 @@ omp_set_dynamic(0);
                 colRemapTableTemp = colRemapTableImage + (dstLocRow * roi.xywhROI.roiWidth);
 
                 int vectorLoopCount = 0;
+                for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement)
+                {
+                    __m128i pRow;
+                    compute_remap_loc(rowRemapTableTemp, colRemapTableTemp, remapSrcLocArray, pSrcStride, pSrcChannel);
+                    rpp_simd_load(rpp_nn_load_u8pkd3, srcPtrChannel, remapSrcLocArray, pRow);
+                    rpp_simd_store(rpp_store4_u8_to_u8, dstPtrTemp, pRow);
+                    dstPtrTemp += vectorIncrementPkd;
+                    rowRemapTableTemp += vectorIncrement;
+                    colRemapTableTemp += vectorIncrement;
+                }
                 for (; vectorLoopCount < roi.xywhROI.roiWidth; vectorLoopCount++)
                 {
                     Rpp32u remappedSrcLoc = (*rowRemapTableTemp * srcDescPtr->strides.hStride) + (*colRemapTableTemp * srcDescPtr->c);
@@ -159,8 +176,6 @@ omp_set_dynamic(0);
                 dstPtrRow += dstDescPtr->strides.hStride;
             }
         }
-        rowRemapTableImage += (roi.xywhROI.roiWidth * roi.xywhROI.roiHeight);
-        colRemapTableImage += (roi.xywhROI.roiWidth * roi.xywhROI.roiHeight);
     }
 
     return RPP_SUCCESS;
