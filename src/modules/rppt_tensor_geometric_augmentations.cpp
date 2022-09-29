@@ -603,6 +603,30 @@ RppStatus rppt_remap_host(RppPtr_t srcPtr,
                                 roiType,
                                 srcLayoutParams);
     }
+    else if ((srcDescPtr->dataType == RpptDataType::F32) && (dstDescPtr->dataType == RpptDataType::F32))
+    {
+        remap_f32_f32_host_tensor((Rpp32f*) static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
+                                  srcDescPtr,
+                                  (Rpp32f*) static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
+                                  dstDescPtr,
+                                  rowRemapTable,
+                                  colRemapTable,
+                                  roiTensorPtrSrc,
+                                  roiType,
+                                  srcLayoutParams);
+    }
+    if ((srcDescPtr->dataType == RpptDataType::I8) && (dstDescPtr->dataType == RpptDataType::I8))
+    {
+        remap_i8_i8_host_tensor(static_cast<Rpp8s*>(srcPtr) + srcDescPtr->offsetInBytes,
+                                srcDescPtr,
+                                static_cast<Rpp8s*>(dstPtr) + dstDescPtr->offsetInBytes,
+                                dstDescPtr,
+                                rowRemapTable,
+                                colRemapTable,
+                                roiTensorPtrSrc,
+                                roiType,
+                                srcLayoutParams);
+    }
 
     return RPP_SUCCESS;
 }
