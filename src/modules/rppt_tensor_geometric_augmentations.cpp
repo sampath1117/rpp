@@ -1095,4 +1095,35 @@ return RPP_SUCCESS;
 #endif // backend
 }
 
+/******************** remap_mirror ********************/
+RppStatus rppt_remap_gpu(RppPtr_t srcPtr,
+                         RpptDescPtr srcDescPtr,
+                         RppPtr_t dstPtr,
+                         RpptDescPtr dstDescPtr,
+                         Rpp32u *rowRemapTable,
+                         Rpp32u *colRemapTable,
+                         RpptROIPtr roiTensorPtrSrc,
+                         RpptRoiType roiType,
+                         rppHandle_t rppHandle)
+{
+#ifdef HIP_COMPILE
+
+    if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
+    {
+        hip_exec_remap_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
+                              srcDescPtr,
+                              static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
+                              dstDescPtr,
+                              rowRemapTable,
+                              colRemapTable,
+                              roiTensorPtrSrc,
+                              roiType,
+                              rpp::deref(rppHandle));
+    }
+
+return RPP_SUCCESS;
+#elif defined(OCL_COMPILE)
+    return RPP_ERROR_NOT_IMPLEMENTED;
+#endif // backend
+}
 #endif // GPU_SUPPORT
