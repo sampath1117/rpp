@@ -1325,7 +1325,7 @@ int main(int argc, char **argv)
             if (ip_bitDepth == 0)
                 rppt_remap_host(input, srcDescPtr, output, dstDescPtr, rowRemapTable, colRemapTable, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
-                missingFuncFlag = 1;
+                rppt_remap_host(inputf16, srcDescPtr, outputf16, dstDescPtr, rowRemapTable, colRemapTable, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 2)
                 rppt_remap_host(inputf32, srcDescPtr, outputf32, dstDescPtr, rowRemapTable, colRemapTable, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 3)

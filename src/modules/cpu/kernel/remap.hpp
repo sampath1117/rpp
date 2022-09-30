@@ -658,3 +658,108 @@ omp_set_dynamic(0);
 
     return RPP_SUCCESS;
 }
+
+RppStatus remap_f16_f16_host_tensor(Rpp16f *srcPtr,
+                                    RpptDescPtr srcDescPtr,
+                                    Rpp16f *dstPtr,
+                                    RpptDescPtr dstDescPtr,
+                                    Rpp32u *rowRemapTable,
+                                    Rpp32u *colRemapTable,
+                                    RpptROIPtr roiTensorPtrSrc,
+                                    RpptRoiType roiType,
+                                    RppLayoutParams layoutParams)
+{
+    RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
+
+    __m128 pSrcChannel = _mm_set1_ps(srcDescPtr->c);
+    __m128 pSrcStride = _mm_set1_ps(srcDescPtr->strides.hStride);
+    
+omp_set_dynamic(0);
+#pragma omp parallel for num_threads(dstDescPtr->n)
+    for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
+    {
+        RpptROI roi;
+        RpptROIPtr roiPtrInput = &roiTensorPtrSrc[batchCount];
+        compute_roi_validation_host(roiPtrInput, &roi, &roiDefault, roiType);
+
+        Rpp16f *srcPtrChannel, *dstPtrChannel, *srcPtrImage, *dstPtrImage;
+        srcPtrImage = srcPtr + batchCount * srcDescPtr->strides.nStride;
+        dstPtrImage = dstPtr + batchCount * dstDescPtr->strides.nStride;
+        srcPtrChannel = srcPtrImage + (roi.xywhROI.xy.y * srcDescPtr->strides.hStride) + (roi.xywhROI.xy.x * layoutParams.bufferMultiplier);
+        dstPtrChannel = dstPtrImage;
+
+        Rpp32u *rowRemapTableImage, *colRemapTableImage;
+        rowRemapTableImage = rowRemapTable + (roi.xywhROI.roiWidth * roi.xywhROI.roiHeight * batchCount);
+        colRemapTableImage = colRemapTable + (roi.xywhROI.roiWidth * roi.xywhROI.roiHeight * batchCount);
+
+        // Remap with 3 channel inputs and outputs
+        if (srcDescPtr->c == 3 && dstDescPtr->c == 3)
+        {
+            Rpp16f *srcPtrRowR, *srcPtrRowG, *srcPtrRowB;
+            srcPtrRowR = srcPtrChannel;
+            srcPtrRowG = srcPtrRowR + srcDescPtr->strides.cStride;
+            srcPtrRowB = srcPtrRowG + srcDescPtr->strides.cStride;
+            Rpp16f *dstPtrRowR, *dstPtrRowG, *dstPtrRowB;
+            dstPtrRowR = dstPtrChannel;
+            dstPtrRowG = dstPtrRowR + dstDescPtr->strides.cStride;
+            dstPtrRowB = dstPtrRowG + dstDescPtr->strides.cStride;
+
+            for(int dstLocRow = 0; dstLocRow < roi.xywhROI.roiHeight; dstLocRow++)
+            {
+                Rpp16f *dstPtrTempR, *dstPtrTempG, *dstPtrTempB;
+                dstPtrTempR = dstPtrRowR;
+                dstPtrTempG = dstPtrRowG;
+                dstPtrTempB = dstPtrRowB;
+                Rpp32u *rowRemapTableTemp, *colRemapTableTemp;
+                rowRemapTableTemp = rowRemapTableImage + (dstLocRow * roi.xywhROI.roiWidth);
+                colRemapTableTemp = colRemapTableImage + (dstLocRow * roi.xywhROI.roiWidth);
+
+                int vectorLoopCount = 0;
+                for (; vectorLoopCount < roi.xywhROI.roiWidth; vectorLoopCount++)
+                {
+                    Rpp32u remappedSrcLoc = (*rowRemapTableTemp * srcDescPtr->strides.hStride) + (*colRemapTableTemp * layoutParams.bufferMultiplier);
+                    *dstPtrTempR = (Rpp16f)*(srcPtrRowR + remappedSrcLoc);
+                    *dstPtrTempG = (Rpp16f)*(srcPtrRowG + remappedSrcLoc);
+                    *dstPtrTempB = (Rpp16f)*(srcPtrRowB + remappedSrcLoc);
+                    dstPtrTempR = dstPtrTempR + dstDescPtr->strides.wStride;
+                    dstPtrTempG = dstPtrTempG + dstDescPtr->strides.wStride;
+                    dstPtrTempB = dstPtrTempB + dstDescPtr->strides.wStride;
+                    rowRemapTableTemp++;
+                    colRemapTableTemp++;
+                }
+                dstPtrRowR += dstDescPtr->strides.hStride;
+                dstPtrRowG += dstDescPtr->strides.hStride;
+                dstPtrRowB += dstDescPtr->strides.hStride;
+            }
+        }
+
+        // Remap with single channel inputs and outputs
+        else
+        {
+            Rpp16f *srcPtrRow, *dstPtrRow;
+            srcPtrRow = srcPtrChannel;
+            dstPtrRow = dstPtrChannel;
+
+            for(int dstLocRow = 0; dstLocRow < roi.xywhROI.roiHeight; dstLocRow++)
+            {
+                Rpp16f *dstPtrTemp;
+                dstPtrTemp = dstPtrRow;
+                Rpp32u *rowRemapTableTemp, *colRemapTableTemp;
+                rowRemapTableTemp = rowRemapTableImage + (dstLocRow * roi.xywhROI.roiWidth);
+                colRemapTableTemp = colRemapTableImage + (dstLocRow * roi.xywhROI.roiWidth);
+
+                int vectorLoopCount = 0;
+                for (; vectorLoopCount < roi.xywhROI.roiWidth; vectorLoopCount++)
+                {
+                    Rpp32u remappedSrcLoc = (*rowRemapTableTemp * srcDescPtr->strides.hStride) + *colRemapTableTemp;
+                    *dstPtrTemp++ = (Rpp16f)*(srcPtrRow + remappedSrcLoc);
+                    rowRemapTableTemp++;
+                    colRemapTableTemp++;
+                }
+                dstPtrRow += dstDescPtr->strides.hStride;
+            }
+        }
+    }
+
+    return RPP_SUCCESS;
+}
