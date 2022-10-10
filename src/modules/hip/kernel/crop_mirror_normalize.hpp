@@ -60,8 +60,34 @@ __global__ void crop_mirror_normalize_pkd_tensor(T *srcPtr,
 
     if(mirrorTensor[id_z] == 1)
     {
-        srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + (roiTensorPtrSrc[id_z].xywhROI.xy.x + roiTensorPtrSrc[id_z].xywhROI.roiWidth - id_x - 8) * 3;
+        int colLoc = roiTensorPtrSrc[id_z].xywhROI.xy.x + roiTensorPtrSrc[id_z].xywhROI.roiWidth - 8 - id_x;
+        int negIdx = 8;
+        d_float24 pix_f24_rem;
+        if(colLoc < 0)
+        {
+            negIdx = 8 + colLoc;
+            colLoc = 0;
+        }
+
+        srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + (colLoc) * 3;
         rpp_hip_load24_pkd3_and_unpack_to_float24_pln3_mirror(srcPtr + srcIdx, &pix_f24);
+
+        if(negIdx != 8)
+        {
+            pix_f24_rem.f8[0].f4[0] = pix_f24.f8[0].f4[0];
+            pix_f24_rem.f8[0].f4[1] = pix_f24.f8[0].f4[1];
+            pix_f24_rem.f8[1].f4[0] = pix_f24.f8[1].f4[0];
+            pix_f24_rem.f8[1].f4[1] = pix_f24.f8[1].f4[1];
+            pix_f24_rem.f8[2].f4[0] = pix_f24.f8[2].f4[0];
+            pix_f24_rem.f8[2].f4[1] = pix_f24.f8[2].f4[1];
+
+            for(int i = negIdx, cnt = 0; i < 8; i++,cnt++)
+            {
+                pix_f24.f8[0].f1[cnt] = pix_f24_rem.f8[0].f1[i];
+                pix_f24.f8[1].f1[cnt] = pix_f24_rem.f8[1].f1[i];
+                pix_f24.f8[2].f1[cnt] = pix_f24_rem.f8[2].f1[i];
+            }
+        }
     }
     else
     {
