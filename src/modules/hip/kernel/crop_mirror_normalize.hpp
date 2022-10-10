@@ -55,39 +55,22 @@ __global__ void crop_mirror_normalize_pkd_tensor(T *srcPtr,
         return;
     }
 
+    uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + id_x * 3;
     uint srcIdx;
     d_float24 pix_f24;
-
     if(mirrorTensor[id_z] == 1)
     {
-        int colLoc = roiTensorPtrSrc[id_z].xywhROI.xy.x + roiTensorPtrSrc[id_z].xywhROI.roiWidth - 8 - id_x;
-        int negIdx = 8;
-        d_float24 pix_f24_rem;
-        if(colLoc < 0)
+        // To handle the case when trying to load from invalid memory location when width is not a multiple of 8
+        if((id_z == 0) && (id_y == 0) && (id_x + 8) > roiTensorPtrSrc[id_z].xywhROI.roiWidth)
         {
-            negIdx = 8 + colLoc;
-            colLoc = 0;
+            srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + roiTensorPtrSrc[id_z].xywhROI.xy.x * 3;
+            dstIdx -= (roiTensorPtrSrc[id_z].xywhROI.roiWidth - id_x) * 3;
         }
-
-        srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + (colLoc) * 3;
+        else
+        {
+            srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + (roiTensorPtrSrc[id_z].xywhROI.xy.x + roiTensorPtrSrc[id_z].xywhROI.roiWidth - id_x - 8) * 3;
+        }
         rpp_hip_load24_pkd3_and_unpack_to_float24_pln3_mirror(srcPtr + srcIdx, &pix_f24);
-
-        if(negIdx != 8)
-        {
-            pix_f24_rem.f8[0].f4[0] = pix_f24.f8[0].f4[0];
-            pix_f24_rem.f8[0].f4[1] = pix_f24.f8[0].f4[1];
-            pix_f24_rem.f8[1].f4[0] = pix_f24.f8[1].f4[0];
-            pix_f24_rem.f8[1].f4[1] = pix_f24.f8[1].f4[1];
-            pix_f24_rem.f8[2].f4[0] = pix_f24.f8[2].f4[0];
-            pix_f24_rem.f8[2].f4[1] = pix_f24.f8[2].f4[1];
-
-            for(int i = negIdx, cnt = 0; i < 8; i++,cnt++)
-            {
-                pix_f24.f8[0].f1[cnt] = pix_f24_rem.f8[0].f1[i];
-                pix_f24.f8[1].f1[cnt] = pix_f24_rem.f8[1].f1[i];
-                pix_f24.f8[2].f1[cnt] = pix_f24_rem.f8[2].f1[i];
-            }
-        }
     }
     else
     {
@@ -95,7 +78,6 @@ __global__ void crop_mirror_normalize_pkd_tensor(T *srcPtr,
         rpp_hip_load24_pkd3_and_unpack_to_float24_pln3(srcPtr + srcIdx, &pix_f24);
     }
 
-    uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + id_x * 3;
     int incrementPerImage = id_z * 3;
     d_float8 cmnParamsR_f8, cmnParamsG_f8, cmnParamsB_f8;
     cmnParamsR_f8.f4[0] = (float4)meanTensor[incrementPerImage];              // Get mean for R channel
@@ -140,7 +122,17 @@ __global__ void crop_mirror_normalize_pln_tensor(T *srcPtr,
 
     if(mirrorTensor[id_z] == 1)
     {
-        srcIdx = (id_z * srcStridesNCH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (roiTensorPtrSrc[id_z].xywhROI.xy.x + roiTensorPtrSrc[id_z].xywhROI.roiWidth - id_x - 8);
+        // To handle the case when trying to load from invalid memory location when width is not a multiple of 8
+        if((id_z == 0) && (id_y == 0) && (id_x + 8) > roiTensorPtrSrc[id_z].xywhROI.roiWidth)
+        {
+            srcIdx = (id_z * srcStridesNCH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + roiTensorPtrSrc[id_z].xywhROI.xy.x;
+            dstIdx -= (roiTensorPtrSrc[id_z].xywhROI.roiWidth - id_x);
+        }
+        else
+        {
+            srcIdx = (id_z * srcStridesNCH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (roiTensorPtrSrc[id_z].xywhROI.xy.x + roiTensorPtrSrc[id_z].xywhROI.roiWidth - id_x - 8);
+        }
+
         rpp_hip_load8_and_unpack_to_float8_mirror(srcPtr + srcIdx, &pix_f8);
         cmn_hip_compute(srcPtr, dstPtr, &pix_f8, &cmnParams_f8);
         rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &pix_f8);
@@ -219,11 +211,21 @@ __global__ void crop_mirror_normalize_pkd3_pln3_tensor(T *srcPtr,
         return;
     }
 
+    uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + id_x;
     uint srcIdx;
     d_float24 pix_f24;
     if(mirrorTensor[id_z] == 1)
     {
-        srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + (roiTensorPtrSrc[id_z].xywhROI.xy.x + roiTensorPtrSrc[id_z].xywhROI.roiWidth - id_x - 8) * 3;
+        // To handle the case when trying to load from invalid memory location when width is not a multiple of 8
+        if((id_z == 0) && (id_y == 0) && (id_x + 8) > roiTensorPtrSrc[id_z].xywhROI.roiWidth)
+        {
+            srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + roiTensorPtrSrc[id_z].xywhROI.xy.x * 3;
+            dstIdx -= (roiTensorPtrSrc[id_z].xywhROI.roiWidth - id_x);
+        }
+        else
+        {
+            srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + (roiTensorPtrSrc[id_z].xywhROI.xy.x + roiTensorPtrSrc[id_z].xywhROI.roiWidth - id_x - 8) * 3;
+        }
         rpp_hip_load24_pkd3_and_unpack_to_float24_pln3_mirror(srcPtr + srcIdx, &pix_f24);
     }
     else
@@ -232,7 +234,6 @@ __global__ void crop_mirror_normalize_pkd3_pln3_tensor(T *srcPtr,
         rpp_hip_load24_pkd3_and_unpack_to_float24_pln3(srcPtr + srcIdx, &pix_f24);
     }
 
-    uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + id_x;
     int incrementPerImage = id_z * 3;
     d_float8 cmnParamsR_f8, cmnParamsG_f8, cmnParamsB_f8;
     cmnParamsR_f8.f4[0] = (float4)meanTensor[incrementPerImage];              // Get mean for R channel
@@ -267,11 +268,21 @@ __global__ void crop_mirror_normalize_pln3_pkd3_tensor(T *srcPtr,
         return;
     }
 
+    uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + id_x * 3;
     uint srcIdx;
     d_float24 pix_f24;
     if(mirrorTensor[id_z] == 1)
     {
-        srcIdx = (id_z * srcStridesNCH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (roiTensorPtrSrc[id_z].xywhROI.xy.x + roiTensorPtrSrc[id_z].xywhROI.roiWidth - id_x - 8);
+        // To handle the case when trying to load from invalid memory location when width is not a multiple of 8
+        if((id_z == 0) && (id_y == 0) && (id_x + 8) > roiTensorPtrSrc[id_z].xywhROI.roiWidth)
+        {
+            srcIdx = (id_z * srcStridesNCH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + roiTensorPtrSrc[id_z].xywhROI.xy.x;
+            dstIdx -= (roiTensorPtrSrc[id_z].xywhROI.roiWidth - id_x) * 3;
+        }
+        else
+        {
+            srcIdx = (id_z * srcStridesNCH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (roiTensorPtrSrc[id_z].xywhROI.xy.x + roiTensorPtrSrc[id_z].xywhROI.roiWidth - id_x - 8);
+        }
         rpp_hip_load24_pln3_and_unpack_to_float24_pln3_mirror(srcPtr + srcIdx, srcStridesNCH.y, &pix_f24);
     }
     else
@@ -280,7 +291,6 @@ __global__ void crop_mirror_normalize_pln3_pkd3_tensor(T *srcPtr,
         rpp_hip_load24_pln3_and_unpack_to_float24_pln3(srcPtr + srcIdx, srcStridesNCH.y, &pix_f24);
     }
 
-    uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + id_x * 3;
     int incrementPerImage = id_z * 3;
     d_float8 cmnParamsR_f8, cmnParamsG_f8, cmnParamsB_f8;
     cmnParamsR_f8.f4[0] = (float4)meanTensor[incrementPerImage];              // Get mean for R channel
