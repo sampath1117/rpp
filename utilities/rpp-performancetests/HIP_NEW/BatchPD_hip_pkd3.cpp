@@ -535,6 +535,14 @@ int main(int argc, char **argv)
     const int images = batchSize;
     char imageNames[images][1000];
 
+    // set max width and max height based on the dataset on which tests are being run
+    // Done to reduce time needed for iterating over entire dataset and find max dimensions
+    // For COCO dataset
+        // maxWidth = maxDstWidth = 640
+        // maxHeight = maxDstHeight = 640
+    // For Imagenet dataset
+        // maxWidth = maxDstWidth = 5980
+        // maxHeight = maxDstHeight = 6430
     maxWidth = 640;
     maxHeight = 640;
     maxDstWidth = 640;
@@ -647,7 +655,9 @@ int main(int argc, char **argv)
     rppCreateWithStreamAndBatchSize(&handle, stream, batchSize);
 
     clock_t start, end;
+    double start_omp = 0, end_omp = 0;
     double max_time_used = 0, min_time_used = 500, avg_time_used = 0;
+    double omp_time_used = 0;
 
     string test_case_name;
     int numRuns = 100;
@@ -707,6 +717,7 @@ int main(int argc, char **argv)
                     beta[i] = 50;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -738,6 +749,7 @@ int main(int argc, char **argv)
                     gamma[i] = 1.9;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -769,6 +781,7 @@ int main(int argc, char **argv)
                     alpha[i] = 0.4;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -800,6 +813,7 @@ int main(int argc, char **argv)
                     kernelSize[i] = 5;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -833,6 +847,7 @@ int main(int argc, char **argv)
                     newMax[i] = 100;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -858,6 +873,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "pixelate";
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -889,6 +905,7 @@ int main(int argc, char **argv)
                     kernelSize[i] = 5;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -920,6 +937,7 @@ int main(int argc, char **argv)
                     snowPercentage[i] = 0.15;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -951,6 +969,7 @@ int main(int argc, char **argv)
                     noiseProbability[i] = 0.2;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -994,6 +1013,7 @@ int main(int argc, char **argv)
                     maxSizeY[i] = 15;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1025,6 +1045,7 @@ int main(int argc, char **argv)
                     fogValue[i] = 0.2;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1062,6 +1083,7 @@ int main(int argc, char **argv)
                     transparency[i] = 0.3;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1111,6 +1133,7 @@ int main(int argc, char **argv)
                 maxDstSize.height = maxDstHeight;
                 maxDstSize.width = maxDstWidth;
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1142,6 +1165,7 @@ int main(int argc, char **argv)
                     exposureFactor[i] = 1.4;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1182,6 +1206,7 @@ int main(int argc, char **argv)
                     max[i] = 100;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1207,6 +1232,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "min";
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1232,6 +1258,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "max";
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1277,6 +1304,7 @@ int main(int argc, char **argv)
                     flipAxis[i] = 1;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1318,6 +1346,7 @@ int main(int argc, char **argv)
                 maxDstSize.height = maxDstHeight;
                 maxDstSize.width = maxDstWidth;
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1367,6 +1396,7 @@ int main(int argc, char **argv)
                 maxDstSize.height = maxDstHeight;
                 maxDstSize.width = maxDstWidth;
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1398,6 +1428,7 @@ int main(int argc, char **argv)
                     angle[i] = 50;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1434,6 +1465,7 @@ int main(int argc, char **argv)
                     affine_array[i + 5] = 0.0;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1459,6 +1491,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "fisheye";
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1492,6 +1525,7 @@ int main(int argc, char **argv)
                     zoom[i] = 1;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1523,6 +1557,7 @@ int main(int argc, char **argv)
                     percentage[i] = 75;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1563,6 +1598,7 @@ int main(int argc, char **argv)
                     perspective[8 + i * 9] = 1;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1605,6 +1641,7 @@ int main(int argc, char **argv)
                     phase_y[i] = 15;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1636,6 +1673,7 @@ int main(int argc, char **argv)
                     std_dev[i] = 50.0;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1673,6 +1711,7 @@ int main(int argc, char **argv)
                     alpha[i] = 0.5;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1791,6 +1830,7 @@ int main(int argc, char **argv)
                 hipMemcpy(d_colorsf32, colorsf32, images * boxesInEachImage * 3 * sizeof(Rpp32f), hipMemcpyHostToDevice);
                 hipMemcpy(d_colorsi8, colorsi8, images * boxesInEachImage * 3 * sizeof(Rpp8s), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1844,6 +1884,7 @@ int main(int argc, char **argv)
                     y22[i] = (Rpp32u) (((Rpp32f) srcSize[i].height) * 0.75);
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1887,6 +1928,7 @@ int main(int argc, char **argv)
                 hipMemcpy(d_lut8u, lut8u, images * 256 * sizeof(Rpp8u), hipMemcpyHostToDevice);
                 hipMemcpy(d_lut8s, lut8s, images * 256 * sizeof(Rpp8s), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1933,6 +1975,7 @@ int main(int argc, char **argv)
 
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1970,6 +2013,7 @@ int main(int argc, char **argv)
                     saturationFactor[i] = 1.9;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2013,6 +2057,7 @@ int main(int argc, char **argv)
                     crop_pos_y[i] = 50;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2062,6 +2107,7 @@ int main(int argc, char **argv)
                     mirrorFlag[i] = 1;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2113,6 +2159,7 @@ int main(int argc, char **argv)
                 maxDstSize.height = maxDstHeight;
                 maxDstSize.width = maxDstWidth;
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2144,6 +2191,7 @@ int main(int argc, char **argv)
                     kernelSize[i] = 5;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2175,6 +2223,7 @@ int main(int argc, char **argv)
                     kernelSize[i] = 5;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2206,6 +2255,7 @@ int main(int argc, char **argv)
                     hueShift[i] = 60;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2237,6 +2287,7 @@ int main(int argc, char **argv)
                     saturationFactor[i] = 5;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2267,6 +2318,7 @@ int main(int argc, char **argv)
                 RppiColorConvertMode convert_mode_1 = RppiColorConvertMode::RGB_HSV;
                 RppiColorConvertMode convert_mode_2 = RppiColorConvertMode::HSV_RGB;
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2306,6 +2358,7 @@ int main(int argc, char **argv)
                     adjustmentValue[i] = 70;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2337,6 +2390,7 @@ int main(int argc, char **argv)
                     stdDev[i] = 75.0;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2388,6 +2442,7 @@ int main(int argc, char **argv)
                     }
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2419,6 +2474,7 @@ int main(int argc, char **argv)
                     kernelSize[i] = 3;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2450,6 +2506,7 @@ int main(int argc, char **argv)
                     sobelType[i] = 1;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2481,6 +2538,7 @@ int main(int argc, char **argv)
                     kernelSize[i] = 5;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2519,6 +2577,7 @@ int main(int argc, char **argv)
                     kernelSize[i] = 5;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2552,6 +2611,7 @@ int main(int argc, char **argv)
                     stdDev[i] = 5.0;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2583,6 +2643,7 @@ int main(int argc, char **argv)
                     kernelSize[i] = 5;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2608,6 +2669,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "absolute_difference";
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2639,6 +2701,7 @@ int main(int argc, char **argv)
                     alpha[i] = 0.5;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2666,6 +2729,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "accumulate";
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2693,6 +2757,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "add";
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2718,6 +2783,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "subtract";
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2743,6 +2809,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "magnitude";
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2768,6 +2835,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "multiply";
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2793,6 +2861,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "phase";
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2818,6 +2887,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "accumulate_squared";
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2845,6 +2915,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "bitwise_AND";
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2870,6 +2941,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "bitwise_NOT";
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2895,6 +2967,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "exclusive_OR";
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2920,6 +2993,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "inclusive_OR";
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2945,6 +3019,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "local_binary_pattern";
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -2970,6 +3045,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "data_object_copy";
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -3003,6 +3079,7 @@ int main(int argc, char **argv)
                     stdDev[i] = 5.0;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -3036,6 +3113,7 @@ int main(int argc, char **argv)
                     stdDev[i] = 5.0;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -3069,6 +3147,7 @@ int main(int argc, char **argv)
                     maxThreshold[i] = 30;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -3110,6 +3189,7 @@ int main(int argc, char **argv)
                     nonmaxKernelSize[i] = 3;
                 }
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -3173,6 +3253,7 @@ int main(int argc, char **argv)
 
             hipDeviceSynchronize();
             end = clock();
+            end_omp = omp_get_wtime();
 
             if (missingFuncFlag == 1)
             {
@@ -3181,11 +3262,18 @@ int main(int argc, char **argv)
             }
 
             gpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-            if (gpu_time_used > max_time_used)
-                max_time_used = gpu_time_used;
-            if (gpu_time_used < min_time_used)
-                min_time_used = gpu_time_used;
-            avg_time_used += gpu_time_used;
+            omp_time_used = end_omp - start_omp;
+            // if (gpu_time_used > max_time_used)
+            //     max_time_used = gpu_time_used;
+            // if (gpu_time_used < min_time_used)
+            //     min_time_used = gpu_time_used;
+            // avg_time_used += gpu_time_used;
+
+            if (omp_time_used > max_time_used)
+                max_time_used = omp_time_used;
+            if (omp_time_used < min_time_used)
+                min_time_used = omp_time_used;
+            avg_time_used += omp_time_used;
         }
     }
 

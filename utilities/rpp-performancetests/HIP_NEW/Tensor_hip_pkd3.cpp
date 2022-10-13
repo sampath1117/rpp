@@ -390,6 +390,14 @@ int main(int argc, char **argv)
     hipMalloc(&d_srcImgSizes, batchSize * sizeof(RpptImagePatch));
     hipMalloc(&d_dstImgSizes, batchSize * sizeof(RpptImagePatch));
 
+    /// set max width and max height based on the dataset on which tests are being run
+    // Done to reduce time needed for iterating over entire dataset and find max dimensions
+    // For COCO dataset
+        // maxWidth = maxDstWidth = 640
+        // maxHeight = maxDstHeight = 640
+    // For Imagenet dataset
+        // maxWidth = maxDstWidth = 5980
+        // maxHeight = maxDstHeight = 6430
     maxWidth = 640;
     maxHeight = 640;
     maxDstWidth = 640;
@@ -568,7 +576,9 @@ int main(int argc, char **argv)
     rppCreateWithStreamAndBatchSize(&handle, stream, batchSize);
 
     clock_t start, end;
+    double start_omp = 0, end_omp = 0;
     double max_time_used = 0, min_time_used = 500, avg_time_used = 0;
+    double omp_time_used = 0;
 
     string test_case_name;
 
@@ -660,6 +670,7 @@ int main(int argc, char **argv)
                 roiTypeDst = RpptRoiType::LTRB;*/
 
                 hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -712,6 +723,7 @@ int main(int argc, char **argv)
 
                 hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -764,6 +776,7 @@ int main(int argc, char **argv)
 
                 hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -819,6 +832,7 @@ int main(int argc, char **argv)
 
                 hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -882,6 +896,7 @@ int main(int argc, char **argv)
 
                         hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
+                        start_omp = omp_get_wtime();
                         start = clock();
 
                         if (ip_bitDepth == 0)
@@ -935,6 +950,7 @@ int main(int argc, char **argv)
 
                         hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
+                        start_omp = omp_get_wtime();
                         start = clock();
 
                         if (ip_bitDepth == 0)
@@ -986,6 +1002,7 @@ int main(int argc, char **argv)
 
                         hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
+                        start_omp = omp_get_wtime();
                         start = clock();
 
                         if (ip_bitDepth == 0)
@@ -1047,6 +1064,7 @@ int main(int argc, char **argv)
 
                 hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1101,6 +1119,7 @@ int main(int argc, char **argv)
 
                 hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1165,6 +1184,7 @@ int main(int argc, char **argv)
 
                 hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1221,6 +1241,7 @@ int main(int argc, char **argv)
 
                 hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1279,6 +1300,7 @@ int main(int argc, char **argv)
 
                 hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1325,6 +1347,7 @@ int main(int argc, char **argv)
 
                 hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1380,6 +1403,7 @@ int main(int argc, char **argv)
 
                 hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1443,6 +1467,7 @@ int main(int argc, char **argv)
                 hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
                 hipMemcpy(d_dstImgSizes, dstImgSizes, images * sizeof(RpptImagePatch), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
                 if (ip_bitDepth == 0)
                     rppt_resize_crop_mirror_gpu(d_input, srcDescPtr, d_output, dstDescPtr, d_dstImgSizes, interpolationType, mirror, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -1490,6 +1515,7 @@ int main(int argc, char **argv)
 
                 hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1538,6 +1564,7 @@ int main(int argc, char **argv)
 
                 hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1586,6 +1613,7 @@ int main(int argc, char **argv)
 
                 hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1611,6 +1639,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "copy";
 
+                start_omp = omp_get_wtime();
                 start = clock();
                 if (ip_bitDepth == 0)
                     rppt_copy_gpu(d_input, srcDescPtr, d_output, dstDescPtr, handle);
@@ -1688,6 +1717,7 @@ int main(int argc, char **argv)
                 hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
                 hipMemcpy(d_dstImgSizes, dstImgSizes, images * sizeof(RpptImagePatch), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
                 if (ip_bitDepth == 0)
                     rppt_resize_mirror_normalize_gpu(d_input, srcDescPtr, d_output, dstDescPtr, d_dstImgSizes, interpolationType, mean, stdDev, mirror, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -1741,6 +1771,7 @@ int main(int argc, char **argv)
 
                 hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1805,6 +1836,7 @@ int main(int argc, char **argv)
 
                 hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
+                start_omp = omp_get_wtime();
                 start = clock();
 
                 if (ip_bitDepth == 0)
@@ -1830,6 +1862,7 @@ int main(int argc, char **argv)
             {
                 test_case_name = "swap_channels";
 
+                start_omp = omp_get_wtime();
                 start = clock();
                 if (ip_bitDepth == 0)
                     rppt_swap_channels_gpu(d_input, srcDescPtr, d_output, dstDescPtr, handle);
@@ -1856,6 +1889,7 @@ int main(int argc, char **argv)
 
                 RpptSubpixelLayout srcSubpixelLayout = RpptSubpixelLayout::RGBtype;
 
+                start_omp = omp_get_wtime();
                 start = clock();
                 if (ip_bitDepth == 0)
                     rppt_color_to_greyscale_gpu(d_input, srcDescPtr, d_output, dstDescPtr, srcSubpixelLayout, handle);
@@ -1883,6 +1917,7 @@ int main(int argc, char **argv)
 
             hipDeviceSynchronize();
             end = clock();
+            end_omp = omp_get_wtime();
 
             if (missingFuncFlag == 1)
             {
@@ -1893,11 +1928,18 @@ int main(int argc, char **argv)
             // Display measured times
 
             gpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-            if (gpu_time_used > max_time_used)
-                max_time_used = gpu_time_used;
-            if (gpu_time_used < min_time_used)
-                min_time_used = gpu_time_used;
-            avg_time_used += gpu_time_used;
+            omp_time_used = end_omp - start_omp;
+            // if (gpu_time_used > max_time_used)
+            //     max_time_used = gpu_time_used;
+            // if (gpu_time_used < min_time_used)
+            //     min_time_used = gpu_time_used;
+            // avg_time_used += gpu_time_used;
+
+            if (omp_time_used > max_time_used)
+                max_time_used = omp_time_used;
+            if (omp_time_used < min_time_used)
+                min_time_used = omp_time_used;
+            avg_time_used += omp_time_used;
         }
     }
 
