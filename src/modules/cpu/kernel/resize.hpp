@@ -690,7 +690,7 @@ omp_set_dynamic(0);
         Rpp32u alignedLength = dstImgSize[batchCount].width & ~3;
         Rpp32s srcLocationColumnArray[4] = {0};
         Rpp32s srcLocationRow, srcLocationColumn;
-        
+
         // Resize with 3 channel inputs and outputs
         if (srcDescPtr->c == 3 && dstDescPtr->c == 3)
         {
@@ -769,12 +769,13 @@ RppStatus resize_bilinear_u8_u8_host_tensor(Rpp8u *srcPtr,
                                             RpptImagePatchPtr dstImgSize,
                                             RpptROIPtr roiTensorPtrSrc,
                                             RpptRoiType roiType,
-                                            RppLayoutParams srcLayoutParams)
+                                            RppLayoutParams srcLayoutParams,
+                                            size_t internal_batch_size)
 {
     RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
 
 omp_set_dynamic(0);
-#pragma omp parallel for num_threads(dstDescPtr->n)
+#pragma omp parallel for num_threads(internal_batch_size)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         RpptROI roi;
@@ -1008,12 +1009,13 @@ RppStatus resize_bilinear_f32_f32_host_tensor(Rpp32f *srcPtr,
                                               RpptImagePatchPtr dstImgSize,
                                               RpptROIPtr roiTensorPtrSrc,
                                               RpptRoiType roiType,
-                                              RppLayoutParams srcLayoutParams)
+                                              RppLayoutParams srcLayoutParams,
+                                              size_t internal_batch_size)
 {
     RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
 
 omp_set_dynamic(0);
-#pragma omp parallel for num_threads(dstDescPtr->n)
+#pragma omp parallel for num_threads(internal_batch_size)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         RpptROI roi;
@@ -1249,12 +1251,13 @@ RppStatus resize_bilinear_f16_f16_host_tensor(Rpp16f *srcPtr,
                                               RpptImagePatchPtr dstImgSize,
                                               RpptROIPtr roiTensorPtrSrc,
                                               RpptRoiType roiType,
-                                              RppLayoutParams srcLayoutParams)
+                                              RppLayoutParams srcLayoutParams,
+                                              size_t internal_batch_size)
 {
     RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
 
 omp_set_dynamic(0);
-#pragma omp parallel for num_threads(dstDescPtr->n)
+#pragma omp parallel for num_threads(internal_batch_size)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         RpptROI roi;
@@ -1491,12 +1494,13 @@ RppStatus resize_bilinear_i8_i8_host_tensor(Rpp8s *srcPtr,
                                             RpptImagePatchPtr dstImgSize,
                                             RpptROIPtr roiTensorPtrSrc,
                                             RpptRoiType roiType,
-                                            RppLayoutParams srcLayoutParams)
+                                            RppLayoutParams srcLayoutParams,
+                                            size_t internal_batch_size)
 {
     RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
 
 omp_set_dynamic(0);
-#pragma omp parallel for num_threads(dstDescPtr->n)
+#pragma omp parallel for num_threads(internal_batch_size)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         RpptROI roi;
@@ -1735,12 +1739,13 @@ RppStatus resize_separable_host_tensor(T *srcPtr,
                                        RpptROIPtr roiTensorPtrSrc,
                                        RpptRoiType roiType,
                                        RppLayoutParams srcLayoutParams,
-                                       RpptInterpolationType interpolationType)
+                                       RpptInterpolationType interpolationType,
+                                       size_t internal_batch_size)
 {
     RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
 
 omp_set_dynamic(0);
-#pragma omp parallel for num_threads(dstDescPtr->n)
+#pragma omp parallel for num_threads(internal_batch_size)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         RpptROI roi;
