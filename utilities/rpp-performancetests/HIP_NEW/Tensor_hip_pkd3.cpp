@@ -13,6 +13,7 @@
 #include <omp.h>
 #include <hip/hip_fp16.h>
 #include <fstream>
+#include "turbojpeg_decoder.hpp"
 
 using namespace cv;
 using namespace std;
@@ -470,6 +471,7 @@ int main(int argc, char **argv)
     // Initialize 8u host buffers for src/dst
 
     Rpp8u *input = (Rpp8u *)calloc(ioBufferSizeInBytes_u8, 1);
+    Rpp8u *input_compressed = (Rpp8u *)calloc(ioBufferSize, sizeof(Rpp8u));
     Rpp8u *input_second = (Rpp8u *)calloc(ioBufferSizeInBytes_u8, 1);
     Rpp8u *output = (Rpp8u *)calloc(oBufferSizeInBytes_u8, 1);
 
@@ -572,50 +574,67 @@ int main(int argc, char **argv)
 
     string test_case_name;
 
-    int numRuns = 100;
+    int numRuns = 3;
     printf("\nRunning %s %d times (each time with a batch size of %d images) and computing mean statistics...", func, numRuns, batchSize);
     std::cout<<"iterations: "<<(int)imageNamesVec.size() / batchSize<<std::endl;
 
     for (int perfRunCount = 0; perfRunCount < 100; perfRunCount++)
     {
+        initialize();
         for(int t = 0; t < (int)imageNamesVec.size() / batchSize; t++)
         {
             // std::cout<<"Iteration: "<<t<<std::endl;
             //Read the input images
-            Rpp8u *offsetted_input;
+            Rpp8u *offsetted_input,  *offsetted_input_c;
             offsetted_input = input + srcDescPtr->offsetInBytes;
+            offsetted_input_c = input_compressed + srcDescPtr->offsetInBytes;
 
             for(int i = 0; i < batchSize ; i++)
             {
-                Rpp8u *input_temp;
+                Rpp8u *input_temp, *input_temp_c;
                 input_temp = offsetted_input + (i * srcDescPtr->strides.nStride);
+                input_temp_c = offsetted_input_c + (i * srcDescPtr->strides.nStride);
                 int idx = t * batchSize + i;
 
-                image = imread(imageNamesVec[idx].c_str(), 1);
+                // image = imread(imageNamesVec[idx].c_str(), 1);
+                // std::cerr<<"\n Image name:: "<<imageNamesVec[idx].c_str();
+                size_t file_size = read_data(imageNamesVec[idx].c_str(), input_temp_c);
+                if(file_size == 0)
+                {
+                    std::cerr<<"\n file read failed for image"<<imageNamesVec[idx].c_str()<<"\t process id::"<<idx;
+                    continue;
+                    // exit(0);
+                }
+                int original_width, original_height, jpeg_sub_samp;
+                decode_info(input_temp_c, file_size, &original_width, &original_height, &jpeg_sub_samp);
+
+                size_t scaledw, scaledh;
+                decode(input_temp_c, file_size, input_temp, maxWidth, maxHeight, original_width, original_height, scaledw, scaledh);
+
                 roiTensorPtrSrc[i].xywhROI.xy.x = 0;
                 roiTensorPtrSrc[i].xywhROI.xy.y = 0;
-                roiTensorPtrSrc[i].xywhROI.roiWidth = image.cols;
-                roiTensorPtrSrc[i].xywhROI.roiHeight = image.rows;
+                roiTensorPtrSrc[i].xywhROI.roiWidth = scaledw;
+                roiTensorPtrSrc[i].xywhROI.roiHeight = scaledh;
 
                 roiTensorPtrDst[i].xywhROI.xy.x = 0;
                 roiTensorPtrDst[i].xywhROI.xy.y = 0;
-                roiTensorPtrDst[i].xywhROI.roiWidth = image.cols;
-                roiTensorPtrDst[i].xywhROI.roiHeight = image.rows;
+                roiTensorPtrDst[i].xywhROI.roiWidth = scaledw;
+                roiTensorPtrDst[i].xywhROI.roiHeight = scaledh;
 
                 srcImgSizes[i].width = roiTensorPtrSrc[count].xywhROI.roiWidth;
                 srcImgSizes[i].height = roiTensorPtrSrc[count].xywhROI.roiHeight;
                 dstImgSizes[i].width = roiTensorPtrDst[count].xywhROI.roiWidth;
                 dstImgSizes[i].height = roiTensorPtrDst[count].xywhROI.roiHeight;
 
-                Rpp8u *ip_image = image.data;
-                Rpp32u elementsInRow = roiTensorPtrSrc[i].xywhROI.roiWidth * ip_channel;
+                // Rpp8u *ip_image = image.data;
+                // Rpp32u elementsInRow = roiTensorPtrSrc[i].xywhROI.roiWidth * ip_channel;
 
-                for (int k = 0; k < roiTensorPtrSrc[i].xywhROI.roiHeight; k++)
-                {
-                    memcpy(input_temp, ip_image, elementsInRow * sizeof (Rpp8u));
-                    ip_image += elementsInRow;
-                    input_temp += srcDescPtr->strides.hStride;
-                }
+                // for (int k = 0; k < roiTensorPtrSrc[i].xywhROI.roiHeight; k++)
+                // {
+                //     memcpy(input_temp, ip_image, elementsInRow * sizeof (Rpp8u));
+                //     ip_image += elementsInRow;
+                //     input_temp += srcDescPtr->strides.hStride;
+                // }
             }
 
             if (ip_bitDepth == 0)
@@ -1899,6 +1918,7 @@ int main(int argc, char **argv)
                 min_time_used = gpu_time_used;
             avg_time_used += gpu_time_used;
         }
+        release();
     }
 
     int factor = (int)imageNamesVec.size() / batchSize;
@@ -1920,6 +1940,8 @@ int main(int argc, char **argv)
     free(input);
     free(input_second);
     free(output);
+    free(input_compressed);
+
 
     if (ip_bitDepth == 0)
     {

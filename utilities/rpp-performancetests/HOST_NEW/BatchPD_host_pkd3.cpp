@@ -14,6 +14,7 @@
 #include <half/half.hpp>
 #include <fstream>
 
+#include "turbojpeg_decoder.hpp"
 using namespace cv;
 using namespace std;
 using half_float::half;
@@ -512,6 +513,7 @@ int main(int argc, char **argv)
     oBufferSize = (unsigned long long)maxDstHeight * (unsigned long long)maxDstWidth * (unsigned long long)ip_channel * (unsigned long long)batchSize;
 
     Rpp8u *input = (Rpp8u *)calloc(ioBufferSize, sizeof(Rpp8u));
+    Rpp8u *input_compressed = (Rpp8u *)calloc(ioBufferSize, sizeof(Rpp8u));
     Rpp8u *input_second = (Rpp8u *)calloc(ioBufferSize, sizeof(Rpp8u));
     Rpp8u *output = (Rpp8u *)calloc(oBufferSize, sizeof(Rpp8u));
 
@@ -546,47 +548,64 @@ int main(int argc, char **argv)
     double max_time_used = 0, min_time_used = 500, avg_time_used = 0;
 
     string test_case_name;
-    int numRuns = 100;
+    int numRuns = 3;
 
     printf("\nRunning %s 100 times (each time with a batch size of %d images) and computing mean statistics...", func, batchSize);
 
     for (int perfRunCount = 0; perfRunCount < numRuns; perfRunCount++)
     {
+        initialize();
         for(int t = 0; t < (int)imageNamesVec.size() / batchSize; t++)
         {
             // std::cout<<"Iteration: "<<t<<std::endl;
             //Read the input images
-            Rpp8u *offsetted_input;
+            Rpp8u *offsetted_input, *offsetted_input_c;
             offsetted_input = input;
+            offsetted_input_c = input_compressed;
 
             Rpp8u *offsetted_input_second;
             offsetted_input_second = input_second;
 
             for(int i = 0; i < batchSize ; i++)
             {
-                Rpp8u *input_temp, *input_temp_second;
+                Rpp8u *input_temp, *input_temp_second, *input_temp_c;
                 input_temp = offsetted_input + (i * imageDimMax);
+                input_temp_c = offsetted_input_c + (i * imageDimMax);
                 input_temp_second = offsetted_input_second + (i * imageDimMax);
                 int idx = t * batchSize + i;
 
-                image = imread(imageNamesVec[idx].c_str(), 1);
-                srcSize[i].width = image.cols;
-                srcSize[i].height = image.rows;
-                dstSize[i].width = image.cols;
-                dstSize[i].height = image.rows;
-
-                Rpp8u *ip_image = image.data;
-                Rpp32u elementsInRow = srcSize[i].width * ip_channel;
-
-                for (int k = 0; k < srcSize[i].height; k++)
+                // image = imread(imageNamesVec[idx].c_str(), 1);
+                // std::cerr<<"\n Image name:: "<<imageNamesVec[idx].c_str();
+                size_t file_size = read_data(imageNamesVec[idx].c_str(), input_temp_c);
+                if(file_size == 0)
                 {
-                    memcpy(input_temp, ip_image, elementsInRow * sizeof (Rpp8u));
-                    memcpy(input_temp_second, ip_image, elementsInRow * sizeof (Rpp8u));
-
-                    ip_image += elementsInRow;
-                    input_temp += elementsInRowMax;
-                    input_temp_second += elementsInRowMax;
+                    std::cerr<<"\n file read failed for image"<<imageNamesVec[idx].c_str()<<"\t process id::"<<idx;
+                    continue;
+                    // exit(0);
                 }
+                int original_width, original_height, jpeg_sub_samp;
+                decode_info(input_temp_c, file_size, &original_width, &original_height, &jpeg_sub_samp);
+
+                size_t scaledw, scaledh;
+                decode(input_temp_c, file_size, input_temp, maxWidth, maxHeight, original_width, original_height, scaledw, scaledh);
+
+                srcSize[i].width = scaledw;
+                srcSize[i].height = scaledh;
+                dstSize[i].width = scaledw;
+                dstSize[i].height = scaledh;
+
+                // Rpp8u *ip_image = image.data;
+                // Rpp32u elementsInRow = srcSize[i].width * ip_channel;
+
+                // for (int k = 0; k < srcSize[i].height; k++)
+                // {
+                //     memcpy(input_temp, ip_image, elementsInRow * sizeof (Rpp8u));
+                //     memcpy(input_temp_second, ip_image, elementsInRow * sizeof (Rpp8u));
+
+                //     ip_image += elementsInRow;
+                //     input_temp += elementsInRowMax;
+                //     input_temp_second += elementsInRowMax;
+                // }
             }
             double cpu_time_used, omp_time_used;
             switch (test_case)
@@ -3392,6 +3411,7 @@ int main(int argc, char **argv)
                 min_time_used = omp_time_used;
             avg_time_used += omp_time_used;
         }
+        release();
     }
 
     int factor = (int)imageNamesVec.size() / batchSize;
@@ -3407,6 +3427,7 @@ int main(int argc, char **argv)
     free(output);
     free(inputf16);
     free(inputf16_second);
+    free(input_compressed);
     free(outputf16);
     free(inputf32);
     free(inputf32_second);
