@@ -9,12 +9,13 @@ RppStatus gamma_correction_u8_u8_host_tensor(Rpp8u *srcPtr,
                                              Rpp32f *gammaTensor,
                                              RpptROIPtr roiTensorPtrSrc,
                                              RpptRoiType roiType,
-                                             RppLayoutParams layoutParams)
+                                             RppLayoutParams layoutParams,
+                                             size_t internal_batch_size)
 {
     RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
 
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(dstDescPtr->n)
+#pragma omp parallel for num_threads(internal_batch_size)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         RpptROI roi;
@@ -157,12 +158,13 @@ RppStatus gamma_correction_f32_f32_host_tensor(Rpp32f *srcPtr,
                                                Rpp32f *gammaTensor,
                                                RpptROIPtr roiTensorPtrSrc,
                                                RpptRoiType roiType,
-                                               RppLayoutParams layoutParams)
+                                               RppLayoutParams layoutParams,
+                                               size_t internal_batch_size)
 {
     RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
 
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(dstDescPtr->n)
+#pragma omp parallel for num_threads(internal_batch_size)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         RpptROI roi;
@@ -305,12 +307,13 @@ RppStatus gamma_correction_f16_f16_host_tensor(Rpp16f *srcPtr,
                                                Rpp32f *gammaTensor,
                                                RpptROIPtr roiTensorPtrSrc,
                                                RpptRoiType roiType,
-                                               RppLayoutParams layoutParams)
+                                               RppLayoutParams layoutParams,
+                                               size_t internal_batch_size)
 {
     RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
 
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(dstDescPtr->n)
+#pragma omp parallel for num_threads(internal_batch_size)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         RpptROI roi;
@@ -453,12 +456,13 @@ RppStatus gamma_correction_i8_i8_host_tensor(Rpp8s *srcPtr,
                                              Rpp32f *gammaTensor,
                                              RpptROIPtr roiTensorPtrSrc,
                                              RpptRoiType roiType,
-                                             RppLayoutParams layoutParams)
+                                             RppLayoutParams layoutParams,
+                                             size_t internal_batch_size)
 {
     RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
 
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(dstDescPtr->n)
+#pragma omp parallel for num_threads(internal_batch_size)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         RpptROI roi;
