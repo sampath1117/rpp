@@ -1641,11 +1641,11 @@ int main(int argc, char **argv)
         }
         
         Rpp32u *d_rowRemapTable, *d_colRemapTable;
-        hipMalloc(&d_rowRemapTable, ioBufferSizeInBytes_u8 * sizeof(Rpp32u));
-        hipMalloc(&d_colRemapTable, ioBufferSizeInBytes_u8 * sizeof(Rpp32u));
+        hipMalloc(&d_rowRemapTable, ioBufferSize * sizeof(Rpp32u));
+        hipMalloc(&d_colRemapTable, ioBufferSize * sizeof(Rpp32u));
 
-        hipMemcpy(d_rowRemapTable, rowRemapTable, ioBufferSizeInBytes_u8, hipMemcpyHostToDevice);
-        hipMemcpy(d_colRemapTable, colRemapTable, ioBufferSizeInBytes_u8, hipMemcpyHostToDevice);
+        hipMemcpy(d_rowRemapTable, (void *)rowRemapTable, ioBufferSize * sizeof(Rpp32u), hipMemcpyHostToDevice);
+        hipMemcpy(d_colRemapTable, (void *)colRemapTable, ioBufferSize * sizeof(Rpp32u), hipMemcpyHostToDevice);
         
         hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 

@@ -90,4 +90,6 @@ RppStatus hip_exec_remap_tensor(T *srcPtr,
                            colRemapTable,
                            roiTensorPtrSrc);
     }
+    
+    return RPP_SUCCESS;
 }
