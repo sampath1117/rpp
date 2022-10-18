@@ -33,22 +33,19 @@ __global__ void remap_pln_tensor(T *srcPtr,
     uint colRemapVal =  *(colRemapTable + (id_z * srcRoi_i4.z * srcRoi_i4.w) + (id_y * srcRoi_i4.z) + id_x);
     uint srcRemapLoc =  (rowRemapVal * dstStridesNCH.z) + colRemapVal;
     
-    dstPtr[dstIdx] = srcPtr[srcRemapLoc];
+    srcIdx += srcRemapLoc;
+    dstPtr[dstIdx] = srcPtr[srcIdx];
 
-    // if (channelsDst == 3)
-    // {
-    //     srcIdx += srcStridesNCH.y;
-    //     dstIdx += dstStridesNCH.y;
+    if (channelsDst == 3)
+    {
+        srcIdx += srcStridesNCH.y;
+        dstIdx += dstStridesNCH.y;
+        dstPtr[dstIdx] = srcPtr[srcIdx];
 
-    //     rpp_hip_interpolate8_nearest_neighbor_pln1(srcPtr + srcIdx, srcStridesNCH.z, &locSrc_f16, &srcRoi_i4, &dst_f8);
-    //     rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &dst_f8);
-
-    //     srcIdx += srcStridesNCH.y;
-    //     dstIdx += dstStridesNCH.y;
-
-    //     rpp_hip_interpolate8_nearest_neighbor_pln1(srcPtr + srcIdx, srcStridesNCH.z, &locSrc_f16, &srcRoi_i4, &dst_f8);
-    //     rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &dst_f8);
-    // }
+        srcIdx += srcStridesNCH.y;
+        dstIdx += dstStridesNCH.y;        
+        dstPtr[dstIdx] = srcPtr[srcIdx];
+    }
 }
 // -------------------- Set 3 - Kernel Executors --------------------
 
