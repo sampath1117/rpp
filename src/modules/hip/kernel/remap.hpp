@@ -5,6 +5,40 @@
 // -------------------- Set 2 - Nearest Neighbor Interpolation --------------------
 
 template <typename T>
+__global__ void remap_pkd_tensor(T *srcPtr,
+                                uint2 srcStridesNH,
+                                T *dstPtr,
+                                uint2 dstStridesNH,
+                                uint2 dstDimsWH,
+                                uint *rowRemapTable,
+                                uint *colRemapTable,
+                                RpptROIPtr roiTensorPtrSrc)
+{
+    int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+    int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+    int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
+
+    if ((id_y >= dstDimsWH.y) || (id_x >= dstDimsWH.x))
+    {
+        return;
+    }
+
+    uint srcIdx = (id_z * srcStridesNH.x);
+    uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + (id_x * 3);
+    
+    int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
+
+    uint rowRemapVal =  *(rowRemapTable + (id_z * srcRoi_i4.z * srcRoi_i4.w) + (id_y * srcRoi_i4.z) + id_x);
+    uint colRemapVal =  *(colRemapTable + (id_z * srcRoi_i4.z * srcRoi_i4.w) + (id_y * srcRoi_i4.z) + id_x);
+    uint srcRemapLoc =  (rowRemapVal * srcStridesNH.y) + colRemapVal * 3;
+    
+    srcIdx += srcRemapLoc;
+    dstPtr[dstIdx] = srcPtr[srcIdx];
+    dstPtr[dstIdx + 1] = srcPtr[srcIdx + 1];
+    dstPtr[dstIdx + 2] = srcPtr[srcIdx + 2];
+}
+
+template <typename T>
 __global__ void remap_pln_tensor(T *srcPtr,
                                 uint3 srcStridesNCH,
                                 T *dstPtr,
@@ -47,6 +81,7 @@ __global__ void remap_pln_tensor(T *srcPtr,
         dstPtr[dstIdx] = srcPtr[srcIdx];
     }
 }
+
 // -------------------- Set 3 - Kernel Executors --------------------
 
 template <typename T>
@@ -69,8 +104,24 @@ RppStatus hip_exec_remap_tensor(T *srcPtr,
     int globalThreads_x = dstDescPtr->strides.hStride;
     int globalThreads_y = dstDescPtr->h;
     int globalThreads_z = handle.GetBatchSize();
-    
-    if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
+
+    if ((srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
+    {
+        hipLaunchKernelGGL(remap_pkd_tensor,
+                           dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
+                           dim3(localThreads_x, localThreads_y, localThreads_z),
+                           0,
+                           handle.GetStream(),
+                           srcPtr,
+                           make_uint2(srcDescPtr->strides.nStride, srcDescPtr->strides.hStride),
+                           dstPtr,
+                           make_uint2(dstDescPtr->strides.nStride, dstDescPtr->strides.hStride),
+                           make_uint2(dstDescPtr->w, dstDescPtr->h),
+                           rowRemapTable,
+                           colRemapTable,
+                           roiTensorPtrSrc);
+    }    
+    else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
     {
         hipLaunchKernelGGL(remap_pln_tensor,
                            dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
