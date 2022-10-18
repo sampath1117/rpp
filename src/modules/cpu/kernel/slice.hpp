@@ -43,7 +43,7 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
 		Rpp32f *dstPtrTemp = dstPtr + batchCount * dstDescPtr->strides.nStride;
 
         // Slice for 1D input
-        if (srcDescPtr->strides.wStride == 1) {
+        if (srcDimsTensor[2 * batchCount + 1] == 1) {
             Rpp32s srcBufferLength = srcDimsTensor[batchCount];
             Rpp32f anchorRaw = anchorTensor[batchCount];
             Rpp32f shapeRaw = shapeTensor[batchCount];
@@ -116,7 +116,7 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
                     }
                 }
             }
-        } else if (srcDescPtr->strides.wStride > 1) {
+        } else if (srcDimsTensor[2 * batchCount + 1] > 1) {
             Rpp32s sampleBatchCount = batchCount * 2;
             Rpp32f anchorRaw[2], shapeRaw[2];
             Rpp32s anchor[2], shape[2];
@@ -157,7 +157,7 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
             Rpp32s vectorIncrement = 8;
             __m256 pFillValue = _mm256_set1_ps(fillValue);
             Rpp32s alignedCol = (shape[1] / vectorIncrement) * vectorIncrement;
-            Rpp32s alignedColMax = (dstDescPtr->strides.wStride / vectorIncrement) * vectorIncrement;
+            Rpp32s alignedColMax = (dstDescPtr->strides.hStride / vectorIncrement) * vectorIncrement;
 
             srcPtrTemp = srcPtrTemp + anchor[0] * srcDescPtr->strides.wStride;
             int row = 0;
@@ -179,7 +179,7 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
                         *dstPtrRow++ = fillValue;
                 }
 
-                dstPtrTemp += dstDescPtr->strides.wStride;
+                dstPtrTemp += dstDescPtr->strides.hStride;
             }
 
             // Fill the rows which are beyond the input height with fill value specified
@@ -191,10 +191,10 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
                         _mm256_storeu_ps(dstPtrRow, pFillValue);
                         dstPtrRow += vectorIncrement;
                     }
-                    for (; vectorLoopCount < dstDescPtr->strides.wStride; vectorLoopCount++)
+                    for (; vectorLoopCount < dstDescPtr->strides.hStride; vectorLoopCount++)
                         *dstPtrRow++ = fillValue;
 
-                    dstPtrTemp += dstDescPtr->strides.wStride;
+                    dstPtrTemp += dstDescPtr->strides.hStride;
                 }
             }
         }
