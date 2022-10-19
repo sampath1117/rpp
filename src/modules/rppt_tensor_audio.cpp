@@ -25,6 +25,11 @@ THE SOFTWARE.
 #include "rppt_tensor_audio.h"
 #include "cpu/host_tensor_audio.hpp"
 
+#ifdef HIP_COMPILE
+#include <hip/hip_fp16.h>
+#include "hip/hip_tensor_audio.hpp"
+#endif // HIP_COMPILE
+
 
 RppStatus rppt_non_silent_region_detection_host(RppPtr_t srcPtr,
                                                 RpptDescPtr srcDescPtr,
@@ -248,3 +253,73 @@ RppStatus rppt_normalize_audio_host(RppPtr_t srcPtr,
                                 numOfDims);
     return RPP_SUCCESS;
 }
+
+/********************************************************************************************************************/
+/*********************************************** RPP_GPU_SUPPORT = ON ***********************************************/
+/********************************************************************************************************************/
+
+#ifdef GPU_SUPPORT
+
+/******************** to_decibels ********************/
+
+RppStatus rppt_to_decibels_gpu(RppPtr_t srcPtr,
+                               RpptDescPtr srcDescPtr,
+                               RppPtr_t dstPtr,
+                               RpptDescPtr dstDescPtr,
+                               Rpp32s *srcLengthTensor,
+                               Rpp32f cutOffDB,
+                               Rpp32f multiplier,
+                               Rpp32f referenceMagnitude,
+                               rppHandle_t rppHandle)
+{
+#ifdef HIP_COMPILE
+    if (srcDescPtr->dataType == RpptDataType::F32)
+    {
+        hip_exec_to_decibels_tensor((Rpp32f*) static_cast<Rpp8u*>(srcPtr),
+                                    srcDescPtr,
+                                    (Rpp32f*) static_cast<Rpp8u*>(dstPtr),
+                                    dstDescPtr,
+                                    srcLengthTensor,
+                                    cutOffDB,
+                                    multiplier,
+                                    referenceMagnitude,
+                                    rpp::deref(rppHandle));
+    }
+
+    return RPP_SUCCESS;
+#elif defined(OCL_COMPILE)
+    return RPP_ERROR_NOT_IMPLEMENTED;
+#endif // backend
+}
+
+RppStatus rppt_pre_emphasis_filter_gpu(RppPtr_t srcPtr,
+                                       RpptDescPtr srcDescPtr,
+                                       RppPtr_t dstPtr,
+                                       RpptDescPtr dstDescPtr,
+                                       Rpp32s *srcSizeTensor,
+                                       Rpp32f *coeffTensor,
+                                       RpptAudioBorderType borderType,
+                                       rppHandle_t rppHandle)
+{
+#ifdef HIP_COMPILE
+    Rpp32u paramIndex = 0;
+    copy_param_int(srcSizeTensor, rpp::deref(rppHandle), paramIndex++);
+    copy_param_float(coeffTensor, rpp::deref(rppHandle), paramIndex++);
+
+    if (srcDescPtr->dataType == RpptDataType::F32)
+    {
+        hip_exec_pre_emphasis_filter_tensor((Rpp32f*)srcPtr,
+                                            srcDescPtr,
+                                            (Rpp32f*)dstPtr,
+                                            dstDescPtr,
+                                            borderType,
+                                            rpp::deref(rppHandle));
+    }
+
+    return RPP_SUCCESS;
+#elif defined(OCL_COMPILE)
+    return RPP_ERROR_NOT_IMPLEMENTED;
+#endif // backend
+}
+
+#endif // GPU_SUPPORT
