@@ -249,7 +249,6 @@ int main(int argc, char **argv)
     // Other initializations
     int missingFuncFlag = 0;
     int i = 0, j = 0;
-    int maxChannels = 0;
     int maxSrcWidth = 0, maxSrcHeight = 0;
     int maxDstWidth = 0, maxDstHeight = 0;
     unsigned long long count = 0;
@@ -322,17 +321,16 @@ int main(int argc, char **argv)
         srcDims[count].width = sfinfo.channels;
         dstDims[count].width = sfinfo.channels;
 
-        maxSrcHeight = std::max(maxSrcHeight, srcLengthTensor[count]);
-        maxDstHeight = std::max(maxDstHeight, srcLengthTensor[count]);
-        maxChannels = std::max(maxChannels, channelsTensor[count]);
+        maxSrcHeight = std::max(maxSrcHeight, (int)srcDims[count].height);
+        maxDstHeight = std::max(maxDstHeight, (int)srcDims[count].height);
+        maxSrcWidth = std::max(maxSrcWidth, (int)srcDims[count].width);
+        maxDstWidth = std::max(maxDstWidth, (int)srcDims[count].width);
 
         // Close input
         sf_close (infile);
         count++;
     }
     closedir(dr);
-    maxSrcWidth = maxChannels;
-    maxDstWidth = maxChannels;
 
     // Set numDims, offset, n/c/h/w values for src/dst
     srcDescPtr->numDims = 4;
@@ -546,15 +544,16 @@ int main(int argc, char **argv)
             Rpp32f fillValues[noOfAudioFiles];
             Rpp32s axes = 0;
             RpptOutOfBoundsPolicy policyType = RpptOutOfBoundsPolicy::PAD;
-            Rpp32s numDims = (srcDescPtr->c == 1) ? 1 : 2;
-            Rpp32s srcDimsTensor[noOfAudioFiles * numDims];
+            Rpp32s numDims = 1;
+            Rpp32s srcDimsTensor[noOfAudioFiles * 2];
             Rpp32f anchor[noOfAudioFiles * numDims];
             Rpp32f shape[noOfAudioFiles * numDims];
 
             // 1D slice arguments
             for (i = 0; i < noOfAudioFiles; i++)
             {
-                srcDimsTensor[i] = srcLengthTensor[i];
+                srcDimsTensor[2 * i] = srcLengthTensor[i];
+                srcDimsTensor[2 * i + 1] = 1;
                 shape[i] =  dstDims[i].width = 200;
                 dstDims[i].height = 1;
                 anchor[i] = 100;
@@ -726,7 +725,7 @@ int main(int argc, char **argv)
             }
             Rpp32f quality = 50.0f;
             dstDescPtr->h = maxDstHeight;
-            dstDescPtr->w = maxChannels;
+            dstDescPtr->w = maxDstWidth;
             // Optionally set w stride as a multiple of 8 for dst
             dstDescPtr->w = ((dstDescPtr->w / 8) * 8) + 8;
 
@@ -814,11 +813,10 @@ int main(int argc, char **argv)
                 dstDims[i].height = maxSrcHeight;
                 dstDims[i].width = maxSrcWidth;
             }
-
             srcDescPtr->h = maxSrcHeight;
             srcDescPtr->w = maxSrcWidth;
             dstDescPtr->h = maxDstHeight;
-            dstDescPtr->w = maxSrcWidth;
+            dstDescPtr->w = maxDstWidth;
 
             srcDescPtr->c = 1;
             dstDescPtr->c = 1;

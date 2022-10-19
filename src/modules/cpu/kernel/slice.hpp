@@ -41,10 +41,11 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
 	{
 		Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
 		Rpp32f *dstPtrTemp = dstPtr + batchCount * dstDescPtr->strides.nStride;
+        Rpp32s sampleBatchCount = batchCount * 2;
 
         // Slice for 1D input
-        if (srcDimsTensor[2 * batchCount + 1] == 1) {
-            Rpp32s srcBufferLength = srcDimsTensor[batchCount];
+        if (srcDimsTensor[sampleBatchCount + 1] == 1) {
+            Rpp32s srcBufferLength = srcDimsTensor[sampleBatchCount];
             Rpp32f anchorRaw = anchorTensor[batchCount];
             Rpp32f shapeRaw = shapeTensor[batchCount];
             Rpp32f fillValue = fillValues[batchCount];
@@ -116,8 +117,7 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
                     }
                 }
             }
-        } else if (srcDimsTensor[2 * batchCount + 1] > 1) {
-            Rpp32s sampleBatchCount = batchCount * 2;
+        } else if (srcDimsTensor[sampleBatchCount + 1] > 1) {
             Rpp32f anchorRaw[2], shapeRaw[2];
             Rpp32s anchor[2], shape[2];
             anchorRaw[0] = anchorTensor[sampleBatchCount];
@@ -159,11 +159,11 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
             Rpp32s alignedCol = (shape[1] / vectorIncrement) * vectorIncrement;
             Rpp32s alignedColMax = (dstDescPtr->strides.hStride / vectorIncrement) * vectorIncrement;
 
-            srcPtrTemp = srcPtrTemp + anchor[0] * srcDescPtr->strides.wStride;
+            srcPtrTemp = srcPtrTemp + anchor[0] * srcDescPtr->strides.hStride;
             int row = 0;
             for (; row < rowBound; row++) {
                 int col = 0;
-                Rpp32f *srcPtrRow = srcPtrTemp + row * srcDescPtr->strides.wStride + anchor[1];
+                Rpp32f *srcPtrRow = srcPtrTemp + row * srcDescPtr->strides.hStride + anchor[1];
                 Rpp32f *dstPtrRow = dstPtrTemp;
                 memcpy(dstPtrRow, &srcPtrRow[col], colBound * sizeof(Rpp32f));
                 col += colBound;
