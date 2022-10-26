@@ -222,6 +222,7 @@ RppStatus rppt_resample_host(RppPtr_t srcPtr,
 
     return RPP_SUCCESS;
 }
+
 RppStatus rppt_normalize_audio_host(RppPtr_t srcPtr,
                                     RpptDescPtr srcDescPtr,
                                     RppPtr_t dstPtr,
@@ -316,6 +317,82 @@ RppStatus rppt_pre_emphasis_filter_gpu(RppPtr_t srcPtr,
                                             rpp::deref(rppHandle));
     }
 
+    return RPP_SUCCESS;
+#elif defined(OCL_COMPILE)
+    return RPP_ERROR_NOT_IMPLEMENTED;
+#endif // backend
+}
+
+RppStatus rppt_normalize_audio_gpu(RppPtr_t srcPtr,
+                                   RpptDescPtr srcDescPtr,
+                                   RppPtr_t dstPtr,
+                                   RpptDescPtr dstDescPtr,
+                                   Rpp32s *srcDimsTensor,
+                                   Rpp32s axisMask,
+                                   Rpp32f mean,
+                                   Rpp32f stdDev,
+                                   Rpp32f scale,
+                                   Rpp32f shift,
+                                   Rpp32f epsilon,
+                                   Rpp32s ddof,
+                                   Rpp32s numOfDims,
+                                   rppHandle_t rppHandle)
+{
+#ifdef HIP_COMPILE
+    Rpp32u paramIndex = 0;
+
+    Rpp32s *srcReductionDims = (Rpp32s *)malloc(srcDescPtr->n * 2);
+    Rpp32s *srcStride = (Rpp32s *)malloc(srcDescPtr->n * 2);
+    Rpp32s *paramStride = (Rpp32s *)malloc(srcDescPtr->n * 2);
+
+    for(int i = 0; i < srcDescPtr->n; i++)
+    {
+        Rpp32s ind = 2 * i;
+        if (axisMask == 3)
+        {
+            srcStride[ind] = srcStride[ind] = srcDescPtr->strides.cStride;
+            srcReductionDims[ind] = 1;
+            srcReductionDims[ind + 1] = srcDimsTensor[ind] * srcDimsTensor[ind + 1];
+            paramStride[ind] = paramStride[ind + 1] = 0;
+        }
+        else if (axisMask == 1)
+        {
+            srcStride[ind] = srcDescPtr->strides.wStride;
+            srcStride[ind + 1] = srcDescPtr->strides.cStride;
+            srcReductionDims[ind] = srcDimsTensor[ind + 1];
+            srcReductionDims[ind + 1] = srcDimsTensor[ind];
+            paramStride[ind] = 1;
+            paramStride[ind + 1] = 0;
+        }
+        else if (axisMask == 2)
+        {
+            srcStride[ind] = srcDescPtr->strides.cStride;
+            srcStride[ind + 1] = srcDescPtr->strides.wStride;
+            srcReductionDims[ind] = srcDimsTensor[ind];
+            srcReductionDims[ind + 1] = srcDimsTensor[ind + 1];
+            paramStride[ind] = 0;
+            paramStride[ind + 1] = 1;
+        }
+    }
+
+    copy_param_int(srcDimsTensor, rpp::deref(rppHandle), paramIndex++);
+    copy_param_int(srcStride, rpp::deref(rppHandle), paramIndex++);
+    copy_param_int(srcReductionDims, rpp::deref(rppHandle), paramIndex++);
+    copy_param_int(paramStride, rpp::deref(rppHandle), paramIndex++);
+
+    if (srcDescPtr->dataType == RpptDataType::F32)
+    {
+        hip_exec_normalize_audio_tensor((Rpp32f*)(srcPtr),
+                                        srcDescPtr,
+                                        (Rpp32f*)(dstPtr),
+                                        dstDescPtr,
+                                        axisMask,
+                                        scale,
+                                        shift,
+                                        epsilon,
+                                        ddof,
+                                        rpp::deref(rppHandle));
+    }
     return RPP_SUCCESS;
 #elif defined(OCL_COMPILE)
     return RPP_ERROR_NOT_IMPLEMENTED;

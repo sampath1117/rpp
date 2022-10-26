@@ -243,6 +243,8 @@ struct HandleImpl
 
         hipMalloc(&(this->initHandle->mem.mgpu.rgbArr.rgbmem), sizeof(RpptRGB) * this->nBatchSize);
         hipMalloc(&(this->initHandle->mem.mgpu.maskArr.floatmem), sizeof(Rpp32f) * 8294400);    // 3840 x 2160
+        hipMalloc(&(this->initHandle->mem.mgpu.meanArr.floatmem), sizeof(Rpp32f) * 240 * this->nBatchSize); // TODO - 240 to be changed to the maximum width/height possible in entire dataset
+        hipMalloc(&(this->initHandle->mem.mgpu.stdDevArr.floatmem), sizeof(Rpp32f) * 240 * this->nBatchSize); // TODO - 240 to be changed to the maximum width/height possible in entire dataset
     }
 };
 
@@ -353,6 +355,8 @@ void Handle::rpp_destroy_object_gpu()
 
     hipFree(this->GetInitHandle()->mem.mgpu.rgbArr.rgbmem);
     hipFree(this->GetInitHandle()->mem.mgpu.maskArr.floatmem);
+    hipFree(this->GetInitHandle()->mem.mgpu.meanArr.floatmem);
+    hipFree(this->GetInitHandle()->mem.mgpu.stdDevArr.floatmem);
 }
 
 void Handle::rpp_destroy_object_host()

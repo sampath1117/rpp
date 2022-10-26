@@ -473,6 +473,8 @@ typedef struct {
     Rpp32u *inc;
     Rpp32u *dstInc;
     Rpp32f *tempFloatmem;
+    Rpp32f *meanArr;
+    Rpp32f *stdDevArr;
 } memCPU;
 
 #ifdef OCL_COMPILE
@@ -628,6 +630,8 @@ typedef struct
     hipMemRpp8s charArr[10];
     hipMemRpptRGB rgbArr;
     hipMemRpp32f maskArr;
+    hipMemRpp32f meanArr;
+    hipMemRpp32f stdDevArr;
     Rpp64u* srcBatchIndex;
     Rpp64u* dstBatchIndex;
     Rpp32u* inc;
