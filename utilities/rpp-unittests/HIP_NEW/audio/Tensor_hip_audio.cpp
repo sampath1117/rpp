@@ -64,7 +64,6 @@ void verify_output(Rpp32f *dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dst
                 ref_file>>ref_val;
                 out_val = dstPtrTemp[j];
                 bool invalid_comparision = ((out_val == 0.0f) && (ref_val != 0.0f));
-                std::cerr<<ref_val<<", "<<out_val<<std::endl;
                 if(!invalid_comparision && abs(out_val - ref_val) < 1e-2)
                     matched_indices += 1;
             }
@@ -333,8 +332,8 @@ int main(int argc, char **argv)
         dstDescPtr->c = maxChannels;
 
     // Optionally set w stride as a multiple of 8 for src
-    srcDescPtr->w = ((srcDescPtr->w / 8) * 8) + 8;
-    dstDescPtr->w = ((dstDescPtr->w / 8) * 8) + 8;
+    // srcDescPtr->w = ((srcDescPtr->w / 8) * 8) + 8;
+    // dstDescPtr->w = ((dstDescPtr->w / 8) * 8) + 8;
 
     // Set n/c/h/w strides for src/dst
     srcDescPtr->strides.nStride = srcDescPtr->c * srcDescPtr->w * srcDescPtr->h;
@@ -475,77 +474,101 @@ int main(int argc, char **argv)
 
             Rpp32s srcDimsTensor[noOfAudioFiles * 2];
 
-            // Read source dimension
-            read_from_text_files(inputf32, srcDescPtr, srcDims, "spectrogram", 1, audioNames);
-
-            maxDstHeight = 0;
-            maxDstWidth = 0;
-            maxSrcHeight = 0;
-            maxSrcWidth = 0;
-            for(int i = 0; i < noOfAudioFiles; i++)
-            {
-                maxSrcHeight = std::max(maxSrcHeight, (int)srcDims[i].height);
-                maxSrcWidth = std::max(maxSrcWidth, (int)srcDims[i].width);
-            }
-            maxDstHeight = maxSrcHeight;
-            maxDstWidth = maxSrcWidth;
-
             for (i = 0; i < noOfAudioFiles * 2; i += 2)
             {
-                srcDimsTensor[i] = (int)srcDims[i / 2].height;
-                srcDimsTensor[i + 1] = (int)srcDims[i / 2].width;
+                srcDimsTensor[i] = srcLengthTensor[i / 2];
+                srcDimsTensor[i + 1] = 1;
             }
 
-            srcDescPtr->h = maxSrcHeight;
-            srcDescPtr->w = maxSrcWidth;
-            dstDescPtr->h = maxDstHeight;
-            dstDescPtr->w = maxDstWidth;
-
+            srcDescPtr->h = maxSrcWidth;
+            srcDescPtr->w = 1;
             srcDescPtr->c = 1;
+
+            dstDescPtr->h = maxSrcWidth;
+            dstDescPtr->w = 1;
             dstDescPtr->c = 1;
 
             srcDescPtr->strides.nStride = srcDescPtr->c * srcDescPtr->w * srcDescPtr->h;
             srcDescPtr->strides.hStride = srcDescPtr->c * srcDescPtr->w;
-            srcDescPtr->strides.wStride = maxSrcWidth;
+            srcDescPtr->strides.wStride = 1;
             srcDescPtr->strides.cStride = 1;
 
             dstDescPtr->strides.nStride = dstDescPtr->c * dstDescPtr->w * dstDescPtr->h;
             dstDescPtr->strides.hStride = dstDescPtr->c * dstDescPtr->w;
-            dstDescPtr->strides.wStride = maxSrcWidth;
+            dstDescPtr->strides.wStride = 1;
             dstDescPtr->strides.cStride = 1;
 
-            // // Set buffer sizes for src/dst
-            unsigned long long spectrogramBufferSize = (unsigned long long)srcDescPtr->h * (unsigned long long)srcDescPtr->w * (unsigned long long)srcDescPtr->c * (unsigned long long)srcDescPtr->n;
-            unsigned long long padBufferSize = (unsigned long long)dstDescPtr->h * (unsigned long long)dstDescPtr->w * (unsigned long long)dstDescPtr->c * (unsigned long long)dstDescPtr->n;
-            inputf32 = (Rpp32f *)realloc(inputf32, spectrogramBufferSize * sizeof(Rpp32f));
-            outputf32 = (Rpp32f *)realloc(outputf32, padBufferSize * sizeof(Rpp32f));
+            // // Read source dimension
+            // read_from_text_files(inputf32, srcDescPtr, srcDims, "spectrogram", 1, audioNames);
 
-            int *d_inputf32_test, *d_outputf32_test;
-            hipMalloc(&d_inputf32_test, spectrogramBufferSize * sizeof(Rpp32f));
-            hipMalloc(&d_outputf32_test, padBufferSize * sizeof(Rpp32f));
+            // maxDstHeight = 0;
+            // maxDstWidth = 0;
+            // maxSrcHeight = 0;
+            // maxSrcWidth = 0;
+            // for(int i = 0; i < noOfAudioFiles; i++)
+            // {
+            //     maxSrcHeight = std::max(maxSrcHeight, (int)srcDims[i].height);
+            //     maxSrcWidth = std::max(maxSrcWidth, (int)srcDims[i].width);
+            // }
+            // maxDstHeight = maxSrcHeight;
+            // maxDstWidth = maxSrcWidth;
 
-            // Read source data
-            read_from_text_files(inputf32, srcDescPtr, srcDims, "spectrogram", 0, audioNames);
+            // for (i = 0; i < noOfAudioFiles * 2; i += 2)
+            // {
+            //     srcDimsTensor[i] = (int)srcDims[i / 2].height;
+            //     srcDimsTensor[i + 1] = (int)srcDims[i / 2].width;
+            // }
 
-            hipMemcpy(d_inputf32_test, inputf32, spectrogramBufferSize * sizeof(Rpp32f), hipMemcpyHostToDevice);
+            // srcDescPtr->h = maxSrcHeight;
+            // srcDescPtr->w = maxSrcWidth;
+            // dstDescPtr->h = maxDstHeight;
+            // dstDescPtr->w = maxDstWidth;
+
+            // srcDescPtr->c = 1;
+            // dstDescPtr->c = 1;
+
+            // srcDescPtr->strides.nStride = srcDescPtr->c * srcDescPtr->w * srcDescPtr->h;
+            // srcDescPtr->strides.hStride = srcDescPtr->c * srcDescPtr->w;
+            // srcDescPtr->strides.wStride = 1;
+            // srcDescPtr->strides.cStride = 1;
+
+            // dstDescPtr->strides.nStride = dstDescPtr->c * dstDescPtr->w * dstDescPtr->h;
+            // dstDescPtr->strides.hStride = dstDescPtr->c * dstDescPtr->w;
+            // dstDescPtr->strides.wStride = 1;
+            // dstDescPtr->strides.cStride = 1;
+
+            // // // Set buffer sizes for src/dst
+            // unsigned long long spectrogramBufferSize = (unsigned long long)srcDescPtr->h * (unsigned long long)srcDescPtr->w * (unsigned long long)srcDescPtr->c * (unsigned long long)srcDescPtr->n;
+            // unsigned long long padBufferSize = (unsigned long long)dstDescPtr->h * (unsigned long long)dstDescPtr->w * (unsigned long long)dstDescPtr->c * (unsigned long long)dstDescPtr->n;
+            // inputf32 = (Rpp32f *)realloc(inputf32, spectrogramBufferSize * sizeof(Rpp32f));
+            // outputf32 = (Rpp32f *)realloc(outputf32, padBufferSize * sizeof(Rpp32f));
+
+            // int *d_inputf32_test, *d_outputf32_test;
+            // hipMalloc(&d_inputf32_test, spectrogramBufferSize * sizeof(Rpp32f));
+            // hipMalloc(&d_outputf32_test, padBufferSize * sizeof(Rpp32f));
+
+            // // Read source data
+            // read_from_text_files(inputf32, srcDescPtr, srcDims, "spectrogram", 0, audioNames);
+
+            // hipMemcpy(d_inputf32_test, inputf32, spectrogramBufferSize * sizeof(Rpp32f), hipMemcpyHostToDevice);
             start_omp = omp_get_wtime();
             start = clock();
             if (ip_bitDepth == 2)
             {
-                rppt_normalize_audio_gpu(d_inputf32_test, srcDescPtr, d_outputf32_test, dstDescPtr, srcDimsTensor, axis_mask,
-                                          mean, std_dev, scale, shift, epsilon, ddof, num_of_dims, handle);
+                // rppt_normalize_audio_gpu(d_inputf32_test, srcDescPtr, d_outputf32_test, dstDescPtr, srcDimsTensor, axis_mask,
+                //                           mean, std_dev, scale, shift, epsilon, ddof, handle);
+                rppt_normalize_audio_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, srcDimsTensor, axis_mask,
+                                          mean, std_dev, scale, shift, epsilon, ddof, handle);
             }
             else
                 missingFuncFlag = 1;
 
-
-
-            hipMemcpy(outputf32, d_outputf32_test, ioBufferSizeInBytes_f32, hipMemcpyDeviceToHost);
+            // hipMemcpy(outputf32, d_outputf32_test, ioBufferSizeInBytes_f32, hipMemcpyDeviceToHost);
+            hipMemcpy(outputf32, d_outputf32, ioBufferSizeInBytes_f32, hipMemcpyDeviceToHost);
             verify_output(outputf32, dstDescPtr, dstDims, test_case_name, audioNames);
-            hipFree(d_inputf32_test);
-            hipFree(d_outputf32_test);
+            // hipFree(d_inputf32_test);
+            // hipFree(d_outputf32_test);
 
-            // verify_output(outputf32, dstDescPtr, dstDims, test_case_name, audioNames);
             break;
         }
         default:
@@ -557,6 +580,7 @@ int main(int argc, char **argv)
 
     hipDeviceSynchronize();
     end = clock();
+    end_omp = omp_get_wtime();
 
     if (missingFuncFlag == 1)
     {
@@ -566,7 +590,8 @@ int main(int argc, char **argv)
 
     // Display measured times
     gpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-    cout << "\nGPU Time - Tensor: " << gpu_time_used;
+    omp_time_used = end_omp - start_omp;
+    cout << "\nGPU Time - Tensor: " << omp_time_used;
     printf("\n");
 
     rppDestroyGPU(handle);

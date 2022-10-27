@@ -190,7 +190,7 @@ RppStatus rppt_normalize_audio_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, Rpp
                                     Rpp32f mean, Rpp32f stdDev, Rpp32f scale, Rpp32f shift, Rpp32f epsilon, Rpp32s ddof, Rpp32s numOfDims);
 #ifdef GPU_SUPPORT
 RppStatus rppt_normalize_audio_gpu(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, Rpp32s *srcDimsTensor, Rpp32s axisMask,
-                                    Rpp32f mean, Rpp32f stdDev, Rpp32f scale, Rpp32f shift, Rpp32f epsilon, Rpp32s ddof, Rpp32s numOfDims, rppHandle_t rppHandle);
+                                    Rpp32f mean, Rpp32f stdDev, Rpp32f scale, Rpp32f shift, Rpp32f epsilon, Rpp32s ddof, rppHandle_t rppHandle);
 #endif // GPU_SUPPORT
 
 

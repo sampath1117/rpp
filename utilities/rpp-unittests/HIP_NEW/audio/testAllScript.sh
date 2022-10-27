@@ -71,7 +71,7 @@ printf "\n\nUsage: ./Tensor_HIP_audio <src folder> <u8 = 0 / f16 = 1 / f32 = 2 /
 
 for ((case=$CASE_START;case<=$CASE_END;case++))
 do
-    SRC_FOLDER="$cwd/../../../TEST_AUDIO_FILES/trail_sample/"
+    # SRC_FOLDER="$cwd/../../../TEST_AUDIO_FILES/trail_sample/"
     printf "\n\n\n\n"
     echo "--------------------------------"
     printf "Running a New Functionality...\n"
