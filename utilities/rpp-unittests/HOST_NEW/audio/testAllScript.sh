@@ -81,6 +81,8 @@ do
         SRC_FOLDER="$cwd/../../../TEST_AUDIO_FILES/eight_samples_single_channel_src1/"
     fi
 
+    SRC_FOLDER="$cwd/../../../TEST_AUDIO_FILES/trail_sample/"
+
     printf "\n\n\n\n"
     echo "--------------------------------"
     printf "Running a New Functionality...\n"

@@ -375,10 +375,10 @@ RppStatus rppt_normalize_audio_gpu(RppPtr_t srcPtr,
         }
     }
 
-    copy_param_int(srcDimsTensor, rpp::deref(rppHandle), paramIndex++);
-    copy_param_int(srcStride, rpp::deref(rppHandle), paramIndex++);
-    copy_param_int(srcReductionDims, rpp::deref(rppHandle), paramIndex++);
-    copy_param_int(paramStride, rpp::deref(rppHandle), paramIndex++);
+    copy_param_int2(srcDimsTensor, rpp::deref(rppHandle), paramIndex++);
+    copy_param_int2(srcStride, rpp::deref(rppHandle), paramIndex++);
+    copy_param_int2(srcReductionDims, rpp::deref(rppHandle), paramIndex++);
+    copy_param_int2(paramStride, rpp::deref(rppHandle), paramIndex++);
 
     if (srcDescPtr->dataType == RpptDataType::F32)
     {

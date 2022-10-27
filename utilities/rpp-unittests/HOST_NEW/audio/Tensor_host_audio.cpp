@@ -65,6 +65,7 @@ void verify_output(Rpp32f *dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dst
                 ref_file>>ref_val;
                 out_val = dstPtrTemp[j];
                 bool invalid_comparision = ((out_val == 0.0f) && (ref_val != 0.0f));
+                std::cerr<<ref_val<<", "<<out_val<<std::endl;
                 if(!invalid_comparision && abs(out_val - ref_val) < 1e-2)
                     matched_indices += 1;
             }
@@ -733,6 +734,54 @@ int main(int argc, char **argv)
             mean = std_dev = scale = shift = epsilon = 0.0f;
             Rpp32s ddof = 0;
             Rpp32s num_of_dims = 2;
+
+            // Read source dimension
+            read_from_text_files(inputf32, srcDescPtr, srcDims, "spectrogram", 1, audioNames);
+
+            maxDstHeight = 0;
+            maxDstWidth = 0;
+            maxSrcHeight = 0;
+            maxSrcWidth = 0;
+            for(int i = 0; i < noOfAudioFiles; i++)
+            {
+                maxSrcHeight = std::max(maxSrcHeight, (int)srcDims[i].height);
+                maxSrcWidth = std::max(maxSrcWidth, (int)srcDims[i].width);
+            }
+            maxDstHeight = maxSrcHeight;
+            maxDstWidth = maxSrcWidth;
+
+            for (i = 0; i < noOfAudioFiles ; i ++)
+            {
+                srcLengthTensor[i] = (int)srcDims[i].height;
+                channelsTensor[i] = (int)srcDims[i].width;
+            }
+
+            srcDescPtr->h = maxSrcHeight;
+            srcDescPtr->w = maxSrcWidth;
+            dstDescPtr->h = maxDstHeight;
+            dstDescPtr->w = maxDstWidth;
+
+            srcDescPtr->c = 1;
+            dstDescPtr->c = 1;
+
+            srcDescPtr->strides.nStride = srcDescPtr->c * srcDescPtr->w * srcDescPtr->h;
+            srcDescPtr->strides.hStride = srcDescPtr->c * srcDescPtr->w;
+            srcDescPtr->strides.wStride = maxSrcWidth;
+            srcDescPtr->strides.cStride = 1;
+
+            dstDescPtr->strides.nStride = dstDescPtr->c * dstDescPtr->w * dstDescPtr->h;
+            dstDescPtr->strides.hStride = dstDescPtr->c * dstDescPtr->w;
+            dstDescPtr->strides.wStride = maxSrcWidth;
+            dstDescPtr->strides.cStride = 1;
+
+            // // Set buffer sizes for src/dst
+            unsigned long long spectrogramBufferSize = (unsigned long long)srcDescPtr->h * (unsigned long long)srcDescPtr->w * (unsigned long long)srcDescPtr->c * (unsigned long long)srcDescPtr->n;
+            unsigned long long padBufferSize = (unsigned long long)dstDescPtr->h * (unsigned long long)dstDescPtr->w * (unsigned long long)dstDescPtr->c * (unsigned long long)dstDescPtr->n;
+            inputf32 = (Rpp32f *)realloc(inputf32, spectrogramBufferSize * sizeof(Rpp32f));
+            outputf32 = (Rpp32f *)realloc(outputf32, padBufferSize * sizeof(Rpp32f));
+
+            // Read source data
+            read_from_text_files(inputf32, srcDescPtr, srcDims, "spectrogram", 0, audioNames);
 
             start_omp = omp_get_wtime();
             start = clock();

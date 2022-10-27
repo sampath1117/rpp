@@ -235,7 +235,7 @@ struct HandleImpl
         {
             hipMalloc(&(this->initHandle->mem.mgpu.floatArr[i].floatmem), sizeof(Rpp32f) * this->nBatchSize);
             hipMalloc(&(this->initHandle->mem.mgpu.uintArr[i].uintmem), sizeof(Rpp32u) * this->nBatchSize);
-            hipMalloc(&(this->initHandle->mem.mgpu.intArr[i].intmem), sizeof(Rpp32s) * this->nBatchSize);
+            hipMalloc(&(this->initHandle->mem.mgpu.intArr[i].intmem), sizeof(Rpp32s) * this->nBatchSize * 2);
             hipMalloc(&(this->initHandle->mem.mgpu.ucharArr[i].ucharmem), sizeof(Rpp8u) * this->nBatchSize);
             hipMalloc(&(this->initHandle->mem.mgpu.charArr[i].charmem), sizeof(Rpp8s) * this->nBatchSize);
             hipMalloc(&(this->initHandle->mem.mgpu.float3Arr[i].floatmem), sizeof(Rpp32f) * this->nBatchSize * 3);
@@ -243,8 +243,8 @@ struct HandleImpl
 
         hipMalloc(&(this->initHandle->mem.mgpu.rgbArr.rgbmem), sizeof(RpptRGB) * this->nBatchSize);
         hipMalloc(&(this->initHandle->mem.mgpu.maskArr.floatmem), sizeof(Rpp32f) * 8294400);    // 3840 x 2160
-        hipMalloc(&(this->initHandle->mem.mgpu.meanArr.floatmem), sizeof(Rpp32f) * 240 * this->nBatchSize); // TODO - 240 to be changed to the maximum width/height possible in entire dataset
-        hipMalloc(&(this->initHandle->mem.mgpu.stdDevArr.floatmem), sizeof(Rpp32f) * 240 * this->nBatchSize); // TODO - 240 to be changed to the maximum width/height possible in entire dataset
+        hipMalloc(&(this->initHandle->mem.mgpu.meanArr.floatmem), sizeof(Rpp32f) * 1024 * this->nBatchSize); // TODO - 240 to be changed to the maximum width/height possible in entire dataset
+        hipMalloc(&(this->initHandle->mem.mgpu.stdDevArr.floatmem), sizeof(Rpp32f) * 1024 * this->nBatchSize); // TODO - 240 to be changed to the maximum width/height possible in entire dataset
     }
 };
 
