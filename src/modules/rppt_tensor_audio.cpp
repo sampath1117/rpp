@@ -222,6 +222,7 @@ RppStatus rppt_resample_host(RppPtr_t srcPtr,
 
     return RPP_SUCCESS;
 }
+
 RppStatus rppt_normalize_audio_host(RppPtr_t srcPtr,
                                     RpptDescPtr srcDescPtr,
                                     RppPtr_t dstPtr,
@@ -266,20 +267,24 @@ RppStatus rppt_to_decibels_gpu(RppPtr_t srcPtr,
                                RpptDescPtr srcDescPtr,
                                RppPtr_t dstPtr,
                                RpptDescPtr dstDescPtr,
-                               Rpp32s *srcLengthTensor,
+                               RpptImagePatchPtr srcDims,
                                Rpp32f cutOffDB,
                                Rpp32f multiplier,
                                Rpp32f referenceMagnitude,
                                rppHandle_t rppHandle)
 {
 #ifdef HIP_COMPILE
+    Rpp32u paramIndex = 0;
+    if(referenceMagnitude == 0.0f)
+       set_float_max(rpp::deref(rppHandle), paramIndex++);
+
     if (srcDescPtr->dataType == RpptDataType::F32)
     {
         hip_exec_to_decibels_tensor((Rpp32f*) static_cast<Rpp8u*>(srcPtr),
                                     srcDescPtr,
                                     (Rpp32f*) static_cast<Rpp8u*>(dstPtr),
                                     dstDescPtr,
-                                    srcLengthTensor,
+                                    srcDims,
                                     cutOffDB,
                                     multiplier,
                                     referenceMagnitude,
@@ -296,14 +301,13 @@ RppStatus rppt_pre_emphasis_filter_gpu(RppPtr_t srcPtr,
                                        RpptDescPtr srcDescPtr,
                                        RppPtr_t dstPtr,
                                        RpptDescPtr dstDescPtr,
-                                       Rpp32s *srcSizeTensor,
+                                       RpptImagePatchPtr srcDims,
                                        Rpp32f *coeffTensor,
                                        RpptAudioBorderType borderType,
                                        rppHandle_t rppHandle)
 {
 #ifdef HIP_COMPILE
     Rpp32u paramIndex = 0;
-    copy_param_int(srcSizeTensor, rpp::deref(rppHandle), paramIndex++);
     copy_param_float(coeffTensor, rpp::deref(rppHandle), paramIndex++);
 
     if (srcDescPtr->dataType == RpptDataType::F32)
@@ -312,6 +316,7 @@ RppStatus rppt_pre_emphasis_filter_gpu(RppPtr_t srcPtr,
                                             srcDescPtr,
                                             (Rpp32f*)dstPtr,
                                             dstDescPtr,
+                                            srcDims,
                                             borderType,
                                             rpp::deref(rppHandle));
     }

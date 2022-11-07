@@ -171,6 +171,18 @@ inline void copy_param_float(float *param, rpp::Handle& handle, Rpp32u paramInde
 #endif // backend
 }
 
+
+inline void set_float_max(rpp::Handle& handle, Rpp32u paramIndex)
+{
+    for(int i = 0; i < handle.GetBatchSize(); i++)
+    {
+        handle.GetInitHandle()->mem.mcpu.floatArr[paramIndex].floatmem[i] = -std::numeric_limits<float>::max();
+    }
+#ifdef HIP_COMPILE
+    hipMemcpy(handle.GetInitHandle()->mem.mgpu.floatArr[paramIndex].floatmem, handle.GetInitHandle()->mem.mcpu.floatArr[paramIndex].floatmem, handle.GetBatchSize() * sizeof(Rpp32f) , hipMemcpyHostToDevice);
+#endif
+}
+
 inline void copy_param_float3(float *param, rpp::Handle& handle, Rpp32u paramIndex)
 {
 #ifdef HIP_COMPILE

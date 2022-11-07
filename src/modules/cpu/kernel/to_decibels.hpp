@@ -46,7 +46,6 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
 
         int vectorIncrement = 8;
 		int alignedLength = (width / 8) * 8;
-		int vectorLoopCount = 0;
 
         Rpp32f *srcPtrRow, *dstPtrRow;
         srcPtrRow = srcPtrCurrent;
@@ -56,6 +55,7 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
             Rpp32f *srcPtrTemp, *dstPtrTemp;
             srcPtrTemp = srcPtrRow;
             dstPtrTemp = dstPtrRow;
+            int vectorLoopCount = 0;
             for(; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement)
             {
                 __m256 pSrc;
