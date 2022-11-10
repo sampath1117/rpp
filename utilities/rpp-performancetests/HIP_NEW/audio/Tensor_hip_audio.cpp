@@ -172,9 +172,9 @@ int main(int argc, char **argv)
     // Set maxLength
     char audioNames[noOfAudioFiles][1000];
 
-    // Set Height as 1 for src, dst
-    maxSrcHeight = 1;
-    maxDstHeight = 1;
+    // Set Width as 1 for src, dst
+    maxSrcWidth = 1;
+    maxDstWidth = 1;
 
     dr = opendir(src);
     while ((de = readdir(dr)) != NULL)
@@ -202,13 +202,16 @@ int main(int argc, char **argv)
         srcLengthTensor[count] = sfinfo.frames;
         channelsTensor[count] = sfinfo.channels;
         maxLength = std::max(maxLength, srcLengthTensor[count]);
-        srcDims[count].width = sfinfo.frames;
-        dstDims[count].width = sfinfo.frames;
-        srcDims[count].height = 1;
-        dstDims[count].height = 1;
 
-        maxSrcWidth = std::max(maxSrcWidth, srcLengthTensor[count]);
-        maxDstWidth = std::max(maxDstWidth, srcLengthTensor[count]);
+        srcDims[count].height = sfinfo.frames;
+        srcDims[count].width = sfinfo.channels;
+        dstDims[count].height = sfinfo.frames;
+        dstDims[count].width = sfinfo.channels;
+
+        maxSrcHeight = std::max(maxSrcHeight, (int)srcDims[count].height);
+        maxSrcWidth = std::max(maxSrcWidth, (int)srcDims[count].width);
+        maxDstHeight = std::max(maxDstHeight, (int)srcDims[count].height);
+        maxDstWidth = std::max(maxDstWidth, (int)srcDims[count].width);
         maxChannels = std::max(maxChannels, channelsTensor[count]);
 
         // Close input
@@ -233,15 +236,13 @@ int main(int argc, char **argv)
     srcDescPtr->w = maxSrcWidth;
     dstDescPtr->w = maxDstWidth;
 
-    srcDescPtr->c = maxChannels;
     if(test_case == 3)
-        dstDescPtr->c = 1;
+        dstDescPtr->w = 1;
     else
-        dstDescPtr->c = maxChannels;
+        dstDescPtr->w = maxChannels;
 
-    // Optionally set w stride as a multiple of 8 for src
-    srcDescPtr->w = ((srcDescPtr->w / 8) * 8) + 8;
-    dstDescPtr->w = ((dstDescPtr->w / 8) * 8) + 8;
+    srcDescPtr->c = 1;
+    dstDescPtr->c = 1;
 
     // Set n/c/h/w strides for src/dst
     srcDescPtr->strides.nStride = srcDescPtr->c * srcDescPtr->w * srcDescPtr->h;
@@ -264,7 +265,9 @@ int main(int argc, char **argv)
     unsigned long long ioBufferSizeInBytes_f32 = (iBufferSize * 4) + srcDescPtr->offsetInBytes;
 
     i = 0;
+    count = 0;
     dr = opendir(src);
+    Rpp32f *audio_temp = (Rpp32f *)calloc(srcDescPtr->h * srcDescPtr->w, sizeof(Rpp32f));
     while ((de = readdir(dr)) != NULL)
     {
         Rpp32f *input_temp_f32;
@@ -292,16 +295,31 @@ int main(int argc, char **argv)
         int bufferLength = sfinfo.frames * sfinfo.channels;
         if(ip_bitDepth == 2)
         {
-            readcount = (int) sf_read_float (infile, input_temp_f32, bufferLength);
+            readcount = (int) sf_read_float (infile, audio_temp, bufferLength);
             if(readcount != bufferLength)
                 std::cerr<<"F32 Unable to read audio file completely"<<std::endl;
+
+            Rpp32f *audio_temp_ptr = audio_temp;
+            if(srcDims[count].width == 1)
+                memcpy(input_temp_f32, audio_temp_ptr, srcDims[count].height * sizeof (Rpp32f));
+            else
+            {
+                for(int i = 0; i < srcDims[count].height; i++)
+                {
+                    memcpy(input_temp_f32, audio_temp_ptr, srcDims[count].width * sizeof (Rpp32f));
+                    audio_temp_ptr += srcDims[count].width;
+                    input_temp_f32 += srcDescPtr->strides.hStride;
+                }
+            }
         }
         i++;
+        count++;
 
         // Close input
         sf_close (infile);
     }
     closedir(dr);
+    free(audio_temp);
 
     int *d_inputf32, *d_outputf32;
     if (ip_bitDepth == 2)
@@ -314,6 +332,9 @@ int main(int argc, char **argv)
 
     Rpp32s *d_srcLengthTensor;
     hipMalloc(&d_srcLengthTensor, noOfAudioFiles * sizeof(Rpp32s));
+
+    RpptImagePatch *d_srcDims;
+    hipMalloc(&d_srcDims, noOfAudioFiles * sizeof(RpptImagePatch));
 
     // Run case-wise RPP API and measure time
     rppHandle_t handle;
@@ -338,12 +359,12 @@ int main(int argc, char **argv)
                 Rpp32f multiplier = 10.0;
                 Rpp32f referenceMagnitude = 0.0;
 
-                hipMemcpy(d_srcLengthTensor, srcLengthTensor, noOfAudioFiles * sizeof(Rpp32s), hipMemcpyHostToDevice);
+                hipMemcpy(d_srcDims, srcDims, noOfAudioFiles * sizeof(RpptImagePatch), hipMemcpyHostToDevice);
 
                 start_omp = omp_get_wtime();
                 if (ip_bitDepth == 2)
                 {
-                    rppt_to_decibels_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, d_srcLengthTensor, cutOffDB, multiplier, referenceMagnitude, handle);
+                    rppt_to_decibels_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, d_srcDims, cutOffDB, multiplier, referenceMagnitude, handle);
                 }
                 else
                     missingFuncFlag = 1;
@@ -358,10 +379,12 @@ int main(int argc, char **argv)
                     coeff[i] = 0.97;
                 RpptAudioBorderType borderType = RpptAudioBorderType::CLAMP;
 
+                hipMemcpy(d_srcDims, srcDims, noOfAudioFiles * sizeof(RpptImagePatch), hipMemcpyHostToDevice);
+
                 start_omp = omp_get_wtime();
                 if (ip_bitDepth == 2)
                 {
-                    rppt_pre_emphasis_filter_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, inputAudioSize, coeff, borderType, handle);
+                    rppt_pre_emphasis_filter_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, d_srcDims, coeff, borderType, handle);
                 }
                 else
                     missingFuncFlag = 1;
@@ -409,8 +432,9 @@ int main(int argc, char **argv)
     {
         hipFree(d_inputf32);
         hipFree(d_outputf32);
-        hipFree(d_srcLengthTensor);
     }
+    hipFree(d_srcLengthTensor);
+    hipFree(d_srcDims);
 
     return 0;
 }

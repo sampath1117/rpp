@@ -16,8 +16,8 @@ DEFAULT_SRC_FOLDER="$cwd/../../../TEST_AUDIO_FILES/eight_samples_single_channel_
 # DEFAULT_SRC_FOLDER="$cwd/../../../TEST_AUDIO_FILES/three_samples_single_channel_src1/"
 
 # Output AUDIO_FILES
-mkdir "$cwd/../../OUTPUT_AUDIO_FILES_HIP_NEW"
-DEFAULT_DST_FOLDER="$cwd/../../OUTPUT_AUDIO_FILES_HIP_NEW"
+mkdir "$cwd/../../OUTPUT_PERFORMANCE_LOGS_HIP_NEW"
+DEFAULT_DST_FOLDER="$cwd/../../OUTPUT_PERFORMANCE_LOGS_HIP_NEW"
 
 # <<<<<<<<<<<<<< FOR MANUAL OVERRIDE, JUST REPLACE AND POINT TO THE SOURCE AND DESTINATION FOLDERS HERE >>>>>>>>>>>>>>
 SRC_FOLDER="$DEFAULT_SRC_FOLDER"
@@ -27,7 +27,7 @@ DST_FOLDER="$DEFAULT_DST_FOLDER"
 if [[ "$1" -lt 1 ]] | [[ "$1" -gt 2 ]]; then
     echo "The starting case# must be in the 1-2 range!"
     echo
-    echo "The testAllScript.sh bash script runs the RPP audio unittest testsuite for AMDRPP functionalities in HIP/OCL/HIP backends."
+    echo "The rawLogsGenScript.sh bash script runs the RPP audio unittest testsuite for AMDRPP functionalities in HIP/OCL/HIP backends."
     echo
     echo "Syntax: ./testAllScriptAudio.sh <S> <E>"
     echo "S     CASE_START (Starting case# (1-2))"
@@ -38,7 +38,7 @@ fi
 if [[ "$2" -lt 1 ]] | [[ "$2" -gt 2 ]]; then
     echo "The ending case# must be in the 1-2 range!"
     echo
-    echo "The testAllScript.sh bash script runs the RPP audio unittest testsuite for AMDRPP functionalities in HIP/OCL/HIP backends."
+    echo "The rawLogsGenScript.sh bash script runs the RPP audio unittest testsuite for AMDRPP functionalities in HIP/OCL/HIP backends."
     echo
     echo "Syntax: ./testAllScriptAudio.sh <S> <E>"
     echo "S     CASE_START (Starting case# (1-2))"
@@ -46,12 +46,13 @@ if [[ "$2" -lt 1 ]] | [[ "$2" -gt 2 ]]; then
     exit 1
 fi
 
-if (( "$#" < 2 )); then
+if (( "$#" < 3 )); then
     CASE_START="1"
     CASE_END="2"
 else
     CASE_START="$1"
     CASE_END="$2"
+    PROFILING_OPTION="$3"
 fi
 
 rm -rvf "$DST_FOLDER"/*
@@ -78,8 +79,14 @@ do
     for ((bitDepth=2;bitDepth<3;bitDepth++))
     do
         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
-        printf "\n./Tensor_HIP_audio $SRC_FOLDER $bitDepth $case "
-        ./Tensor_hip_audio "$SRC_FOLDER" "$bitDepth" "$case"
+        printf "\n./Tensor_HIP_audio $SRC_FOLDER $bitDepth $case"
+        if [[ "$PROFILING_OPTION" -eq 0 ]]
+        then
+            ./Tensor_hip_audio "$SRC_FOLDER" "$bitDepth" "$case" | tee -a "$DST_FOLDER/Tensor_hip_audio_raw_performance_log.txt"
+        elif [[ "$PROFILING_OPTION" -eq 1 ]]
+        then
+            rocprof --basenames on --timestamp on --stats -o "$DST_FOLDER/output_case""$case""_bitDepth""$bitDepth"".csv" ./Tensor_hip_audio "$SRC_FOLDER" "$bitDepth" "$case" | tee -a "$DST_FOLDER/Tensor_hip_audio_raw_performance_log.txt"
+        fi
 
         echo "------------------------------------------------------------------------------------------"
     done
