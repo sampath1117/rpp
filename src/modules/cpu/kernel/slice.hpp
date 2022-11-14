@@ -41,10 +41,11 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
 	{
 		Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
 		Rpp32f *dstPtrTemp = dstPtr + batchCount * dstDescPtr->strides.nStride;
+        Rpp32s sampleBatchCount = batchCount * 2;
 
         // Slice for 1D input
-        if (srcDescPtr->strides.wStride == 1) {
-            Rpp32s srcBufferLength = srcDimsTensor[batchCount];
+        if (srcDimsTensor[sampleBatchCount + 1] == 1) {
+            Rpp32s srcBufferLength = srcDimsTensor[sampleBatchCount];
             Rpp32f anchorRaw = anchorTensor[batchCount];
             Rpp32f shapeRaw = shapeTensor[batchCount];
             Rpp32f fillValue = fillValues[batchCount];
@@ -116,8 +117,7 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
                     }
                 }
             }
-        } else if (srcDescPtr->strides.wStride > 1) {
-            Rpp32s sampleBatchCount = batchCount * 2;
+        } else if (srcDimsTensor[sampleBatchCount + 1] > 1) {
             Rpp32f anchorRaw[2], shapeRaw[2];
             Rpp32s anchor[2], shape[2];
             anchorRaw[0] = anchorTensor[sampleBatchCount];
@@ -157,13 +157,13 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
             Rpp32s vectorIncrement = 8;
             __m256 pFillValue = _mm256_set1_ps(fillValue);
             Rpp32s alignedCol = (shape[1] / vectorIncrement) * vectorIncrement;
-            Rpp32s alignedColMax = (dstDescPtr->strides.wStride / vectorIncrement) * vectorIncrement;
+            Rpp32s alignedColMax = (dstDescPtr->strides.hStride / vectorIncrement) * vectorIncrement;
 
-            srcPtrTemp = srcPtrTemp + anchor[0] * srcDescPtr->strides.wStride;
+            srcPtrTemp = srcPtrTemp + anchor[0] * srcDescPtr->strides.hStride;
             int row = 0;
             for (; row < rowBound; row++) {
                 int col = 0;
-                Rpp32f *srcPtrRow = srcPtrTemp + row * srcDescPtr->strides.wStride + anchor[1];
+                Rpp32f *srcPtrRow = srcPtrTemp + row * srcDescPtr->strides.hStride + anchor[1];
                 Rpp32f *dstPtrRow = dstPtrTemp;
                 memcpy(dstPtrRow, &srcPtrRow[col], colBound * sizeof(Rpp32f));
                 col += colBound;
@@ -179,7 +179,7 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
                         *dstPtrRow++ = fillValue;
                 }
 
-                dstPtrTemp += dstDescPtr->strides.wStride;
+                dstPtrTemp += dstDescPtr->strides.hStride;
             }
 
             // Fill the rows which are beyond the input height with fill value specified
@@ -191,10 +191,10 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
                         _mm256_storeu_ps(dstPtrRow, pFillValue);
                         dstPtrRow += vectorIncrement;
                     }
-                    for (; vectorLoopCount < dstDescPtr->strides.wStride; vectorLoopCount++)
+                    for (; vectorLoopCount < dstDescPtr->strides.hStride; vectorLoopCount++)
                         *dstPtrRow++ = fillValue;
 
-                    dstPtrTemp += dstDescPtr->strides.wStride;
+                    dstPtrTemp += dstDescPtr->strides.hStride;
                 }
             }
         }
