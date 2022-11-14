@@ -113,6 +113,9 @@ int main(int argc, char **argv)
         case 2:
             strcpy(funcName, "pre_emphasis_filter");
             break;
+        case 3:
+            strcpy(funcName, "spectrogram");
+            break;
         default:
             strcpy(funcName, "test_case");
             break;
@@ -385,6 +388,74 @@ int main(int argc, char **argv)
                 if (ip_bitDepth == 2)
                 {
                     rppt_pre_emphasis_filter_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, d_srcDims, coeff, borderType, handle);
+                }
+                else
+                    missingFuncFlag = 1;
+
+                break;
+            }
+            case 3:
+            {
+                test_case_name = "spectrogram";
+
+                bool centerWindows = true;
+                bool reflectPadding = true;
+                Rpp32f *windowFn = NULL;
+                Rpp32s power = 2;
+                Rpp32s windowLength = 512;
+                Rpp32s windowStep = 256;
+                Rpp32s nfft = windowLength;
+                RpptSpectrogramLayout layout = RpptSpectrogramLayout::FT;
+
+                int windowOffset = 0;
+                if(!centerWindows)
+                    windowOffset = windowLength;
+
+                maxDstWidth = 0;
+                maxDstHeight = 0;
+                if(layout == RpptSpectrogramLayout::FT)
+                {
+                    for(int i = 0; i < noOfAudioFiles; i++)
+                    {
+                        dstDims[i].height = nfft / 2 + 1;
+                        dstDims[i].width = ((srcLengthTensor[i] - windowOffset) / windowStep) + 1;
+                        maxDstHeight = std::max(maxDstHeight, (int)dstDims[i].height);
+                        maxDstWidth = std::max(maxDstWidth, (int)dstDims[i].width);
+                    }
+                }
+                else
+                {
+                    for(int i = 0; i < noOfAudioFiles; i++)
+                    {
+                        dstDims[i].height = ((srcLengthTensor[i] - windowOffset) / windowStep) + 1;
+                        dstDims[i].width = nfft / 2 + 1;
+                        maxDstHeight = std::max(maxDstHeight, (int)dstDims[i].height);
+                        maxDstWidth = std::max(maxDstWidth, (int)dstDims[i].width);
+                    }
+                }
+
+                dstDescPtr->w = maxDstWidth;
+                dstDescPtr->h = maxDstHeight;
+
+                // Optionally set w stride as a multiple of 8 for dst
+                dstDescPtr->w = ((dstDescPtr->w / 8) * 8) + 8;
+
+                dstDescPtr->strides.nStride = dstDescPtr->c * dstDescPtr->w * dstDescPtr->h;
+                dstDescPtr->strides.hStride = dstDescPtr->c * dstDescPtr->w;
+                dstDescPtr->strides.wStride = dstDescPtr->c;
+                dstDescPtr->strides.cStride = 1;
+
+                // Set buffer sizes for src/dst
+                unsigned long long spectrogramBufferSize = (unsigned long long)dstDescPtr->h * (unsigned long long)dstDescPtr->w * (unsigned long long)dstDescPtr->c * (unsigned long long)dstDescPtr->n;
+                outputf32 = (Rpp32f *)realloc(outputf32, spectrogramBufferSize * sizeof(Rpp32f));
+                float* d_outputf32;
+                hipMalloc(&d_outputf32, spectrogramBufferSize * sizeof(Rpp32f));
+
+
+                start_omp = omp_get_wtime();
+                if (ip_bitDepth == 2)
+                {
+                    rppt_spectrogram_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, srcLengthTensor, centerWindows, reflectPadding, windowFn, nfft, power, windowLength, windowStep, layout, handle);
                 }
                 else
                     missingFuncFlag = 1;

@@ -327,4 +327,44 @@ RppStatus rppt_pre_emphasis_filter_gpu(RppPtr_t srcPtr,
 #endif // backend
 }
 
+RppStatus rppt_spectrogram_gpu(RppPtr_t srcPtr,
+                                RpptDescPtr srcDescPtr,
+                                RppPtr_t dstPtr,
+								RpptDescPtr dstDescPtr,
+                                Rpp32s *srcLengthTensor,
+                                bool centerWindows,
+                                bool reflectPadding,
+                                Rpp32f *windowFunction,
+                                Rpp32s nfft,
+                                Rpp32s power,
+                                Rpp32s windowLength,
+                                Rpp32s windowStep,
+                                RpptSpectrogramLayout layout,
+                                rppHandle_t rppHandle)
+{
+#ifdef HIP_COMPILE
+    if (srcDescPtr->dataType == RpptDataType::F32)
+    {
+        hip_exec_spectrogram_tensor((Rpp32f*)srcPtr,
+                                  srcDescPtr,
+                                  (Rpp32f*) dstPtr,
+								  dstDescPtr,
+                                  srcLengthTensor,
+                                  centerWindows,
+                                  reflectPadding,
+                                  windowFunction,
+                                  nfft,
+                                  power,
+                                  windowLength,
+                                  windowStep,
+                                  layout,
+                                  rpp::deref(rppHandle));
+    }
+
+    return RPP_SUCCESS;
+#elif defined(OCL_COMPILE)
+    return RPP_ERROR_NOT_IMPLEMENTED;
+#endif // backend
+}
+
 #endif // GPU_SUPPORT

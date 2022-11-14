@@ -3,8 +3,8 @@ import subprocess
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--case_start', type=str, default='0', help='Testing range starting case # - (1-2)')
-parser.add_argument('--case_end', type=str, default='9', help='Testing range ending case # - (1-2)')
+parser.add_argument('--case_start', type=str, default='0', help='Testing range starting case # - (1-3)')
+parser.add_argument('--case_end', type=str, default='9', help='Testing range ending case # - (1-3)')
 parser.add_argument('--profiling', type=str, default='NO', help='Run with profiler? - (YES/NO)')
 args = parser.parse_args()
 
@@ -16,12 +16,12 @@ if caseEnd < caseStart:
     print("Ending case# must be greater than starting case#. Aborting!")
     exit(0)
 
-if caseStart < "1" or caseStart > "2":
-    print("Starting case# must be in the 1-2 range. Aborting!")
+if caseStart < "1" or caseStart > "3":
+    print("Starting case# must be in the 1-3 range. Aborting!")
     exit(0)
 
-if caseEnd < "1" or caseEnd > "2":
-    print("Ending case# must be in the 1-2 range. Aborting!")
+if caseEnd < "1" or caseEnd > "3":
+    print("Ending case# must be in the 1-3 range. Aborting!")
     exit(0)
 
 if profilingOption == "NO":
@@ -34,6 +34,7 @@ if profilingOption == "NO":
     functionality_group_list = [
         "to_decibels",
         "pre_emphasis_filter",
+        "spectrogram"
     ]
 
     for log_file in log_file_list:
