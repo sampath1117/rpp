@@ -43,20 +43,20 @@ __global__ void spectrogram_tensor(float *srcPtr,
                                         bool centerWindows)
 {
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x);
-    int id_y = (hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y);
+    int id_z = (hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z);
 
-    if (id_y >= numSamples)
+    if (id_z >= numSamples)
         return;
 
-    int numWindow =  ((!centerWindows) ? (srcLengthTensor[id_y] - windowLength) : (srcLengthTensor[id_y])) / windowStep + 1;
+    int numWindow =  ((!centerWindows) ? (srcLengthTensor[id_z] - windowLength) : (srcLengthTensor[id_z])) / windowStep + 1;
     
     if (id_x >= numWindow)
         return;
 
-    float *srcPtrTemp = srcPtr + id_y * srcStridesNH.x;
-    int bufferLength = srcLengthTensor[id_y];
+    float *srcPtrTemp = srcPtr + id_z * srcStridesNH.x;
+    int bufferLength = srcLengthTensor[id_z];
 
-    float* windowOutputTemp = windowOutput + (id_y * windowLength * maxNumWindow) + (id_x * windowLength);
+    float* windowOutputTemp = windowOutput + (id_z * windowLength * maxNumWindow) + (id_x * windowLength);
     int64_t windowStart = (id_x * windowStep) - windowCenterOffset;
     if (windowStart >= 0 && (windowStart + windowLength) < bufferLength) {
         for (int t = 0; t < windowLength; t++) {
@@ -101,30 +101,30 @@ __global__ void fft_tensor(float *dstPtr,
     int id_z = (hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z);
 
 
-    if (id_y >= numSamples)
+    if (id_z >= numSamples)
         return;
 
-    int numWindow =  ((!centerWindows) ? (srcLengthTensor[id_y] - windowLength) : (srcLengthTensor[id_y])) / windowStep + 1;
+    int numWindow =  ((!centerWindows) ? (srcLengthTensor[id_z] - windowLength) : (srcLengthTensor[id_z])) / windowStep + 1;
     
     if (id_x >= numWindow)
         return;
 
-    if (id_z >= numBins)
+    if (id_y >= numBins)
         return;
 
-    float *dstPtrTemp = dstPtr + id_y * dstStridesNH.x;
+    float *dstPtrTemp = dstPtr + id_z * dstStridesNH.x;
 
     unsigned int hStride = dstStridesNH.y;
     // Compute FFT
-    float* windowOutputTemp = windowOutput + (id_y * windowLength * maxNumWindow) + (id_x * windowLength);
+    float* windowOutputTemp = windowOutput + (id_z * windowLength * maxNumWindow) + (id_x * windowLength);
     float real = 0.0f, imag = 0.0f;
-    float factor = (2.0f * id_z * M_PI) / nfft;
+    float factor = (2.0f * id_y * M_PI) / nfft;
     for(int i = 0 ; i < nfft; i++) {
         float x = *windowOutputTemp++;
         real += x * cosf(factor*i);
         imag += -x * sinf(factor*i);
     }
-    int64_t outIdx = (vertical) ? (id_z * hStride + id_x) : (id_x * hStride + id_z);
+    int64_t outIdx = (vertical) ? (id_y * hStride + id_x) : (id_x * hStride + id_y);
     dstPtrTemp[outIdx] = (real*real) + (imag*imag);
     if (power == 1) {
         dstPtrTemp[outIdx] = sqrtf(dstPtrTemp[outIdx]);
@@ -156,11 +156,11 @@ RppStatus hip_exec_spectrogram_tensor(Rpp32f *srcPtr,
     }
 
     int localThreads_x = LOCAL_THREADS_X;
-    int localThreads_y = LOCAL_THREADS_Y;
-    int localThreads_z = LOCAL_THREADS_Z;
+    int localThreads_y = LOCAL_THREADS_Z;
+    int localThreads_z = LOCAL_THREADS_Y;
     int globalThreads_x = maxNumWindow;
-    int globalThreads_y = srcDescPtr->n;
-    int globalThreads_z = 1;
+    int globalThreads_y = 1;
+    int globalThreads_z = srcDescPtr->n;
 
 
     bool vertical = (layout == RpptSpectrogramLayout::FT);
@@ -219,12 +219,12 @@ RppStatus hip_exec_spectrogram_tensor(Rpp32f *srcPtr,
                        centerWindows);
     hipDeviceSynchronize();
 
-    localThreads_x = 8;
-    localThreads_y = 8;
-    localThreads_z = 16;
+    localThreads_x = FFT_LOCAL_THREADS_X;
+    localThreads_y = FFT_LOCAL_THREADS_Y;
+    localThreads_z = FFT_LOCAL_THREADS_Z;
     globalThreads_x = maxNumWindow;
-    globalThreads_y = srcDescPtr->n;
-    globalThreads_z = numBins;
+    globalThreads_y = numBins;
+    globalThreads_z = srcDescPtr->n;
 
     hipLaunchKernelGGL(fft_tensor,
                        dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
