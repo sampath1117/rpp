@@ -9,7 +9,7 @@ void HannWindow_hip(float *output, int N) {
   }
 }
 
-int getOutputSize_hip(int length, int windowLength, int windowStep, bool centerWindows) {
+__device__ int getOutputSize_hip(int length, int windowLength, int windowStep, bool centerWindows) {
     if (!centerWindows)
         length -= windowLength;
     return ((length / windowStep) + 1);
@@ -32,7 +32,6 @@ __device__ int getIdxReflect(int idx, int lo, int hi) {
 __global__ void spectrogram_tensor(float *srcPtr,
                                         uint2 srcStridesNH,
                                         int *srcLengthTensor,
-                                        int *numWindowTensor,
                                         int maxNumWindow,
                                         int numSamples,
                                         int windowCenterOffset,
@@ -40,7 +39,8 @@ __global__ void spectrogram_tensor(float *srcPtr,
                                         float *windowFunction,
                                         float *windowOutput,
                                         int windowLength,
-                                        int windowStep)
+                                        int windowStep,
+                                        bool centerWindows)
 {
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x);
     int id_y = (hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y);
@@ -48,7 +48,9 @@ __global__ void spectrogram_tensor(float *srcPtr,
     if (id_y >= numSamples)
         return;
 
-    if (id_x >= numWindowTensor[id_y])
+    int numWindow =  ((!centerWindows) ? (srcLengthTensor[id_y] - windowLength) : (srcLengthTensor[id_y])) / windowStep + 1;
+    
+    if (id_x >= numWindow)
         return;
 
     float *srcPtrTemp = srcPtr + id_y * srcStridesNH.x;
@@ -81,7 +83,7 @@ __global__ void spectrogram_tensor(float *srcPtr,
 
 __global__ void fft_tensor(float *dstPtr,
                                 uint2 dstStridesNH,
-                                int *numWindowTensor,
+                                int *srcLengthTensor,
                                 int maxNumWindow,
                                 int numSamples,
                                 bool reflectPadding,
@@ -90,7 +92,9 @@ __global__ void fft_tensor(float *dstPtr,
                                 int numBins,
                                 int power,
                                 int windowLength,
-                                bool vertical)
+                                int windowStep,
+                                bool vertical,
+                                bool centerWindows)
 {
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x);
     int id_y = (hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y);
@@ -100,7 +104,9 @@ __global__ void fft_tensor(float *dstPtr,
     if (id_y >= numSamples)
         return;
 
-    if (id_x >= numWindowTensor[id_y])
+    int numWindow =  ((!centerWindows) ? (srcLengthTensor[id_y] - windowLength) : (srcLengthTensor[id_y])) / windowStep + 1;
+    
+    if (id_x >= numWindow)
         return;
 
     if (id_z >= numBins)
@@ -142,14 +148,11 @@ RppStatus hip_exec_spectrogram_tensor(Rpp32f *srcPtr,
                                   rpp::Handle& handle)
 {
     // auto t_start_1 = std::chrono::high_resolution_clock::now();
-    int* numWindowsSrcPtr = (int*)calloc(srcDescPtr->n,sizeof(int));
     int maxNumWindow = -1;
 
     for (int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
 	{
-        Rpp32s bufferLength = srcLengthTensor[batchCount];
-        numWindowsSrcPtr[batchCount] = getOutputSize_hip(bufferLength, windowLength, windowStep,centerWindows);
-        maxNumWindow = maxNumWindow < numWindowsSrcPtr[batchCount] ? numWindowsSrcPtr[batchCount] : maxNumWindow;
+        maxNumWindow = std::max(maxNumWindow,  ((!centerWindows) ? (srcLengthTensor[batchCount] - windowLength) : (srcLengthTensor[batchCount])) / windowStep + 1);
     }
 
     int localThreads_x = LOCAL_THREADS_X;
@@ -191,10 +194,8 @@ RppStatus hip_exec_spectrogram_tensor(Rpp32f *srcPtr,
     hipMemcpy(d_windowOutput, windowOutput, srcDescPtr->n * maxNumWindow * windowLength * sizeof(float), hipMemcpyHostToDevice);
     hipMemcpy(d_windowFunction, windowFunction, windowLength * sizeof(float), hipMemcpyHostToDevice);
 
-    int* d_numWindowsSrcPtr, *d_srcLengthTensor;
-    hipMalloc(&d_numWindowsSrcPtr, srcDescPtr->n * sizeof(int));
+    int *d_srcLengthTensor;
     hipMalloc(&d_srcLengthTensor, srcDescPtr->n * sizeof(int));
-    hipMemcpy(d_numWindowsSrcPtr, numWindowsSrcPtr, srcDescPtr->n * sizeof(int), hipMemcpyHostToDevice);
     hipMemcpy(d_srcLengthTensor, srcLengthTensor, srcDescPtr->n * sizeof(int), hipMemcpyHostToDevice);
     // auto t_end_4 = std::chrono::high_resolution_clock::now();
 
@@ -207,7 +208,6 @@ RppStatus hip_exec_spectrogram_tensor(Rpp32f *srcPtr,
                        srcPtr,
                        make_uint2(srcDescPtr->strides.nStride, srcDescPtr->strides.hStride),
                        d_srcLengthTensor,
-                       d_numWindowsSrcPtr,
                        maxNumWindow,
                        srcDescPtr->n,
                        windowCenterOffset,
@@ -215,7 +215,8 @@ RppStatus hip_exec_spectrogram_tensor(Rpp32f *srcPtr,
                        d_windowFunction,
                        d_windowOutput,
                        windowLength,
-                       windowStep);
+                       windowStep,
+                       centerWindows);
     hipDeviceSynchronize();
 
     localThreads_x = 8;
@@ -232,7 +233,7 @@ RppStatus hip_exec_spectrogram_tensor(Rpp32f *srcPtr,
                        handle.GetStream(),
                        dstPtr,
                        make_uint2(dstDescPtr->strides.nStride, dstDescPtr->strides.hStride),
-                       d_numWindowsSrcPtr,
+                       d_srcLengthTensor,
                        maxNumWindow,
                        srcDescPtr->n,
                        reflectPadding,
@@ -241,7 +242,9 @@ RppStatus hip_exec_spectrogram_tensor(Rpp32f *srcPtr,
                        numBins,
                        power,
                        windowLength,
-                       vertical);
+                       windowStep,
+                       vertical,
+                       centerWindows);
     hipDeviceSynchronize();
 
 
@@ -250,13 +253,11 @@ RppStatus hip_exec_spectrogram_tensor(Rpp32f *srcPtr,
     // auto t_start_6 = std::chrono::high_resolution_clock::now();
     // auto t_start_61 = std::chrono::high_resolution_clock::now();
     hipFree(d_windowFunction);
-    hipFree(d_numWindowsSrcPtr);
     hipFree(d_windowOutput);
     hipFree(d_srcLengthTensor);
     // auto t_end_61 = std::chrono::high_resolution_clock::now();
     // auto t_start_62 = std::chrono::high_resolution_clock::now();
     free(windowFunction);
-    free(numWindowsSrcPtr);
     free(windowOutput);
     // auto t_end_62 = std::chrono::high_resolution_clock::now();
     // auto t_end_6 = std::chrono::high_resolution_clock::now();
