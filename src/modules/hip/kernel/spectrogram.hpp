@@ -151,7 +151,7 @@ __global__ void fftTensor(float *dstPtr,
     // Compute FFT
     float* windowOutputTemp = windowOutput + (id_z * windowLengthStep.x * maxWindowSamples.x) + (id_x * windowLengthStep.x);
     float real = 0.0f, imag = 0.0f;
-    float factor = (2.0f * id_y * M_PI) / fftbins.x;
+    float factor = (2.0f * id_y * PI) / fftbins.x;
     for(int i = 0 ; i < fftbins.x; i++) {
         float x = *windowOutputTemp++;
         real += x * cosf(factor*i);
