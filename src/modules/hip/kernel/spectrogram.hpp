@@ -120,15 +120,12 @@ __global__ void spectrogramTensorHannWindow(float *srcPtr,
 __global__ void fftTensor(float *dstPtr,
                                 uint2 dstStridesNH,
                                 int *srcLengthTensor,
-                                int maxNumWindow,
-                                int numSamples,
+                                uint2 maxWindowSamples,
                                 bool reflectPadding,
                                 float *windowOutput,
-                                int nfft,
-                                int numBins,
+                                uint2 fftbins,
                                 int power,
-                                int windowLength,
-                                int windowStep,
+                                uint2 windowLengthStep,
                                 bool vertical,
                                 bool centerWindows)
 {
@@ -137,25 +134,25 @@ __global__ void fftTensor(float *dstPtr,
     int id_z = (hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z);
 
 
-    if (id_z >= numSamples)
+    if (id_z >= maxWindowSamples.y)
         return;
 
-    int numWindow =  ((!centerWindows) ? (srcLengthTensor[id_z] - windowLength) : (srcLengthTensor[id_z])) / windowStep + 1;
+    int numWindow =  ((!centerWindows) ? (srcLengthTensor[id_z] - windowLengthStep.x) : (srcLengthTensor[id_z])) / windowLengthStep.y + 1;
     
     if (id_x >= numWindow)
         return;
 
-    if (id_y >= numBins)
+    if (id_y >= fftbins.y)
         return;
 
     float *dstPtrTemp = dstPtr + id_z * dstStridesNH.x;
 
     unsigned int hStride = dstStridesNH.y;
     // Compute FFT
-    float* windowOutputTemp = windowOutput + (id_z * windowLength * maxNumWindow) + (id_x * windowLength);
+    float* windowOutputTemp = windowOutput + (id_z * windowLengthStep.x * maxWindowSamples.x) + (id_x * windowLengthStep.x);
     float real = 0.0f, imag = 0.0f;
-    float factor = (2.0f * id_y * M_PI) / nfft;
-    for(int i = 0 ; i < nfft; i++) {
+    float factor = (2.0f * id_y * M_PI) / fftbins.x;
+    for(int i = 0 ; i < fftbins.x; i++) {
         float x = *windowOutputTemp++;
         real += x * cosf(factor*i);
         imag += -x * sinf(factor*i);
@@ -264,15 +261,12 @@ RppStatus hip_exec_spectrogram_tensor(Rpp32f *srcPtr,
                        dstPtr,
                        make_uint2(dstDescPtr->strides.nStride, dstDescPtr->strides.hStride),
                        d_srcLengthTensor,
-                       maxNumWindow,
-                       srcDescPtr->n,
+                       uint2(maxNumWindow,srcDescPtr->n),
                        reflectPadding,
                        d_windowOutput,
-                       nfft,
-                       numBins,
+                       uint2(nfft,numBins),
                        power,
-                       windowLength,
-                       windowStep,
+                       uint2(windowLength,windowStep),
                        vertical,
                        centerWindows);
     hipDeviceSynchronize();
