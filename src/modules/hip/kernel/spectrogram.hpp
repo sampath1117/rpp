@@ -16,7 +16,7 @@ __device__ int getIdxReflect(int idx, int lo, int hi) {
     return idx;
 }
 
-__global__ void spectrogram_tensor(float *srcPtr,
+__global__ void spectrogramTensor(float *srcPtr,
                                         uint2 srcStridesNH,
                                         int *srcLengthTensor,
                                         int maxNumWindow,
@@ -68,7 +68,7 @@ __global__ void spectrogram_tensor(float *srcPtr,
     }
 }
 
-__global__ void spectrogram_tensor_HannWindow(float *srcPtr,
+__global__ void spectrogramTensorHannWindow(float *srcPtr,
                                                 uint2 srcStridesNH,
                                                 int *srcLengthTensor,
                                                 int maxNumWindow,
@@ -121,7 +121,7 @@ __global__ void spectrogram_tensor_HannWindow(float *srcPtr,
     }
 }
 
-__global__ void fft_tensor(float *dstPtr,
+__global__ void fftTensor(float *dstPtr,
                                 uint2 dstStridesNH,
                                 int *srcLengthTensor,
                                 int maxNumWindow,
@@ -220,7 +220,7 @@ RppStatus hip_exec_spectrogram_tensor(Rpp32f *srcPtr,
     int globalThreads_z = srcDescPtr->n;
 
     if (windowFunction == NULL) {
-        hipLaunchKernelGGL(spectrogram_tensor_HannWindow,
+        hipLaunchKernelGGL(spectrogramTensorHannWindow,
                         dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
                         dim3(localThreads_x, localThreads_y, localThreads_z),
                         0,
@@ -237,7 +237,7 @@ RppStatus hip_exec_spectrogram_tensor(Rpp32f *srcPtr,
                         windowStep,
                         centerWindows);
     } else {
-        hipLaunchKernelGGL(spectrogram_tensor,
+        hipLaunchKernelGGL(spectrogramTensor,
                         dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
                         dim3(localThreads_x, localThreads_y, localThreads_z),
                         0,
@@ -264,7 +264,7 @@ RppStatus hip_exec_spectrogram_tensor(Rpp32f *srcPtr,
     globalThreads_y = numBins;
     globalThreads_z = srcDescPtr->n;
 
-    hipLaunchKernelGGL(fft_tensor,
+    hipLaunchKernelGGL(fftTensor,
                        dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
                        dim3(localThreads_x, localThreads_y, localThreads_z),
                        0,
