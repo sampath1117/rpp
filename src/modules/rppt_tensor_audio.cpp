@@ -367,4 +367,40 @@ RppStatus rppt_spectrogram_gpu(RppPtr_t srcPtr,
 #endif // backend
 }
 
+RppStatus rppt_mel_filter_bank_gpu(RppPtr_t srcPtr,
+                                   RpptDescPtr srcDescPtr,
+                                   RppPtr_t dstPtr,
+                                   RpptDescPtr dstDescPtr,
+                                   RpptImagePatchPtr srcDims,
+                                   Rpp32f maxFreq,
+                                   Rpp32f minFreq,
+                                   RpptMelScaleFormula melFormula,
+                                   Rpp32s numFilter,
+                                   Rpp32f sampleRate,
+                                   bool normalize,
+                                   rppHandle_t rppHandle)
+{
+#ifdef HIP_COMPILE
+    if (srcDescPtr->dataType == RpptDataType::F32)
+    {
+        hip_exec_mel_filter_bank_tensor((Rpp32f*)(srcPtr),
+                                        srcDescPtr,
+                                        (Rpp32f*)(dstPtr),
+                                        dstDescPtr,
+                                        srcDims,
+                                        maxFreq,
+                                        minFreq,
+                                        melFormula,
+                                        numFilter,
+                                        sampleRate,
+                                        normalize,
+                                        rpp::deref(rppHandle));
+    }
+
+    return RPP_SUCCESS;
+#elif defined(OCL_COMPILE)
+    return RPP_ERROR_NOT_IMPLEMENTED;
+#endif // backend
+}
+
 #endif // GPU_SUPPORT
