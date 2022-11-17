@@ -50,7 +50,8 @@ RppStatus rppt_crop_host(RppPtr_t srcPtr,
                                dstDescPtr,
                                roiTensorPtrSrc,
                                roiType,
-                               layoutParams);
+                               layoutParams,
+                               rpp::deref(rppHandle).GetInternalBatchSize());
     }
     else if ((srcDescPtr->dataType == RpptDataType::F16) && (dstDescPtr->dataType == RpptDataType::F16))
     {
@@ -60,7 +61,8 @@ RppStatus rppt_crop_host(RppPtr_t srcPtr,
                                  dstDescPtr,
                                  roiTensorPtrSrc,
                                  roiType,
-                                 layoutParams);
+                                 layoutParams,
+                                 rpp::deref(rppHandle).GetInternalBatchSize());
     }
     else if ((srcDescPtr->dataType == RpptDataType::F32) && (dstDescPtr->dataType == RpptDataType::F32))
     {
@@ -70,7 +72,8 @@ RppStatus rppt_crop_host(RppPtr_t srcPtr,
                                  dstDescPtr,
                                  roiTensorPtrSrc,
                                  roiType,
-                                 layoutParams);
+                                 layoutParams,
+                                 rpp::deref(rppHandle).GetInternalBatchSize());
     }
     else if ((srcDescPtr->dataType == RpptDataType::I8) && (dstDescPtr->dataType == RpptDataType::I8))
     {
@@ -80,7 +83,8 @@ RppStatus rppt_crop_host(RppPtr_t srcPtr,
                                dstDescPtr,
                                roiTensorPtrSrc,
                                roiType,
-                               layoutParams);
+                               layoutParams,
+                               rpp::deref(rppHandle).GetInternalBatchSize());
     }
 
     return RPP_SUCCESS;
@@ -112,7 +116,8 @@ RppStatus rppt_crop_mirror_normalize_host(RppPtr_t srcPtr,
                                                 mirrorTensor,
                                                 roiTensorPtrSrc,
                                                 roiType,
-                                                layoutParams);
+                                                layoutParams,
+                                      rpp::deref(rppHandle).GetInternalBatchSize());
     }
     else if ((srcDescPtr->dataType == RpptDataType::F16) && (dstDescPtr->dataType == RpptDataType::F16))
     {
@@ -125,7 +130,8 @@ RppStatus rppt_crop_mirror_normalize_host(RppPtr_t srcPtr,
                                                   mirrorTensor,
                                                   roiTensorPtrSrc,
                                                   roiType,
-                                                  layoutParams);
+                                                  layoutParams,
+                                      rpp::deref(rppHandle).GetInternalBatchSize());
     }
     else if ((srcDescPtr->dataType == RpptDataType::F32) && (dstDescPtr->dataType == RpptDataType::F32))
     {
@@ -138,7 +144,8 @@ RppStatus rppt_crop_mirror_normalize_host(RppPtr_t srcPtr,
                                                   mirrorTensor,
                                                   roiTensorPtrSrc,
                                                   roiType,
-                                                  layoutParams);
+                                                  layoutParams,
+                                      rpp::deref(rppHandle).GetInternalBatchSize());
     }
     else if ((srcDescPtr->dataType == RpptDataType::I8) && (dstDescPtr->dataType == RpptDataType::I8))
     {
@@ -151,7 +158,8 @@ RppStatus rppt_crop_mirror_normalize_host(RppPtr_t srcPtr,
                                                 mirrorTensor,
                                                 roiTensorPtrSrc,
                                                 roiType,
-                                                layoutParams);
+                                                layoutParams,
+                                      rpp::deref(rppHandle).GetInternalBatchSize());
     }
     else if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::F32))
     {
@@ -164,7 +172,8 @@ RppStatus rppt_crop_mirror_normalize_host(RppPtr_t srcPtr,
                                                  mirrorTensor,
                                                  roiTensorPtrSrc,
                                                  roiType,
-                                                 layoutParams);
+                                                 layoutParams,
+                                                 rpp::deref(rppHandle).GetInternalBatchSize());
     }
     else if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::F16))
     {
@@ -177,7 +186,8 @@ RppStatus rppt_crop_mirror_normalize_host(RppPtr_t srcPtr,
                                                  mirrorTensor,
                                                  roiTensorPtrSrc,
                                                  roiType,
-                                                 layoutParams);
+                                                 layoutParams,
+                                                 rpp::deref(rppHandle).GetInternalBatchSize());
     }
 
     return RPP_SUCCESS;
@@ -436,7 +446,8 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr,
                                               dstImgSizes,
                                               roiTensorPtrSrc,
                                               roiType,
-                                              srcLayoutParams);
+                                              srcLayoutParams,
+                                      rpp::deref(rppHandle).GetInternalBatchSize());
         }
         else if ((srcDescPtr->dataType == RpptDataType::F16) && (dstDescPtr->dataType == RpptDataType::F16))
         {
@@ -496,7 +507,8 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr,
                                          roiTensorPtrSrc,
                                          roiType,
                                          srcLayoutParams,
-                                         interpolationType);
+                                         interpolationType,
+                                      rpp::deref(rppHandle).GetInternalBatchSize());
         }
         else if ((srcDescPtr->dataType == RpptDataType::F32) && (dstDescPtr->dataType == RpptDataType::F32))
         {
@@ -510,7 +522,8 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr,
                                          roiTensorPtrSrc,
                                          roiType,
                                          srcLayoutParams,
-                                         interpolationType);
+                                         interpolationType,
+                                      rpp::deref(rppHandle).GetInternalBatchSize());
         }
         else if ((srcDescPtr->dataType == RpptDataType::I8) && (dstDescPtr->dataType == RpptDataType::I8))
         {
@@ -524,7 +537,8 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr,
                                          roiTensorPtrSrc,
                                          roiType,
                                          srcLayoutParams,
-                                         interpolationType);
+                                         interpolationType,
+                                      rpp::deref(rppHandle).GetInternalBatchSize());
         }
         else if ((srcDescPtr->dataType == RpptDataType::F16) && (dstDescPtr->dataType == RpptDataType::F16))
         {
@@ -538,7 +552,8 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr,
                                          roiTensorPtrSrc,
                                          roiType,
                                          srcLayoutParams,
-                                         interpolationType);
+                                         interpolationType,
+                                      rpp::deref(rppHandle).GetInternalBatchSize());
         }
     }
 
