@@ -65,10 +65,11 @@ RppStatus resample_host_tensor(Rpp32f *srcPtr,
                                Rpp32f *outRateTensor,
                                Rpp32s *srcLengthTensor,
                                Rpp32s *channelTensor,
-                               Rpp32f quality)
+                               Rpp32f quality,
+                               size_t internal_batch_size)
 {
 	omp_set_dynamic(0);
-#pragma omp parallel for num_threads(srcDescPtr->n)
+#pragma omp parallel for num_threads(internal_batch_size)
 	for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
 	{
 		Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;

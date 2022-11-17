@@ -9,7 +9,8 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
                                   RpptImagePatchPtr srcDims,
                                   Rpp32f cutOffDB,
                                   Rpp32f multiplier,
-                                  Rpp32f referenceMagnitude)
+                                  Rpp32f referenceMagnitude,
+                                  size_t internal_batch_size)
 {
     bool referenceMax = (referenceMagnitude == 0.0) ? false : true;
 
@@ -25,7 +26,7 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
     __m256 pMinRatio = _mm256_set1_ps(minRatio);
 
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(srcDescPtr->n)
+#pragma omp parallel for num_threads(internal_batch_size)
     for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
     {
         Rpp32f *srcPtrCurrent = srcPtr + batchCount * srcDescPtr->strides.nStride;

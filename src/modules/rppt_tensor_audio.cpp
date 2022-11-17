@@ -49,7 +49,8 @@ RppStatus rppt_non_silent_region_detection_host(RppPtr_t srcPtr,
                                             cutOffDB,
                                             windowLength,
                                             referencePower,
-                                            resetInterval);
+                                            resetInterval,
+                                            rpp::deref(rppHandle).GetInternalBatchSize());
 
     return RPP_SUCCESS;
 }
@@ -70,7 +71,8 @@ RppStatus rppt_to_decibels_host(RppPtr_t srcPtr,
                             srcDims,
                             cutOffDB,
                             multiplier,
-                            referenceMagnitude);
+                            referenceMagnitude,
+                            rpp::deref(rppHandle).GetInternalBatchSize());
 
     return RPP_SUCCESS;
 }
@@ -89,7 +91,8 @@ RppStatus rppt_pre_emphasis_filter_host(RppPtr_t srcPtr,
                                     dstDescPtr,
                                     srcLengthTensor,
                                     coeffTensor,
-                                    borderType);
+                                    borderType,
+                                    rpp::deref(rppHandle).GetInternalBatchSize());
 
     return RPP_SUCCESS;
 }
@@ -108,7 +111,8 @@ RppStatus rppt_down_mixing_host(RppPtr_t srcPtr,
                             dstDescPtr,
                             srcLengthTensor,
                             channelsTensor,
-                            normalizeWeights);
+                            normalizeWeights,
+                            rpp::deref(rppHandle).GetInternalBatchSize());
 
     return RPP_SUCCESS;
 }
@@ -137,7 +141,8 @@ RppStatus rppt_slice_host(RppPtr_t srcPtr,
                       fillValues,
                       normalizedAnchor,
                       normalizedShape,
-                      policyType);
+                      policyType,
+                      rpp::deref(rppHandle).GetInternalBatchSize());
 
     return RPP_SUCCESS;
 }
@@ -164,7 +169,8 @@ RppStatus rppt_mel_filter_bank_host(RppPtr_t srcPtr,
                                 melFormula,
                                 numFilter,
                                 sampleRate,
-                                normalize);
+                                normalize,
+                                rpp::deref(rppHandle).GetInternalBatchSize());
 
     return RPP_SUCCESS;
 }
@@ -195,7 +201,8 @@ RppStatus rppt_spectrogram_host(RppPtr_t srcPtr,
                             power,
                             windowLength,
                             windowStep,
-                            layout);
+                            layout,
+                            rpp::deref(rppHandle).GetInternalBatchSize());
 
     return RPP_SUCCESS;
 }
@@ -218,7 +225,8 @@ RppStatus rppt_resample_host(RppPtr_t srcPtr,
                          outRateTensor,
                          srcLengthTensor,
                          channelsTensor,
-                         quality);
+                         quality,
+                         rpp::deref(rppHandle).GetInternalBatchSize());
 
     return RPP_SUCCESS;
 }
@@ -251,7 +259,8 @@ RppStatus rppt_normalize_audio_host(RppPtr_t srcPtr,
                                 shift,
                                 epsilon,
                                 ddof,
-                                numOfDims);
+                                numOfDims,
+                                rpp::deref(rppHandle).GetInternalBatchSize());
     return RPP_SUCCESS;
 }
 

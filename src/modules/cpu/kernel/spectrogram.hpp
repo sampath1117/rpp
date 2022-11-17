@@ -53,7 +53,8 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
                                   Rpp32s power,
                                   Rpp32s windowLength,
                                   Rpp32s windowStep,
-                                  RpptSpectrogramLayout layout)
+                                  RpptSpectrogramLayout layout,
+                                  size_t internal_batch_size)
 {
     Rpp32s windowCenterOffset = 0;
     bool vertical = (layout == RpptSpectrogramLayout::FT);
@@ -92,7 +93,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
 
     if (vertical) {
         omp_set_dynamic(0);
-        #pragma omp parallel for num_threads(8)
+        #pragma omp parallel for num_threads(internal_batch_size)
         for (int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
         {
             Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
@@ -219,7 +220,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
         float* fftImag = (float*)calloc(srcDescPtr->n*numBins,sizeof(float));
 
         omp_set_dynamic(0);
-        #pragma omp parallel for num_threads(srcDescPtr->n)
+        #pragma omp parallel for num_threads(internal_batch_size)
         for (int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
         {
             Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;

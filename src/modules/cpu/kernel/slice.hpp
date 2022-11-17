@@ -33,10 +33,11 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
                             Rpp32f *fillValues,
                             bool normalizedAnchor,
                             bool normalizedShape,
-                            RpptOutOfBoundsPolicy policyType)
+                            RpptOutOfBoundsPolicy policyType,
+                            size_t internal_batch_size)
 {
 	omp_set_dynamic(0);
-#pragma omp parallel for num_threads(srcDescPtr->n)
+#pragma omp parallel for num_threads(internal_batch_size)
 	for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
 	{
 		Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;

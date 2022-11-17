@@ -16,10 +16,11 @@ RppStatus down_mixing_host_tensor(Rpp32f *srcPtr,
                                   RpptDescPtr dstDescPtr,
                                   Rpp32s *srcLengthTensor,
                                   Rpp32s *channelsTensor,
-                                  bool normalizeWeights)
+                                  bool normalizeWeights,
+                                  size_t internal_batch_size)
 {
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(srcDescPtr->n)
+#pragma omp parallel for num_threads(internal_batch_size)
     for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
     {
         Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
