@@ -35,7 +35,7 @@ RppStatus mel_filter_bank_host_tensor(Rpp32f *srcPtr,
 
         // Extract nfft, number of Frames, numBins
         Rpp32s nfft = (srcDims[batchCount].height - 1) * 2;
-        Rpp32s numBins = nfft / 2 + 1;
+        Rpp32s numBins = nfft / 2 + 1; // height
         Rpp32s numFrames = srcDims[batchCount].width;
 
         if(maxFreq == 0.0f)
@@ -63,88 +63,60 @@ RppStatus mel_filter_bank_host_tensor(Rpp32f *srcPtr,
         Rpp32s fftBin = fftBinStart;
         Rpp64f mel0 = melLow, mel1 = melLow + melStep;
         Rpp64f f = fftBin * hzStep;
-        for (int interval = 0; interval < numFilter + 1; interval++, mel0 = mel1, mel1 += melStep) {
-            Rpp64f f0 = melScalePtr->mel_to_hz(mel0);
-            Rpp64f f1 = melScalePtr->mel_to_hz(interval == numFilter ? melHigh : mel1);
+       
+        Rpp32f *srcRowPtr = srcPtrTemp + fftBinStart * numFrames;
+        for (int interval = 0; interval < numFilter + 1; interval++) {
+            Rpp64f tempMel = mel0 + interval * melStep;
+            Rpp64f f0 = melScalePtr->mel_to_hz(tempMel);
+            Rpp64f f1 = melScalePtr->mel_to_hz(interval == numFilter ? melHigh : (tempMel + melStep));
             Rpp64f slope = 1. / (f1 - f0);
 
             if (normalize && interval < numFilter) {
-                Rpp64f f2 = melScalePtr->mel_to_hz(mel1 + melStep);
+                Rpp64f f2 = melScalePtr->mel_to_hz((tempMel + melStep + melStep));
                 normFactors[interval] = 2.0 / (f2 - f0);
             }
 
             for (; fftBin <= fftBinEnd && f < f1; fftBin++, f = fftBin * hzStep) {
                 weightsDown[fftBin] = (f1 - f) * slope;
                 intervals[fftBin] = interval;
+                
+                auto filterUp = intervals[fftBin];
+                auto weightUp = 1.0f - weightsDown[fftBin];
+                auto filterDown = filterUp - 1;
+                auto weightDown = weightsDown[fftBin];
+                
+                if (filterDown >= 0) {
+                    Rpp32f *dstRowPtrTemp = dstPtrTemp + filterDown * dstDescPtr->strides.hStride;
+                    Rpp32f *srcRowPtrTemp = srcRowPtr;
+
+                    if (normalize)
+                        weightDown *= normFactors[filterDown];
+
+                    int vectorLoopCount = 0;
+                    for (; vectorLoopCount < numFrames; vectorLoopCount++) {
+                        (*dstRowPtrTemp) += weightDown * (*srcRowPtrTemp);
+                        dstRowPtrTemp++;
+                        srcRowPtrTemp++;
+                    }
+                }
+
+                if (filterUp >= 0 && filterUp < numFilter) {
+                    Rpp32f *dstRowPtrTemp = dstPtrTemp + filterUp *  dstDescPtr->strides.hStride;
+                    Rpp32f *srcRowPtrTemp = srcRowPtr;
+
+                    if (normalize)
+                        weightUp *= normFactors[filterUp];
+
+                    int vectorLoopCount = 0;
+                    for (; vectorLoopCount < numFrames; vectorLoopCount++) {
+                        (*dstRowPtrTemp) += weightUp * (*srcRowPtrTemp);
+                        dstRowPtrTemp++;
+                        srcRowPtrTemp++;
+                    }
+                }
+                srcRowPtr += srcDescPtr->strides.hStride;
+                f = (fftBin + 1) * hzStep;
             }
-        }
-
-        // Set all values in dst buffer to 0.0
-        memset(dstPtrTemp, 0.0f, (size_t)(numFilter * numFrames * sizeof(Rpp32f)));
-
-        Rpp32u vectorIncrement = 8;
-		Rpp32u alignedLength = (numFrames / 8) * 8;
-        __m256 pSrc, pDst;
-        Rpp32f *srcRowPtr = srcPtrTemp + fftBinStart * numFrames;
-        for (int64_t fftBin = fftBinStart; fftBin <= fftBinEnd; fftBin++) {
-            auto filterUp = intervals[fftBin];
-            auto weightUp = 1.0f - weightsDown[fftBin];
-            auto filterDown = filterUp - 1;
-            auto weightDown = weightsDown[fftBin];
-
-            if (filterDown >= 0) {
-                Rpp32f *dstRowPtrTemp = dstPtrTemp + filterDown * dstDescPtr->strides.hStride;
-                Rpp32f *srcRowPtrTemp = srcRowPtr;
-
-                if (normalize)
-                    weightDown *= normFactors[filterDown];
-                __m256 pWeightDown = _mm256_set1_ps(weightDown);
-
-                int vectorLoopCount = 0;
-                for(; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement) {
-                    pSrc = _mm256_loadu_ps(srcRowPtrTemp);
-                    pSrc = _mm256_mul_ps(pSrc, pWeightDown);
-                    pDst = _mm256_loadu_ps(dstRowPtrTemp);
-                    pDst = _mm256_add_ps(pDst, pSrc);
-                    _mm256_storeu_ps(dstRowPtrTemp, pDst);
-                    dstRowPtrTemp += vectorIncrement;
-                    srcRowPtrTemp += vectorIncrement;
-                }
-
-                for (; vectorLoopCount < numFrames; vectorLoopCount++) {
-                    (*dstRowPtrTemp) += weightDown * (*srcRowPtrTemp);
-                    dstRowPtrTemp++;
-                    srcRowPtrTemp++;
-                }
-            }
-
-            if (filterUp >= 0 && filterUp < numFilter) {
-                Rpp32f *dstRowPtrTemp = dstPtrTemp + filterUp *  dstDescPtr->strides.hStride;
-                Rpp32f *srcRowPtrTemp = srcRowPtr;
-
-                if (normalize)
-                    weightUp *= normFactors[filterUp];
-                __m256 pWeightUp = _mm256_set1_ps(weightUp);
-
-                int vectorLoopCount = 0;
-                for(; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement) {
-                    pSrc = _mm256_loadu_ps(srcRowPtrTemp);
-                    pSrc = _mm256_mul_ps(pSrc, pWeightUp);
-                    pDst = _mm256_loadu_ps(dstRowPtrTemp);
-                    pDst = _mm256_add_ps(pDst, pSrc);
-                    _mm256_storeu_ps(dstRowPtrTemp, pDst);
-                    dstRowPtrTemp += vectorIncrement;
-                    srcRowPtrTemp += vectorIncrement;
-                }
-
-                for (; vectorLoopCount < numFrames; vectorLoopCount++) {
-                    (*dstRowPtrTemp) += weightUp * (*srcRowPtrTemp);
-                    dstRowPtrTemp++;
-                    srcRowPtrTemp++;
-                }
-            }
-
-            srcRowPtr += srcDescPtr->strides.hStride;
         }
     }
     delete melScalePtr;
