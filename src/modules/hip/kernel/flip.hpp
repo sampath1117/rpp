@@ -24,6 +24,7 @@ __global__ void flip_pkd_tensor(T *srcPtr,
     uint srcIdx = id_z * srcStridesNH.x;
     uint horizontalFlag = horizontalTensor[id_z];
     uint verticalFlag = verticalTensor[id_z];
+    uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + id_x * 3;
 
     if(horizontalFlag == 0 && verticalFlag == 0)
     {
@@ -32,12 +33,33 @@ __global__ void flip_pkd_tensor(T *srcPtr,
     }
     else if(horizontalFlag == 1 && verticalFlag == 1)
     {
-        srcIdx += ((roiTensorPtrSrc[id_z].ltrbROI.rb.y - id_y) * srcStridesNH.y) + (roiTensorPtrSrc[id_z].ltrbROI.rb.x - id_x - 7) * 3;
+        // Temporary change - To handle the case when trying to load from invalid memory location when width is not a multiple of 8
+        // This additional condition will be removed once the changes for adding an additional offset memory to allocated input memory are done in MIVisionX
+        if((id_z == 0) && (id_y == 0) && (id_x + 8) > roiTensorPtrSrc[id_z].ltrbROI.rb.x + 1)
+        {
+            srcIdx += ((roiTensorPtrSrc[id_z].ltrbROI.rb.y - id_y) * srcStridesNH.y) + (roiTensorPtrSrc[id_z].ltrbROI.lt.x) * 3;
+            dstIdx -= (roiTensorPtrSrc[id_z].ltrbROI.rb.x + 1 - id_x) * 3;
+        }
+        else
+        {
+            srcIdx += ((roiTensorPtrSrc[id_z].ltrbROI.rb.y - id_y) * srcStridesNH.y) + (roiTensorPtrSrc[id_z].ltrbROI.rb.x - id_x - 7) * 3;
+        }
+
         rpp_hip_load24_pkd3_and_unpack_to_float24_pln3_mirror(srcPtr + srcIdx, &pix_f24);
     }
     else if(horizontalFlag == 1)
     {
-        srcIdx += ((id_y + roiTensorPtrSrc[id_z].ltrbROI.lt.y) * srcStridesNH.y) + (roiTensorPtrSrc[id_z].ltrbROI.rb.x - id_x - 7) * 3;
+        // Temporary change - To handle the case when trying to load from invalid memory location when width is not a multiple of 8
+        // This additional condition will be removed once the changes for adding an additional offset memory to allocated input memory are done in MIVisionX
+        if((id_z == 0) && (id_y == 0) && (id_x + 8) > roiTensorPtrSrc[id_z].ltrbROI.rb.x + 1)
+        {
+            srcIdx += ((id_y + roiTensorPtrSrc[id_z].ltrbROI.lt.y) * srcStridesNH.y) + (roiTensorPtrSrc[id_z].ltrbROI.lt.x) * 3;
+            dstIdx -= (roiTensorPtrSrc[id_z].ltrbROI.rb.x + 1 - id_x) * 3;
+        }
+        else
+        {
+            srcIdx += ((id_y + roiTensorPtrSrc[id_z].ltrbROI.lt.y) * srcStridesNH.y) + (roiTensorPtrSrc[id_z].ltrbROI.rb.x - id_x - 7) * 3;
+        }
         rpp_hip_load24_pkd3_and_unpack_to_float24_pln3_mirror(srcPtr + srcIdx, &pix_f24);
     }
     else
@@ -46,7 +68,6 @@ __global__ void flip_pkd_tensor(T *srcPtr,
         rpp_hip_load24_pkd3_and_unpack_to_float24_pln3(srcPtr + srcIdx, &pix_f24);
     }
 
-    uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + id_x * 3;
     rpp_hip_pack_float24_pln3_and_store24_pkd3(dstPtr + dstIdx, &pix_f24);
 }
 
