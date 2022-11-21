@@ -87,14 +87,14 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
 
     Rpp32s alignednfftLength = (nfft / 8) * 8;
     Rpp32s alignednbinsLength = (numBins / 8) * 8;
+    Rpp32s alignedwindowLength = (windowLength / 8) * 8;
 
 
     if (vertical) {
         omp_set_dynamic(0);
-        #pragma omp parallel for num_threads(srcDescPtr->n)
+        #pragma omp parallel for num_threads(8)
         for (int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
         {
-            //std::cout << "Batch count 11 : " << batchCount << std::endl;
             Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
             Rpp32f *dstPtrTemp = dstPtr + batchCount * dstDescPtr->strides.nStride;
             Rpp32s bufferLength = srcLengthTensor[batchCount];
@@ -120,10 +120,24 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
                         }
                     }
                 } else {
-                    for (int t = 0; t < windowLength; t++) {
-                        int64_t inIdx = windowStart + t;
-                        *windowOutputTemp++ = windowFn[t] * srcPtrTemp[inIdx];
+                    Rpp32f* srcPtrWindowTemp = srcPtrTemp  + windowStart;
+                    Rpp32f* windowFnTemp = windowFn.data();
+                    int t = 0;
+                    for (; t < alignedwindowLength; t += 8) {
+                        __m256 pSrc, pWindowFn;
+                        pSrc = _mm256_loadu_ps(srcPtrWindowTemp);
+                        pWindowFn = _mm256_loadu_ps(windowFnTemp);
+                        pSrc = _mm256_mul_ps(pSrc, pWindowFn);
+                        _mm256_storeu_ps(windowOutputTemp, pSrc);
+                        srcPtrWindowTemp += 8;
+                        windowFnTemp += 8;
+                        windowOutputTemp += 8;
                     }
+                    
+                    for (; t < windowLength; t++) {
+                        *windowOutputTemp++ = (*windowFnTemp++) * (*srcPtrWindowTemp++);
+                    }
+                    
                 }
             }
 
@@ -233,9 +247,22 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
                         }
                     }
                 } else {
-                    for (int t = 0; t < windowLength; t++) {
-                        int64_t inIdx = windowStart + t;
-                        *windowOutputTemp++ = windowFn[t] * srcPtrTemp[inIdx];
+                    Rpp32f* srcPtrWindowTemp = srcPtrTemp  + windowStart;
+                    Rpp32f* windowFnTemp = windowFn.data();
+                    int t = 0;
+                    for (; t < alignedwindowLength; t += 8) {
+                        __m256 pSrc, pWindowFn;
+                        pSrc = _mm256_loadu_ps(srcPtrWindowTemp);
+                        pWindowFn = _mm256_loadu_ps(windowFnTemp);
+                        pSrc = _mm256_mul_ps(pSrc, pWindowFn);
+                        _mm256_storeu_ps(windowOutputTemp, pSrc);
+                        srcPtrWindowTemp += 8;
+                        windowFnTemp += 8;
+                        windowOutputTemp += 8;
+                    }
+                    
+                    for (; t < windowLength; t++) {
+                        *windowOutputTemp++ = (*windowFnTemp++) * (*srcPtrWindowTemp++);
                     }
                 }
 
