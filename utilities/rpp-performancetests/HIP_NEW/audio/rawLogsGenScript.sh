@@ -24,7 +24,7 @@ SRC_FOLDER="$DEFAULT_SRC_FOLDER"
 DST_FOLDER="$DEFAULT_DST_FOLDER"
 
 # <<<<<<<<<<<<<< EXECUTION OF ALL FUNCTIONALITIES (NEED NOT CHANGE) >>>>>>>>>>>>>>
-if [[ "$1" -lt 1 ]] | [[ "$1" -gt 3 ]]; then
+if [[ "$1" -lt 1 ]] | [[ "$1" -gt 6 ]]; then
     echo "The starting case# must be in the 1-3 range!"
     echo
     echo "The rawLogsGenScript.sh bash script runs the RPP audio unittest testsuite for AMDRPP functionalities in HIP/OCL/HIP backends."
@@ -35,7 +35,7 @@ if [[ "$1" -lt 1 ]] | [[ "$1" -gt 3 ]]; then
     exit 1
 fi
 
-if [[ "$2" -lt 1 ]] | [[ "$2" -gt 3 ]]; then
+if [[ "$2" -lt 1 ]] | [[ "$2" -gt 6 ]]; then
     echo "The ending case# must be in the 1-3 range!"
     echo
     echo "The rawLogsGenScript.sh bash script runs the RPP audio unittest testsuite for AMDRPP functionalities in HIP/OCL/HIP backends."

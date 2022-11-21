@@ -36,9 +36,9 @@ void read_from_text_files(Rpp32f *srcPtr, RpptDescPtr srcDescPtr, RpptImagePatch
 {
     fstream ref_file;
     string ref_path = get_current_dir_name();
-    string pattern = "HOST_NEW/audio/build";
+    string pattern = "rpp-performancetests/HOST_NEW/audio/build";
     remove_substring(ref_path, pattern);
-    ref_path = ref_path + "REFERENCE_OUTPUTS_AUDIO/";
+    ref_path = ref_path + "rpp-unittests/REFERENCE_OUTPUTS_AUDIO/";
 
     string read_type_str;
     if(read_type == 0)

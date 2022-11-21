@@ -36,9 +36,9 @@ void read_from_text_files(Rpp32f *srcPtr, RpptDescPtr srcDescPtr, RpptImagePatch
 {
     fstream ref_file;
     string ref_path = get_current_dir_name();
-    string pattern = "HOST_NEW/audio/build";
+    string pattern = "rpp-performancetests/HIP_NEW/audio/build";
     remove_substring(ref_path, pattern);
-    ref_path = ref_path + "REFERENCE_OUTPUTS_AUDIO/";
+    ref_path = ref_path + "rpp-unittests/REFERENCE_OUTPUTS_AUDIO/";
 
     string read_type_str;
     if(read_type == 0)
@@ -115,6 +115,9 @@ int main(int argc, char **argv)
             break;
         case 3:
             strcpy(funcName, "spectrogram");
+            break;
+        case 5:
+            strcpy(funcName, "mel_filter_bank");
             break;
         default:
             strcpy(funcName, "test_case");
@@ -461,6 +464,79 @@ int main(int argc, char **argv)
                     missingFuncFlag = 1;
 
                 break;
+            }
+            case 5:
+            {
+                test_case_name = "mel_filter_bank";
+
+                Rpp32f sampleRate = 16000;
+                Rpp32f minFreq = 0.0;
+                Rpp32f maxFreq = sampleRate / 2;
+                RpptMelScaleFormula melFormula = RpptMelScaleFormula::SLANEY;
+                Rpp32s numFilter = 128;
+                bool normalize = true;
+
+                // Read source dimension
+                read_from_text_files(inputf32, srcDescPtr, srcDims, "spectrogram", 1, audioNames);
+
+                maxDstHeight = 0;
+                maxDstWidth = 0;
+                maxSrcHeight = 0;
+                maxSrcWidth = 0;
+                for(int i = 0; i < noOfAudioFiles; i++)
+                {
+                    maxSrcHeight = std::max(maxSrcHeight, (int)srcDims[i].height);
+                    maxSrcWidth = std::max(maxSrcWidth, (int)srcDims[i].width);
+                    dstDims[i].height = numFilter;
+                    dstDims[i].width = srcDims[i].width;
+                    maxDstHeight = std::max(maxDstHeight, (int)dstDims[i].height);
+                    maxDstWidth = std::max(maxDstWidth, (int)dstDims[i].width);
+                }
+
+                srcDescPtr->h = maxSrcHeight;
+                srcDescPtr->w = maxSrcWidth;
+                dstDescPtr->h = maxDstHeight;
+                dstDescPtr->w = maxDstWidth;
+
+                // Optionally set w stride as a multiple of 8 for dst
+                srcDescPtr->w = ((srcDescPtr->w / 8) * 8) + 8;
+                dstDescPtr->w = ((dstDescPtr->w / 8) * 8) + 8;
+
+                srcDescPtr->strides.nStride = srcDescPtr->c * srcDescPtr->w * srcDescPtr->h;
+                srcDescPtr->strides.hStride = srcDescPtr->c * srcDescPtr->w;
+                srcDescPtr->strides.wStride = srcDescPtr->c;
+                srcDescPtr->strides.cStride = 1;
+
+                dstDescPtr->strides.nStride = dstDescPtr->c * dstDescPtr->w * dstDescPtr->h;
+                dstDescPtr->strides.hStride = dstDescPtr->c * dstDescPtr->w;
+                dstDescPtr->strides.wStride = dstDescPtr->c;
+                dstDescPtr->strides.cStride = 1;
+
+                // Set buffer sizes for src/dst
+                unsigned long long spectrogramBufferSize = (unsigned long long)srcDescPtr->h * (unsigned long long)srcDescPtr->w * (unsigned long long)srcDescPtr->c * (unsigned long long)srcDescPtr->n;
+                unsigned long long melFilterBufferSize = (unsigned long long)dstDescPtr->h * (unsigned long long)dstDescPtr->w * (unsigned long long)dstDescPtr->c * (unsigned long long)dstDescPtr->n;
+                inputf32 = (Rpp32f *)realloc(inputf32, spectrogramBufferSize * sizeof(Rpp32f));
+                outputf32 = (Rpp32f *)realloc(outputf32, melFilterBufferSize * sizeof(Rpp32f));
+
+                // Read source data
+                read_from_text_files(inputf32, srcDescPtr, srcDims, "spectrogram", 0, audioNames);
+
+                float* d_inputf32, *d_outputf32;
+                hipMalloc(&d_inputf32, spectrogramBufferSize * sizeof(Rpp32f));
+                hipMalloc(&d_outputf32, melFilterBufferSize * sizeof(Rpp32f));
+                hipMemcpy(d_inputf32, inputf32, spectrogramBufferSize * sizeof(Rpp32f), hipMemcpyHostToDevice);
+                hipMemset(d_outputf32, 0.0f, melFilterBufferSize * sizeof(Rpp32f));
+            
+                start_omp = omp_get_wtime();
+                if (ip_bitDepth == 2)
+                {
+                    rppt_mel_filter_bank_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, srcDims, maxFreq, minFreq, melFormula, numFilter, sampleRate, normalize, handle);
+                }
+                else
+                    missingFuncFlag = 1;
+
+                break;
+
             }
             default:
             {
