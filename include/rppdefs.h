@@ -37,6 +37,9 @@ THE SOFTWARE.
 #define RPP_MIN_16U     ( 0 )
 #define RPP_MAX_16U     ( 65535 )
 
+const float ONE_OVER_6 = 1.0f / 6;
+const float ONE_OVER_3 = 1.0f / 3;
+
 /******************** RPP typedefs ********************/
 
 typedef unsigned char       Rpp8u;
@@ -129,6 +132,16 @@ typedef struct
 {
     Rpp32f data[6];
 } Rpp32f6;
+
+typedef struct
+{
+    Rpp32s data[24];
+} Rpp32s24;
+
+typedef struct
+{
+    Rpp32f data[24];
+} Rpp32f24;
 
 /******************** RPPI typedefs ********************/
 
@@ -320,6 +333,22 @@ typedef struct
     int boxMullerFlag;
     float boxMullerExtra;
 } RpptXorwowStateBoxMuller;
+
+typedef struct
+{
+    Rpp32s24 srcLocsTL;
+    Rpp32s24 srcLocsTR;
+    Rpp32s24 srcLocsBL;
+    Rpp32s24 srcLocsBR;
+} RpptBilinearNbhoodLocsVecLen8;
+
+typedef struct
+{
+    Rpp32f24 srcValsTL;
+    Rpp32f24 srcValsTR;
+    Rpp32f24 srcValsBL;
+    Rpp32f24 srcValsBR;
+} RpptBilinearNbhoodValsVecLen8;
 
 typedef struct Filter
 {

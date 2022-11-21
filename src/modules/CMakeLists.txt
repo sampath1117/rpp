@@ -27,13 +27,13 @@ elseif( "${BACKEND}" STREQUAL "OCL")
 endif()
 
 list(APPEND Rpp_Source ${PROJECT_BINARY_DIR}/rpp_kernels.h)
-message("-- Added custom command for rpp_kernels")
+message("-- ${Green}${PROJECT_NAME} -- Adding custom commands to rpp_kernels${ColourReset}")
 add_custom_command(
     OUTPUT ${PROJECT_BINARY_DIR}/rpp_kernels.h
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     DEPENDS addkernels ${RPP_KERNELS} ${RPP_KERNEL_INCLUDES}
     COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -guard GUARD_RPP_KERNELS_HPP_ -target ${PROJECT_BINARY_DIR}/rpp_kernels.h -source ${RPP_KERNELS}
-    COMMENT "Inlining Rpp kernels"
+    COMMENT "Inlining RPP kernels"
     )
 
 function(add_kernels KERNEL_FILES)
@@ -97,9 +97,9 @@ if( "${BACKEND}" STREQUAL "HIP")
     add_definitions(-DHIP_COMPILE)
 
     # Add HIP specific includes
-    set(HIP_INC ${ROCM_PATH}/include/)
-    list(APPEND HIP_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/src/include/hip/ ${CMAKE_SOURCE_DIR}/src/include/common/)
-    set(INCLUDE_LIST ${HIP_INCLUDE_DIRS} ${HIP_INC} ${INCLUDE_LIST})
+    set(ROCM_INC ${ROCM_PATH}/include/)
+    list(APPEND HIP_LOCAL_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/src/include/hip/ ${CMAKE_SOURCE_DIR}/src/include/common/)
+    set(INCLUDE_LIST ${ROCM_INC} ${HIP_LOCAL_INCLUDE_DIRS} ${INCLUDE_LIST})
 elseif( "${BACKEND}" STREQUAL "OCL")
     # Add OpenCL kernels
     file(GLOB MOD_CL_CPP "cl/*.cpp" )
@@ -113,15 +113,12 @@ elseif( "${BACKEND}" STREQUAL "OCL")
 
     # Add OpenCL specific includes
     set(ROCM_INC ${ROCM_PATH}/include/)
-    # list(APPEND OpenCL_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/src/include/cl/ ${CMAKE_SOURCE_DIR}/src/include/common/) # using substitute since OpenCL_INCLUDE_DIRS points to a deprecated /opt/rocm/opencl/include
-    # set(INCLUDE_LIST ${OpenCL_INCLUDE_DIRS} ${INCLUDE_LIST} ${ROCM_INC}) # using substitute since OpenCL_INCLUDE_DIRS points to a deprecated /opt/rocm/opencl/include
-    list(APPEND INCLUDE_LIST ${CMAKE_SOURCE_DIR}/src/include/cl/ ${CMAKE_SOURCE_DIR}/src/include/common/)
-    set(INCLUDE_LIST ${INCLUDE_LIST} ${ROCM_INC})
+    list(APPEND OCL_LOCAL_INCLUDE_LIST ${CMAKE_SOURCE_DIR}/src/include/cl/ ${CMAKE_SOURCE_DIR}/src/include/common/)
+    set(INCLUDE_LIST ${ROCM_INC} ${OCL_LOCAL_INCLUDE_LIST} ${INCLUDE_LIST})
 elseif( "${BACKEND}" STREQUAL "CPU")
     # Add CPU specific includes
     set(INCLUDE_LIST ${CMAKE_SOURCE_DIR}/src/include/common/)
 endif()
-#message("-- ${White}AMD RPP ${PROJECT_NAME} -- CMAKE_CXX_FLAGS:${CMAKE_CXX_FLAGS}${ColourReset}")
 message("-- ${White}AMD RPP ${PROJECT_NAME} -- Include Directories:${INCLUDE_LIST}${ColourReset}")
 # Kernels and includes additions
 
@@ -129,16 +126,14 @@ add_kernels("${RPP_KERNELS}")
 add_kernel_includes("${RPP_KERNEL_INCLUDES}")
 
 # Add library
-
 add_library(${PROJECT_NAME} OBJECT ${Rpp_Source})
 
 # Target settings
-
 set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories( ${PROJECT_NAME}
     PUBLIC
         ${CMAKE_SOURCE_DIR}/include
-        ${HIP_INC}
+        ${ROCM_INC}
     PRIVATE
         ${CMAKE_SOURCE_DIR}/src/include/cpu
         ${CMAKE_SOURCE_DIR}/src/include/common
@@ -149,11 +144,12 @@ target_include_directories( ${PROJECT_NAME}
 if( "${BACKEND}" STREQUAL "HIP")
     target_include_directories(${PROJECT_NAME}
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/include/hip
+        ${CMAKE_SOURCE_DIR}/src/include/hip
     )
+    target_link_libraries(${PROJECT_NAME} hip::device)
 elseif( "${BACKEND}" STREQUAL "OCL")
     target_include_directories(${PROJECT_NAME}
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/include/cl
+        ${CMAKE_SOURCE_DIR}/src/include/cl
     )
 endif()
