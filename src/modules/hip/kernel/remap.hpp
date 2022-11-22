@@ -1,6 +1,26 @@
 #include <hip/hip_runtime.h>
 #include "rpp_hip_common.hpp"
 
+__device__ float4 rpp_hip_load4(uint *table, uint4 &tableValLoc)
+{
+    return make_float4(table[tableValLoc.x], table[tableValLoc.y], table[tableValLoc.z], table[tableValLoc.w]);
+}
+
+__device__ void remap_srclocs_hip_compute(int4 *srcRoiPtr_i4, uint *rowRemapTable, uint *colRemapTable, int id_x, int id_y, int id_z, d_float16 *locSrc_f16)
+{
+    d_uint8 increment_ui8, locSrc_ui8;
+    
+    increment_ui8.ui4[0] = make_uint4(0, 1, 2, 3);
+    increment_ui8.ui4[1] = make_uint4(4, 5, 6, 7);
+    uint4 locSrc_ui4 = (uint4)(id_z * srcRoiPtr_i4->z * srcRoiPtr_i4->w + (id_y * srcRoiPtr_i4->z) + id_x);
+    locSrc_ui8.ui4[0] = locSrc_ui4 + increment_ui8.ui4[0];
+    locSrc_ui8.ui4[1] = locSrc_ui4 + increment_ui8.ui4[1];
+    
+    locSrc_f16->f8[0].f4[0] = rpp_hip_load4(colRemapTable, locSrc_ui8.ui4[0]);
+    locSrc_f16->f8[0].f4[1] = rpp_hip_load4(colRemapTable, locSrc_ui8.ui4[1]);
+    locSrc_f16->f8[1].f4[0] = rpp_hip_load4(rowRemapTable, locSrc_ui8.ui4[0]);
+    locSrc_f16->f8[1].f4[1] = rpp_hip_load4(rowRemapTable, locSrc_ui8.ui4[1]);
+}
 
 // -------------------- Set 2 - Nearest Neighbor Interpolation --------------------
 
@@ -14,7 +34,7 @@ __global__ void remap_pkd_tensor(T *srcPtr,
                                 uint *colRemapTable,
                                 RpptROIPtr roiTensorPtrSrc)
 {
-    int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+    int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
@@ -27,15 +47,12 @@ __global__ void remap_pkd_tensor(T *srcPtr,
     uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + (id_x * 3);
     
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
+    d_float16 locSrc_f16;
+    remap_srclocs_hip_compute(&srcRoi_i4, rowRemapTable, colRemapTable, id_x, id_y, id_z, &locSrc_f16);
 
-    uint rowRemapVal =  *(rowRemapTable + (id_z * srcRoi_i4.z * srcRoi_i4.w) + (id_y * srcRoi_i4.z) + id_x);
-    uint colRemapVal =  *(colRemapTable + (id_z * srcRoi_i4.z * srcRoi_i4.w) + (id_y * srcRoi_i4.z) + id_x);
-    uint srcRemapLoc =  (rowRemapVal * srcStridesNH.y) + colRemapVal * 3;
-    
-    srcIdx += srcRemapLoc;
-    dstPtr[dstIdx] = srcPtr[srcIdx];
-    dstPtr[dstIdx + 1] = srcPtr[srcIdx + 1];
-    dstPtr[dstIdx + 2] = srcPtr[srcIdx + 2];
+    d_float24 dst_f24;
+    rpp_hip_interpolate24_nearest_neighbor_pkd3(srcPtr + srcIdx, srcStridesNH.y, &locSrc_f16, &srcRoi_i4, &dst_f24);
+    rpp_hip_pack_float24_pkd3_and_store24_pkd3(dstPtr + dstIdx, &dst_f24);
 }
 
 template <typename T>
@@ -49,7 +66,7 @@ __global__ void remap_pln_tensor(T *srcPtr,
                                 uint *colRemapTable,
                                 RpptROIPtr roiTensorPtrSrc)
 {
-    int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+    int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
@@ -58,28 +75,93 @@ __global__ void remap_pln_tensor(T *srcPtr,
         return;
     }
 
-    uint srcIdx = (id_z * srcStridesNCH.x);
-    uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + id_x;
+    uint srcIdx = (id_z * srcStridesNH.x);
+    uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + (id_x * 3);
     
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
+    d_float16 locSrc_f16;
+    remap_srclocs_hip_compute(&srcRoi_i4, rowRemapTable, colRemapTable, id_x, id_y, id_z, &locSrc_f16);
 
-    uint rowRemapVal =  *(rowRemapTable + (id_z * srcRoi_i4.z * srcRoi_i4.w) + (id_y * srcRoi_i4.z) + id_x);
-    uint colRemapVal =  *(colRemapTable + (id_z * srcRoi_i4.z * srcRoi_i4.w) + (id_y * srcRoi_i4.z) + id_x);
-    uint srcRemapLoc =  (rowRemapVal * dstStridesNCH.z) + colRemapVal;
-    
-    srcIdx += srcRemapLoc;
-    dstPtr[dstIdx] = srcPtr[srcIdx];
+    d_float8 dst_f8;
+    rpp_hip_interpolate8_nearest_neighbor_pln1(srcPtr + srcIdx, srcStridesNCH.z, &locSrc_f16, &srcRoi_i4, &dst_f8);
+    rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &dst_f8);
 
     if (channelsDst == 3)
     {
         srcIdx += srcStridesNCH.y;
         dstIdx += dstStridesNCH.y;
-        dstPtr[dstIdx] = srcPtr[srcIdx];
+
+        rpp_hip_interpolate8_nearest_neighbor_pln1(srcPtr + srcIdx, srcStridesNCH.z, &locSrc_f16, &srcRoi_i4, &dst_f8);
+        rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &dst_f8);
 
         srcIdx += srcStridesNCH.y;
-        dstIdx += dstStridesNCH.y;        
-        dstPtr[dstIdx] = srcPtr[srcIdx];
+        dstIdx += dstStridesNCH.y;
+
+        rpp_hip_interpolate8_nearest_neighbor_pln1(srcPtr + srcIdx, srcStridesNCH.z, &locSrc_f16, &srcRoi_i4, &dst_f8);
+        rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &dst_f8);
     }
+}
+
+template <typename T>
+__global__ void remap_pkd3_pln3_tensor(T *srcPtr,
+                                       uint3 srcStridesNCH,
+                                       T *dstPtr,
+                                       uint3 dstStridesNCH,
+                                       uint2 dstDimsWH,
+                                       int channelsDst,
+                                       uint *rowRemapTable,
+                                       uint *colRemapTable,
+                                       RpptROIPtr roiTensorPtrSrc)
+{
+    int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
+    int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+    int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
+
+    if ((id_y >= dstDimsWH.y) || (id_x >= dstDimsWH.x))
+    {
+        return;
+    }
+
+    uint srcIdx = (id_z * srcStridesNH.x);
+    uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + (id_x * 3);
+    
+    int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
+    d_float16 locSrc_f16;
+    remap_srclocs_hip_compute(&srcRoi_i4, rowRemapTable, colRemapTable, id_x, id_y, id_z, &locSrc_f16);
+
+    d_float24 dst_f24;
+    rpp_hip_interpolate24_nearest_neighbor_pkd3(srcPtr + srcIdx, srcStridesNH.y, &locSrc_f16, &srcRoi_i4, &dst_f24);
+    rpp_hip_pack_float24_pkd3_and_store24_pln3(dstPtr + dstIdx, dstStridesNCH.y, &dst_f24);
+}
+
+template <typename T>
+__global__ void remap_pln3_pkd3_tensor(T *srcPtr,
+                                       uint3 srcStridesNCH,
+                                       T *dstPtr,
+                                       uint2 dstStridesNH,
+                                       uint2 dstDimsWH,
+                                       d_float6 *affineTensorPtr,
+                                       RpptROIPtr roiTensorPtrSrc)
+{
+    int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
+    int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+    int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
+
+    if ((id_y >= dstDimsWH.y) || (id_x >= dstDimsWH.x))
+    {
+        return;
+    }
+
+    uint srcIdx = (id_z * srcStridesNH.x);
+    uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + (id_x * 3);
+    
+    int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
+    d_float16 locSrc_f16;
+    remap_srclocs_hip_compute(&srcRoi_i4, rowRemapTable, colRemapTable, id_x, id_y, id_z, &locSrc_f16);
+
+    d_float24 dst_f24;
+    rpp_hip_interpolate24_nearest_neighbor_pln3(srcPtr + srcIdx, &srcStridesNCH, &locSrc_f16, &srcRoi_i4, &dst_f24);
+    rpp_hip_pack_float24_pln3_and_store24_pkd3(dstPtr + dstIdx, &dst_f24);
 }
 
 // -------------------- Set 3 - Kernel Executors --------------------
@@ -101,7 +183,7 @@ RppStatus hip_exec_remap_tensor(T *srcPtr,
     int localThreads_x = LOCAL_THREADS_X;
     int localThreads_y = LOCAL_THREADS_Y;
     int localThreads_z = LOCAL_THREADS_Z;
-    int globalThreads_x = dstDescPtr->strides.hStride;
+    int globalThreads_x = (dstDescPtr->strides.hStride + 7) >> 3;
     int globalThreads_y = dstDescPtr->h;
     int globalThreads_z = handle.GetBatchSize();
 
@@ -138,6 +220,39 @@ RppStatus hip_exec_remap_tensor(T *srcPtr,
                            colRemapTable,
                            roiTensorPtrSrc);
     }
-    
+    else if ((srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NCHW))
+    {
+        hipLaunchKernelGGL(remap_pkd3_pln3_tensor,
+                           dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
+                           dim3(localThreads_x, localThreads_y, localThreads_z),
+                           0,
+                           handle.GetStream(),
+                           srcPtr,
+                           make_uint3(srcDescPtr->strides.nStride, srcDescPtr->strides.cStride, srcDescPtr->strides.hStride),
+                           dstPtr,
+                           make_uint3(dstDescPtr->strides.nStride, dstDescPtr->strides.cStride, dstDescPtr->strides.hStride),
+                           make_uint2(dstDescPtr->w, dstDescPtr->h),
+                           dstDescPtr->c,
+                           rowRemapTable,
+                           colRemapTable,
+                           roiTensorPtrSrc);
+    }
+    else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NHWC))
+    {
+        hipLaunchKernelGGL(remap_pln3_pkd3_tensor,
+                           dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
+                           dim3(localThreads_x, localThreads_y, localThreads_z),
+                           0,
+                           handle.GetStream(),
+                           srcPtr,
+                           make_uint3(srcDescPtr->strides.nStride, srcDescPtr->strides.cStride, srcDescPtr->strides.hStride),
+                           dstPtr,
+                           make_uint3(dstDescPtr->strides.nStride, dstDescPtr->strides.cStride, dstDescPtr->strides.hStride),
+                           make_uint2(dstDescPtr->w, dstDescPtr->h),
+                           dstDescPtr->c,
+                           rowRemapTable,
+                           colRemapTable,
+                           roiTensorPtrSrc);
+    }
     return RPP_SUCCESS;
 }

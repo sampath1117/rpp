@@ -30,6 +30,8 @@ typedef union { float f1[24];   float2 f2[12];  float3 f3[8];   float4 f4[6];   
 
 // uint
 typedef union { uint ui1[6];    uint2 ui2[3];                                                   }   d_uint6;
+typedef union { uint ui1[4];    uint2 ui2[2];                                                   }   d_uint4;
+typedef union { uint ui1[8];    uint4 ui4[2];                                                   }   d_uint8;
 
 // int
 typedef union { int i1[6];      int2 i2[3];                                                     }   d_int6;
