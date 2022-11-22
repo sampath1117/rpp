@@ -75,8 +75,8 @@ __global__ void remap_pln_tensor(T *srcPtr,
         return;
     }
 
-    uint srcIdx = (id_z * srcStridesNH.x);
-    uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + (id_x * 3);
+    uint srcIdx = (id_z * srcStridesNCH.x);
+    uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + id_x;
     
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
     d_float16 locSrc_f16;
@@ -104,7 +104,7 @@ __global__ void remap_pln_tensor(T *srcPtr,
 
 template <typename T>
 __global__ void remap_pkd3_pln3_tensor(T *srcPtr,
-                                       uint3 srcStridesNCH,
+                                       uint2 srcStridesNH,
                                        T *dstPtr,
                                        uint3 dstStridesNCH,
                                        uint2 dstDimsWH,
@@ -123,7 +123,7 @@ __global__ void remap_pkd3_pln3_tensor(T *srcPtr,
     }
 
     uint srcIdx = (id_z * srcStridesNH.x);
-    uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + (id_x * 3);
+    uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + (id_x * 3);
     
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
     d_float16 locSrc_f16;
@@ -140,7 +140,8 @@ __global__ void remap_pln3_pkd3_tensor(T *srcPtr,
                                        T *dstPtr,
                                        uint2 dstStridesNH,
                                        uint2 dstDimsWH,
-                                       d_float6 *affineTensorPtr,
+                                       uint *rowRemapTable,
+                                       uint *colRemapTable,
                                        RpptROIPtr roiTensorPtrSrc)
 {
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
@@ -152,7 +153,7 @@ __global__ void remap_pln3_pkd3_tensor(T *srcPtr,
         return;
     }
 
-    uint srcIdx = (id_z * srcStridesNH.x);
+    uint srcIdx = (id_z * srcStridesNCH.x);
     uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + (id_x * 3);
     
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
@@ -228,7 +229,7 @@ RppStatus hip_exec_remap_tensor(T *srcPtr,
                            0,
                            handle.GetStream(),
                            srcPtr,
-                           make_uint3(srcDescPtr->strides.nStride, srcDescPtr->strides.cStride, srcDescPtr->strides.hStride),
+                           make_uint2(srcDescPtr->strides.nStride, srcDescPtr->strides.hStride),
                            dstPtr,
                            make_uint3(dstDescPtr->strides.nStride, dstDescPtr->strides.cStride, dstDescPtr->strides.hStride),
                            make_uint2(dstDescPtr->w, dstDescPtr->h),
@@ -247,9 +248,8 @@ RppStatus hip_exec_remap_tensor(T *srcPtr,
                            srcPtr,
                            make_uint3(srcDescPtr->strides.nStride, srcDescPtr->strides.cStride, srcDescPtr->strides.hStride),
                            dstPtr,
-                           make_uint3(dstDescPtr->strides.nStride, dstDescPtr->strides.cStride, dstDescPtr->strides.hStride),
+                           make_uint2(dstDescPtr->strides.nStride, dstDescPtr->strides.hStride),
                            make_uint2(dstDescPtr->w, dstDescPtr->h),
-                           dstDescPtr->c,
                            rowRemapTable,
                            colRemapTable,
                            roiTensorPtrSrc);
