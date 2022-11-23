@@ -12,7 +12,7 @@ __device__ void remap_srclocs_hip_compute(int4 *srcRoiPtr_i4, uint *rowRemapTabl
     
     increment_ui8.ui4[0] = make_uint4(0, 1, 2, 3);
     increment_ui8.ui4[1] = make_uint4(4, 5, 6, 7);
-    uint4 locSrc_ui4 = (uint4)(id_z * srcRoiPtr_i4->z * srcRoiPtr_i4->w + (id_y * srcRoiPtr_i4->z) + id_x);
+    uint4 locSrc_ui4 = (uint4)(id_x);
     locSrc_ui8.ui4[0] = locSrc_ui4 + increment_ui8.ui4[0];
     locSrc_ui8.ui4[1] = locSrc_ui4 + increment_ui8.ui4[1];
     
@@ -32,23 +32,27 @@ __global__ void remap_pkd_tensor(T *srcPtr,
                                 uint2 dstDimsWH,
                                 uint *rowRemapTable,
                                 uint *colRemapTable,
+                                uint2 remapTableStridesNH,
                                 RpptROIPtr roiTensorPtrSrc)
 {
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    if ((id_y >= dstDimsWH.y) || (id_x >= dstDimsWH.x))
+    if ((id_y >= roiTensorPtrSrc[id_z].xywhROI.roiHeight) || (id_x >= roiTensorPtrSrc[id_z].xywhROI.roiWidth))
     {
         return;
     }
 
     uint srcIdx = (id_z * srcStridesNH.x);
     uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + (id_x * 3);
-    
+
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
+    uint *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
+    uint *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
+
     d_float16 locSrc_f16;
-    remap_srclocs_hip_compute(&srcRoi_i4, rowRemapTable, colRemapTable, id_x, id_y, id_z, &locSrc_f16);
+    remap_srclocs_hip_compute(&srcRoi_i4, rowRemapTableTemp, colRemapTableTemp, id_x, id_y, id_z, &locSrc_f16);
 
     d_float24 dst_f24;
     rpp_hip_interpolate24_nearest_neighbor_pkd3(srcPtr + srcIdx, srcStridesNH.y, &locSrc_f16, &srcRoi_i4, &dst_f24);
@@ -174,6 +178,7 @@ RppStatus hip_exec_remap_tensor(T *srcPtr,
                                 RpptDescPtr dstDescPtr,
                                 Rpp32u *rowRemapTable,
                                 Rpp32u *colRemapTable,
+                                RpptDescPtr remapTableDescPtr,
                                 RpptROIPtr roiTensorPtrSrc,
                                 RpptRoiType roiType,
                                 rpp::Handle& handle)
@@ -202,6 +207,7 @@ RppStatus hip_exec_remap_tensor(T *srcPtr,
                            make_uint2(dstDescPtr->w, dstDescPtr->h),
                            rowRemapTable,
                            colRemapTable,
+                           make_uint2(remapTableDescPtr->strides.nStride, remapTableDescPtr->strides.hStride),
                            roiTensorPtrSrc);
     }    
     else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
