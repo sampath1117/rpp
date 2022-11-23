@@ -166,6 +166,11 @@ RppStatus hip_exec_normalize_audio_tensor(Rpp32f *srcPtr,
     int globalThreads_y = 1;
     int globalThreads_z = handle.GetBatchSize();
 
+    Rpp32f *d_mean, *d_stdDev;
+
+    hipMalloc(&d_mean, globalThreads_z * globalThreads_x * sizeof(Rpp32f));
+    hipMalloc(&d_stdDev, globalThreads_z * globalThreads_x * sizeof(Rpp32f));
+
     if((!mean) && (!stdDev))
     {
         hipLaunchKernelGGL(compute_mean_and_std,
@@ -175,8 +180,8 @@ RppStatus hip_exec_normalize_audio_tensor(Rpp32f *srcPtr,
                            handle.GetStream(),
                            srcPtr,
                            make_uint3(srcDescPtr->strides.nStride, stride1, stride2),
-                           handle.GetInitHandle()->mem.mgpu.meanArr.floatmem,
-                           handle.GetInitHandle()->mem.mgpu.stdDevArr.floatmem,
+                           d_mean,
+                           d_stdDev,
                            handle.GetInitHandle()->mem.mgpu.intArr[0].intmem); // Reduction Dimensions
         hipDeviceSynchronize();
     }
@@ -189,7 +194,7 @@ RppStatus hip_exec_normalize_audio_tensor(Rpp32f *srcPtr,
                            handle.GetStream(),
                            srcPtr,
                            make_uint3(srcDescPtr->strides.nStride, stride1, stride2),
-                           handle.GetInitHandle()->mem.mgpu.meanArr.floatmem,
+                           d_mean,
                            handle.GetInitHandle()->mem.mgpu.intArr[0].intmem); // Reduction Dimensions
         hipDeviceSynchronize();
     }
@@ -202,8 +207,8 @@ RppStatus hip_exec_normalize_audio_tensor(Rpp32f *srcPtr,
                            handle.GetStream(),
                            srcPtr,
                            make_uint3(srcDescPtr->strides.nStride, stride1, stride2),
-                           handle.GetInitHandle()->mem.mgpu.meanArr.floatmem,
-                           handle.GetInitHandle()->mem.mgpu.stdDevArr.floatmem,
+                           d_mean,
+                           d_stdDev,
                            handle.GetInitHandle()->mem.mgpu.intArr[0].intmem); // Reduction Dimensions
         hipDeviceSynchronize();
     }
@@ -216,9 +221,12 @@ RppStatus hip_exec_normalize_audio_tensor(Rpp32f *srcPtr,
                        srcPtr,
                        make_uint3(srcDescPtr->strides.nStride, stride1, stride2),
                        dstPtr,
-                       handle.GetInitHandle()->mem.mgpu.meanArr.floatmem,
-                       handle.GetInitHandle()->mem.mgpu.stdDevArr.floatmem,
+                       d_mean,
+                       d_stdDev,
                        handle.GetInitHandle()->mem.mgpu.intArr[0].intmem); // Reduction Dimensions
+
+    hipFree(d_mean);
+    hipFree(d_stdDev);
 
     return RPP_SUCCESS;
 }
