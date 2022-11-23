@@ -113,6 +113,9 @@ int main(int argc, char **argv)
         case 2:
             strcpy(funcName, "pre_emphasis_filter");
             break;
+        case 8:
+            strcpy(funcName, "normalize");
+            break;
         default:
             strcpy(funcName, "test_case");
             break;
@@ -362,6 +365,51 @@ int main(int argc, char **argv)
                 if (ip_bitDepth == 2)
                 {
                     rppt_pre_emphasis_filter_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, inputAudioSize, coeff, borderType, handle);
+                }
+                else
+                    missingFuncFlag = 1;
+
+                break;
+            }
+            case 8:
+            {
+                test_case_name = "normalize";
+                Rpp32s axis_mask = 1;
+                Rpp32f mean, std_dev, scale, shift, epsilon;
+                mean = std_dev = scale = shift = epsilon = 0.0f;
+                Rpp32s ddof = 0;
+                Rpp32s num_of_dims = 2;
+                Rpp32s srcDimsTensor[noOfAudioFiles * 2];
+
+                for (i = 0; i < noOfAudioFiles * 2; i += 2)
+                {
+                    srcDimsTensor[i] = srcLengthTensor[i / 2];
+                    srcDimsTensor[i + 1] = 1;
+                }
+
+                srcDescPtr->h = maxSrcWidth;
+                srcDescPtr->w = 1;
+                srcDescPtr->c = 1;
+
+                dstDescPtr->h = maxSrcWidth;
+                dstDescPtr->w = 1;
+                dstDescPtr->c = 1;
+
+                srcDescPtr->strides.nStride = srcDescPtr->c * srcDescPtr->w * srcDescPtr->h;
+                srcDescPtr->strides.hStride = srcDescPtr->c * srcDescPtr->w;
+                srcDescPtr->strides.wStride = 1;
+                srcDescPtr->strides.cStride = 1;
+
+                dstDescPtr->strides.nStride = dstDescPtr->c * dstDescPtr->w * dstDescPtr->h;
+                dstDescPtr->strides.hStride = dstDescPtr->c * dstDescPtr->w;
+                dstDescPtr->strides.wStride = 1;
+                dstDescPtr->strides.cStride = 1;
+
+                start_omp = omp_get_wtime();
+                if (ip_bitDepth == 2)
+                {
+                    rppt_normalize_audio_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, srcDimsTensor, axis_mask,
+                                            mean, std_dev, scale, shift, epsilon, ddof, handle);
                 }
                 else
                     missingFuncFlag = 1;

@@ -65,8 +65,8 @@ RppStatus normalize_audio_host_tensor(Rpp32f* srcPtr,
                                       Rpp32s ddof,
                                       Rpp32u numOfDims)
 {
-// 	omp_set_dynamic(0);
-// #pragma omp parallel for num_threads(srcDescPtr->n)
+	omp_set_dynamic(0);
+#pragma omp parallel for num_threads(srcDescPtr->n)
 	for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
 	{
         Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;

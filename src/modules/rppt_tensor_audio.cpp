@@ -339,45 +339,30 @@ RppStatus rppt_normalize_audio_gpu(RppPtr_t srcPtr,
 {
 #ifdef HIP_COMPILE
     Rpp32u paramIndex = 0;
-
     Rpp32s *srcReductionDims = (Rpp32s *)malloc(srcDescPtr->n * 2 * sizeof(int));
-    Rpp32s *srcStride = (Rpp32s *)malloc(srcDescPtr->n * 2 *sizeof(int));
-    Rpp32s *paramStride = (Rpp32s *)malloc(srcDescPtr->n * 2 *sizeof(int));
 
     for(int i = 0; i < srcDescPtr->n; i++)
     {
         Rpp32s ind = 2 * i;
         if (axisMask == 3)
         {
-            srcStride[ind] = srcStride[ind] = srcDescPtr->strides.wStride;
             srcReductionDims[ind] = 1;
             srcReductionDims[ind + 1] = srcDimsTensor[ind] * srcDimsTensor[ind + 1];
-            paramStride[ind] = paramStride[ind + 1] = 0;
         }
         else if (axisMask == 1)
         {
-            srcStride[ind] = srcDescPtr->strides.hStride;
-            srcStride[ind + 1] = srcDescPtr->strides.wStride;
             srcReductionDims[ind] = srcDimsTensor[ind + 1];
             srcReductionDims[ind + 1] = srcDimsTensor[ind];
-            paramStride[ind] = 1;
-            paramStride[ind + 1] = 0;
         }
         else if (axisMask == 2)
         {
-            srcStride[ind] = srcDescPtr->strides.wStride;
-            srcStride[ind + 1] = srcDescPtr->strides.hStride;
             srcReductionDims[ind] = srcDimsTensor[ind];
             srcReductionDims[ind + 1] = srcDimsTensor[ind + 1];
-            paramStride[ind] = 0;
-            paramStride[ind + 1] = 1;
         }
     }
 
-    copy_param_int2(srcDimsTensor, rpp::deref(rppHandle), paramIndex++);
-    copy_param_int2(srcStride, rpp::deref(rppHandle), paramIndex++);
     copy_param_int2(srcReductionDims, rpp::deref(rppHandle), paramIndex++);
-    copy_param_int2(paramStride, rpp::deref(rppHandle), paramIndex++);
+    free(srcReductionDims);
 
     if (srcDescPtr->dataType == RpptDataType::F32)
     {
@@ -386,6 +371,8 @@ RppStatus rppt_normalize_audio_gpu(RppPtr_t srcPtr,
                                         (Rpp32f*)(dstPtr),
                                         dstDescPtr,
                                         axisMask,
+                                        mean,
+                                        stdDev,
                                         scale,
                                         shift,
                                         epsilon,
