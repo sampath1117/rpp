@@ -138,7 +138,10 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
         for (int w = 0; w < numWindows; w++) {
             for (int i = 0; i < nfft; i++) {
                 int64_t inIdx = (vertical) ? (i * numWindows + w) : (w * windowLength + i);
-                windowOutputTemp[i] = windowOutput[inIdx];
+                if (i > windowLength)
+                    windowOutputTemp[i] = 0;
+                else
+                    windowOutputTemp[i] = windowOutput[inIdx];
             }
 
             // Allocate buffers for fft output
