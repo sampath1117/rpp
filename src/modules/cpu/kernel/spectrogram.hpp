@@ -101,11 +101,11 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
 
             Rpp32s numWindows = getOutputSize(bufferLength, windowLength, windowStep, centerWindows);
 
-            Rpp32f* windowOutput = (float*)malloc(sizeof(float) * numWindows * windowLength);
-            Rpp32f* windowOutputTemp = windowOutput;
+            Rpp32f* windowOutput = (float*)calloc(numWindows * nfft, sizeof(float));
 
             for (int64_t w = 0; w < numWindows; w++) {
                 int64_t windowStart = w * windowStep - windowCenterOffset;
+                Rpp32f* windowOutputTemp = windowOutput + (w * nfft);
                 if (windowStart < 0 || (windowStart + windowLength) > bufferLength) {
                     for (int t = 0; t < windowLength; t++) {
                         int64_t inIdx = windowStart + t;
@@ -147,7 +147,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
             for (int64_t w = 0; w < numWindows; w++) {
                 // Compute FFT
                 for (int k = 0; k < numBins; k++) {
-                    windowOutputTemp = windowOutput + (w * windowLength);
+                    float* windowOutputTemp = windowOutput + (w * nfft);
                     float* cosfTemp = cosf  + (k * nfft);
                     float* sinfTemp = sinf  + (k * nfft);
                     float real = 0.0f;
@@ -219,7 +219,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
         float* fftImag = (float*)calloc(srcDescPtr->n*numBins,sizeof(float));
 
         omp_set_dynamic(0);
-        #pragma omp parallel for num_threads(srcDescPtr->n)
+        #pragma omp parallel for num_threads(8)
         for (int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
         {
             Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
@@ -228,11 +228,12 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
 
             Rpp32s numWindows = getOutputSize(bufferLength, windowLength, windowStep, centerWindows);
 
-            Rpp32f* windowOutput = (float*)malloc(sizeof(float) * numWindows * windowLength);
-            Rpp32f* windowOutputTemp = windowOutput;
+            Rpp32f* windowOutput = (float*)calloc(numWindows * nfft, sizeof(float));
 
             for (int64_t w = 0; w < numWindows; w++) {
                 int64_t windowStart = w * windowStep - windowCenterOffset;
+                Rpp32f* windowOutputTemp = windowOutput + (w * nfft);
+
                 if (windowStart < 0 || (windowStart + windowLength) > bufferLength) {
                     for (int t = 0; t < windowLength; t++) {
                         int64_t inIdx = windowStart + t;
@@ -271,7 +272,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
             
                 // Compute FFT
                 for (int k = 0; k < numBins; k++) {
-                    windowOutputTemp = windowOutput + (w * windowLength);
+                    windowOutputTemp = windowOutput + (w * nfft);
                     float* cosfTemp = cosf  + (k * nfft);
                     float* sinfTemp = sinf  + (k * nfft);
                     float real = 0.0f;
