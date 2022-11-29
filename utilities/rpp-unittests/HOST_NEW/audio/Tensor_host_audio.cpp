@@ -18,6 +18,8 @@
 // libsndfile can handle more than 6 channels but we'll restrict it to 6
 #define	MAX_CHANNELS 6
 
+#define CUTOFF 1e-2
+
 using namespace std;
 using half_float::half;
 
@@ -57,6 +59,8 @@ void verify_output(Rpp32f *dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dst
         Rpp32f ref_val, out_val;
         Rpp32f *dstPtrCurrent = dstPtr + batchcount * dstDescPtr->strides.nStride;
         Rpp32f *dstPtrRow = dstPtrCurrent;
+
+        uint stride = (dstDims[batchcount].width == 1) ? 1 : dstDescPtr->strides.hStride;
         for(int i = 0; i < dstDims[batchcount].height; i++)
         {
             Rpp32f *dstPtrTemp = dstPtrRow;
@@ -65,10 +69,10 @@ void verify_output(Rpp32f *dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dst
                 ref_file>>ref_val;
                 out_val = dstPtrTemp[j];
                 bool invalid_comparision = ((out_val == 0.0f) && (ref_val != 0.0f));
-                if(!invalid_comparision && abs(out_val - ref_val) < 1e-2)
+                if(!invalid_comparision && abs(out_val - ref_val) < CUTOFF)
                     matched_indices += 1;
             }
-            dstPtrRow += dstDescPtr->strides.hStride;
+            dstPtrRow += stride;
         }
         ref_file.close();
         if(matched_indices == (dstDims[batchcount].width * dstDims[batchcount].height) && matched_indices !=0)
@@ -247,7 +251,6 @@ int main(int argc, char **argv)
     // Other initializations
     int missingFuncFlag = 0;
     int i = 0, j = 0;
-    int maxChannels = 0;
     int maxSrcWidth = 0, maxSrcHeight = 0;
     int maxDstWidth = 0, maxDstHeight = 0;
     unsigned long long count = 0;
@@ -276,7 +279,6 @@ int main(int argc, char **argv)
     closedir(dr);
 
     // Initialize the AudioPatch for source
-    Rpp32s *inputAudioSize = (Rpp32s *) calloc(noOfAudioFiles, sizeof(Rpp32s));
     Rpp32s *srcLengthTensor = (Rpp32s *) calloc(noOfAudioFiles, sizeof(Rpp32s));
     Rpp32s *channelsTensor = (Rpp32s *) calloc(noOfAudioFiles, sizeof(Rpp32s));
     RpptImagePatch *srcDims = (RpptImagePatch *) calloc(noOfAudioFiles, sizeof(RpptImagePatch));
@@ -285,9 +287,9 @@ int main(int argc, char **argv)
     // Set maxLength
     char audioNames[noOfAudioFiles][1000];
 
-    // Set Height as 1 for src, dst
-    maxSrcHeight = 1;
-    maxDstHeight = 1;
+    // Set Width as 1 for src, dst
+    maxSrcWidth = 1;
+    maxDstWidth = 1;
 
     dr = opendir(src);
     while ((de = readdir(dr)) != NULL)
@@ -311,18 +313,18 @@ int main(int argc, char **argv)
             continue;
         }
 
-        inputAudioSize[count] = sfinfo.frames * sfinfo.channels;
         srcLengthTensor[count] = sfinfo.frames;
         channelsTensor[count] = sfinfo.channels;
 
-        srcDims[count].width = sfinfo.frames;
-        dstDims[count].width = sfinfo.frames;
-        srcDims[count].height = 1;
-        dstDims[count].height = 1;
+        srcDims[count].height = sfinfo.frames;
+        dstDims[count].height = sfinfo.frames;
+        srcDims[count].width = sfinfo.channels;
+        dstDims[count].width = sfinfo.channels;
 
-        maxSrcWidth = std::max(maxSrcWidth, srcLengthTensor[count]);
-        maxDstWidth = std::max(maxDstWidth, srcLengthTensor[count]);
-        maxChannels = std::max(maxChannels, channelsTensor[count]);
+        maxSrcHeight = std::max(maxSrcHeight, (int)srcDims[count].height);
+        maxDstHeight = std::max(maxDstHeight, (int)srcDims[count].height);
+        maxSrcWidth = std::max(maxSrcWidth, (int)srcDims[count].width);
+        maxDstWidth = std::max(maxDstWidth, (int)srcDims[count].width);
 
         // Close input
         sf_close (infile);
@@ -344,17 +346,13 @@ int main(int argc, char **argv)
     dstDescPtr->h = maxDstHeight;
 
     srcDescPtr->w = maxSrcWidth;
-    dstDescPtr->w = maxDstWidth;
-
-    srcDescPtr->c = maxChannels;
     if(test_case == 3)
-        dstDescPtr->c = 1;
+        dstDescPtr->w = 1;
     else
-        dstDescPtr->c = maxChannels;
+        dstDescPtr->w = maxDstWidth;
 
-    // Optionally set w stride as a multiple of 8 for src
-    srcDescPtr->w = ((srcDescPtr->w / 8) * 8) + 8;
-    dstDescPtr->w = ((dstDescPtr->w / 8) * 8) + 8;
+    srcDescPtr->c = 1;
+    dstDescPtr->c = 1;
 
     // Set n/c/h/w strides for src/dst
     srcDescPtr->strides.nStride = srcDescPtr->c * srcDescPtr->w * srcDescPtr->h;
@@ -376,7 +374,10 @@ int main(int argc, char **argv)
     Rpp32f *outputf32 = (Rpp32f *)calloc(oBufferSize, sizeof(Rpp32f));
 
     i = 0;
+    count = 0;
     dr = opendir(src);
+
+    Rpp32f *audio_temp = (Rpp32f *)calloc(srcDescPtr->h * srcDescPtr->w, sizeof(Rpp32f));
     while ((de = readdir(dr)) != NULL)
     {
         Rpp32f *input_temp_f32;
@@ -404,16 +405,31 @@ int main(int argc, char **argv)
         int bufferLength = sfinfo.frames * sfinfo.channels;
         if(ip_bitDepth == 2)
         {
-            readcount = (int) sf_read_float (infile, input_temp_f32, bufferLength);
+            readcount = (int) sf_read_float (infile, audio_temp, bufferLength);
             if(readcount != bufferLength)
                 std::cerr<<"F32 Unable to read audio file completely"<<std::endl;
+
+            Rpp32f *audio_temp_ptr = audio_temp;
+            if(srcDims[count].width == 1)
+                memcpy(input_temp_f32, audio_temp_ptr, srcDims[count].height * sizeof (Rpp32f));
+            else
+            {
+                for(int i = 0; i < srcDims[count].height; i++)
+                {
+                    memcpy(input_temp_f32, audio_temp_ptr, srcDims[count].width * sizeof (Rpp32f));
+                    audio_temp_ptr += srcDims[count].width;
+                    input_temp_f32 += srcDescPtr->strides.hStride;
+                }
+            }
         }
         i++;
+        count++;
 
         // Close input
         sf_close (infile);
     }
     closedir(dr);
+    free(audio_temp);
 
     // Run case-wise RPP API and measure time
     rppHandle_t handle;
@@ -439,7 +455,7 @@ int main(int argc, char **argv)
             start = clock();
             if (ip_bitDepth == 2)
             {
-                rppt_non_silent_region_detection_host(inputf32, srcDescPtr, inputAudioSize, detectedIndex, detectionLength, cutOffDB, windowLength, referencePower, resetInterval);
+                rppt_non_silent_region_detection_host(inputf32, srcDescPtr, srcLengthTensor, detectedIndex, detectionLength, cutOffDB, windowLength, referencePower, resetInterval);
             }
             else
                 missingFuncFlag = 1;
@@ -484,7 +500,7 @@ int main(int argc, char **argv)
             start = clock();
             if (ip_bitDepth == 2)
             {
-                rppt_pre_emphasis_filter_host(inputf32, srcDescPtr, outputf32, dstDescPtr, inputAudioSize, coeff, borderType);
+                rppt_pre_emphasis_filter_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcLengthTensor, coeff, borderType);
             }
             else
                 missingFuncFlag = 1;
@@ -506,13 +522,18 @@ int main(int argc, char **argv)
             else
                 missingFuncFlag = 1;
 
+            for(int i = 0; i < noOfAudioFiles; i++)
+            {
+                dstDims[i].height = srcLengthTensor[i];
+                dstDims[i].width = 1;
+            }
+
             verify_output(outputf32, dstDescPtr, dstDims, test_case_name, audioNames);
             break;
         }
         case 4:
         {
             test_case_name = "slice";
-
             Rpp32f fillValues[noOfAudioFiles];
             Rpp32s numDims = 2;
             Rpp32s srcDimsTensor[noOfAudioFiles * numDims];
@@ -678,16 +699,17 @@ int main(int argc, char **argv)
             Rpp32f inRateTensor[noOfAudioFiles];
             Rpp32f outRateTensor[noOfAudioFiles];
 
-            maxDstWidth = 0;
+            maxDstHeight = 0;
             for(int i = 0; i < noOfAudioFiles; i++)
             {
                 inRateTensor[i] = 16000;
                 outRateTensor[i] = 18400;
                 Rpp32f scaleRatio = outRateTensor[i] / inRateTensor[i];
-                dstDims[i].width = (int)std::ceil(scaleRatio * srcLengthTensor[i]);
-                maxDstWidth = std::max(maxDstWidth, (int)dstDims[i].width);
+                dstDims[i].height = (int)std::ceil(scaleRatio * srcLengthTensor[i]);
+                maxDstHeight = std::max(maxDstHeight, (int)dstDims[i].height);
             }
             Rpp32f quality = 50.0f;
+            dstDescPtr->h = maxDstHeight;
             dstDescPtr->w = maxDstWidth;
 
             dstDescPtr->strides.nStride = dstDescPtr->c * dstDescPtr->w * dstDescPtr->h;
@@ -770,23 +792,22 @@ int main(int argc, char **argv)
                 dstDims[i].height = maxDstHeight;
                 dstDims[i].width = maxDstWidth;
             }
-
             srcDescPtr->h = maxSrcHeight;
-            srcDescPtr->w = 1;
+            srcDescPtr->w = maxSrcWidth;
             dstDescPtr->h = maxDstHeight;
-            dstDescPtr->w = 1;
+            dstDescPtr->w = maxDstWidth;
 
-            srcDescPtr->c = maxSrcWidth;
-            dstDescPtr->c = maxDstWidth;
+            srcDescPtr->c = 1;
+            dstDescPtr->c = 1;
 
             srcDescPtr->strides.nStride = srcDescPtr->c * srcDescPtr->w * srcDescPtr->h;
             srcDescPtr->strides.hStride = srcDescPtr->c * srcDescPtr->w;
-            srcDescPtr->strides.wStride = maxSrcWidth;
+            srcDescPtr->strides.wStride = srcDescPtr->c;
             srcDescPtr->strides.cStride = 1;
 
             dstDescPtr->strides.nStride = dstDescPtr->c * dstDescPtr->w * dstDescPtr->h;
             dstDescPtr->strides.hStride = dstDescPtr->c * dstDescPtr->w;
-            dstDescPtr->strides.wStride = maxDstWidth;
+            dstDescPtr->strides.wStride = dstDescPtr->c;
             dstDescPtr->strides.cStride = 1;
 
             // // Set buffer sizes for src/dst
@@ -836,7 +857,6 @@ int main(int argc, char **argv)
     rppDestroyHost(handle);
 
     // Free memory
-    free(inputAudioSize);
     free(srcLengthTensor);
     free(channelsTensor);
     free(srcDims);

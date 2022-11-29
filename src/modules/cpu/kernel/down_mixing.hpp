@@ -22,8 +22,8 @@ RppStatus down_mixing_host_tensor(Rpp32f *srcPtr,
 #pragma omp parallel for num_threads(srcDescPtr->n)
     for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
     {
-        Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
-        Rpp32f *dstPtrTemp = dstPtr + batchCount * dstDescPtr->strides.nStride;
+        Rpp32f *srcPtrCurrent = srcPtr + batchCount * srcDescPtr->strides.nStride;
+        Rpp32f *dstPtrCurrent = dstPtr + batchCount * dstDescPtr->strides.nStride;
 
         Rpp32s channels = channelsTensor[batchCount];
         Rpp32s samples = srcLengthTensor[batchCount];
@@ -31,7 +31,7 @@ RppStatus down_mixing_host_tensor(Rpp32f *srcPtr,
         if(channels == 1)
         {
             // No need of downmixing, do a direct memcpy
-            memcpy(dstPtrTemp, srcPtrTemp, (size_t)(samples * sizeof(Rpp32f)));
+            memcpy(dstPtrCurrent, srcPtrCurrent, (size_t)(samples * sizeof(Rpp32f)));
         }
         else
         {
@@ -60,9 +60,11 @@ RppStatus down_mixing_host_tensor(Rpp32f *srcPtr,
             int alignedChannels = (channels / 4) * 4;
 
             // use weights to downmix to mono
+            Rpp32f *srcPtrRow = srcPtrCurrent;
             for(int64_t dstIdx = 0; dstIdx < samples; dstIdx++)
             {
-                __m128 pDst = _mm_setzero_ps();
+                Rpp32f *srcPtrTemp = srcPtrRow;
+                __m128 pDst = xmm_p0;
                 int channelLoopCount = 0;
                 for(; channelLoopCount < alignedChannels; channelLoopCount += channelIncrement)
                 {
@@ -73,13 +75,13 @@ RppStatus down_mixing_host_tensor(Rpp32f *srcPtr,
                     pDst = _mm_add_ps(pDst, pSrc);
                     srcPtrTemp += channelIncrement;
                 }
-
-                dstPtrTemp[dstIdx] = hsum_ps(pDst);
+                dstPtrCurrent[dstIdx] = hsum_ps(pDst);
                 for(; channelLoopCount < channels; channelLoopCount++)
                 {
-                    dstPtrTemp[dstIdx] += ((*srcPtrTemp) * weights[channelLoopCount]);
+                    dstPtrCurrent[dstIdx] += ((*srcPtrTemp) * weights[channelLoopCount]);
                     srcPtrTemp++;
                 }
+                srcPtrRow += srcDescPtr->strides.hStride;
             }
         }
     }
