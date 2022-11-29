@@ -17,34 +17,34 @@ struct HtkMelScale : public BaseMelScale {
 };
 
 struct SlaneyMelScale : public BaseMelScale {
-	const Rpp32f freq_low = 0;
-	const Rpp32f fsp = 200.0 / 3.0;
-	const Rpp32f min_log_hz = 1000.0;
-	const Rpp32f min_log_mel = (min_log_hz - freq_low) / fsp;
-	const Rpp32f step_log = 0.068751777;  // Equivalent to std::log(6.4) / 27.0;
+    const Rpp32f freq_low = 0;
+    const Rpp32f fsp = 200.0 / 3.0;
+    const Rpp32f min_log_hz = 1000.0;
+    const Rpp32f min_log_mel = (min_log_hz - freq_low) / fsp;
+    const Rpp32f step_log = 0.068751777;  // Equivalent to std::log(6.4) / 27.0;
 
     const Rpp32f inv_min_log_hz = 1.0f / 1000.0;
     const Rpp32f inv_step_log = 1.0f / step_log;
     const Rpp32f inv_fsp = 1.0f / fsp;
 
-	Rpp32f hz_to_mel(Rpp32f hz) {
-		Rpp32f mel = 0.0f;
-		if (hz >= min_log_hz)
-		    mel = min_log_mel + std::log(hz *inv_min_log_hz) * inv_step_log;
+    Rpp32f hz_to_mel(Rpp32f hz) {
+        Rpp32f mel = 0.0f;
+        if (hz >= min_log_hz)
+            mel = min_log_mel + std::log(hz *inv_min_log_hz) * inv_step_log;
         else
-		    mel = (hz - freq_low) * inv_fsp;
+            mel = (hz - freq_low) * inv_fsp;
 
-		return mel;
-	}
+        return mel;
+    }
 
-	Rpp32f mel_to_hz(Rpp32f mel) {
-		Rpp32f hz = 0.0f;
-		if (mel >= min_log_mel)
-			hz = min_log_hz * std::exp(step_log * (mel - min_log_mel));
+    Rpp32f mel_to_hz(Rpp32f mel) {
+        Rpp32f hz = 0.0f;
+        if (mel >= min_log_mel)
+            hz = min_log_hz * std::exp(step_log * (mel - min_log_mel));
         else
-			hz = freq_low + mel * fsp;
-		return hz;
-	}
+            hz = freq_low + mel * fsp;
+        return hz;
+    }
     public:
         ~SlaneyMelScale() {};
 };
@@ -52,7 +52,7 @@ struct SlaneyMelScale : public BaseMelScale {
 RppStatus mel_filter_bank_host_tensor(Rpp32f *srcPtr,
                                       RpptDescPtr srcDescPtr,
                                       Rpp32f *dstPtr,
-									  RpptDescPtr dstDescPtr,
+                                      RpptDescPtr dstDescPtr,
                                       RpptImagePatchPtr srcDims,
                                       Rpp32f maxFreq,
                                       Rpp32f minFreq,
@@ -72,12 +72,12 @@ RppStatus mel_filter_bank_host_tensor(Rpp32f *srcPtr,
             break;
     }
 
-	omp_set_dynamic(0);
+    omp_set_dynamic(0);
 #pragma omp parallel for num_threads(srcDescPtr->n)
-	for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
-	{
-		Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
-		Rpp32f *dstPtrTemp = dstPtr + batchCount * dstDescPtr->strides.nStride;
+    for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
+    {
+        Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
+        Rpp32f *dstPtrTemp = dstPtr + batchCount * dstDescPtr->strides.nStride;
 
         // Extract nfft, number of Frames, numBins
         Rpp32s nfft = (srcDims[batchCount].height - 1) * 2;
@@ -86,7 +86,6 @@ RppStatus mel_filter_bank_host_tensor(Rpp32f *srcPtr,
 
         if(maxFreq == 0.0f)
             maxFreq = sampleRate / 2;
-
 
         // Convert lower, higher freqeuncies to mel scale
         Rpp64f melLow = melScalePtr->hz_to_mel(minFreq);
@@ -129,7 +128,7 @@ RppStatus mel_filter_bank_host_tensor(Rpp32f *srcPtr,
         memset(dstPtrTemp, 0.0f, (size_t)(numFilter * numFrames * sizeof(Rpp32f)));
 
         Rpp32u vectorIncrement = 8;
-		Rpp32u alignedLength = (numFrames / 8) * 8;
+        Rpp32u alignedLength = (numFrames / 8) * 8;
         __m256 pSrc, pDst;
         Rpp32f *srcRowPtr = srcPtrTemp + fftBinStart * numFrames;
         for (int64_t fftBin = fftBinStart; fftBin <= fftBinEnd; fftBin++) {

@@ -44,7 +44,7 @@ int getIdxReflect(int idx, int lo, int hi) {
 RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
                                   RpptDescPtr srcDescPtr,
                                   Rpp32f *dstPtr,
-								  RpptDescPtr dstDescPtr,
+                                  RpptDescPtr dstDescPtr,
                                   Rpp32s *srcLengthTensor,
                                   bool centerWindows,
                                   bool reflectPadding,
@@ -84,7 +84,6 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
     }
 
     Rpp32u hStride = dstDescPtr->strides.hStride;
-
     Rpp32s alignednfftLength = (nfft / 8) * 8;
     Rpp32s alignednbinsLength = (numBins / 8) * 8;
     Rpp32s alignedwindowLength = (windowLength / 8) * 8;
@@ -133,11 +132,11 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
                         windowFnTemp += 8;
                         windowOutputTemp += 8;
                     }
-                    
+
                     for (; t < windowLength; t++) {
                         *windowOutputTemp++ = (*windowFnTemp++) * (*srcPtrWindowTemp++);
                     }
-                    
+
                 }
             }
 
@@ -261,7 +260,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
                         windowFnTemp += 8;
                         windowOutputTemp += 8;
                     }
-                    
+
                     for (; t < windowLength; t++) {
                         *windowOutputTemp++ = (*windowFnTemp++) * (*srcPtrWindowTemp++);
                     }
@@ -269,7 +268,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
 
                 Rpp32f *fftRealTemp = fftReal + batchCount * numBins;
                 Rpp32f *fftImagTemp = fftImag + batchCount * numBins;
-            
+
                 // Compute FFT
                 for (int k = 0; k < numBins; k++) {
                     windowOutputTemp = windowOutput + (w * nfft);
@@ -341,6 +340,6 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
     free(sinf);
     free(cosf);
 
-	return RPP_SUCCESS;
+    return RPP_SUCCESS;
 }
 

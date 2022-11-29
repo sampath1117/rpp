@@ -11,12 +11,12 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
                             Rpp32f *shapeTensor,
                             Rpp32f *fillValues)
 {
-	omp_set_dynamic(0);
+    omp_set_dynamic(0);
 #pragma omp parallel for num_threads(srcDescPtr->n)
-	for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
-	{
-		Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
-		Rpp32f *dstPtrTemp = dstPtr + batchCount * dstDescPtr->strides.nStride;
+    for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
+    {
+        Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
+        Rpp32f *dstPtrTemp = dstPtr + batchCount * dstDescPtr->strides.nStride;
         Rpp32s sampleBatchCount = batchCount * 2;
 
         // Slice for 1D input
@@ -147,5 +147,5 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
         }
     }
 
-	return RPP_SUCCESS;
+    return RPP_SUCCESS;
 }

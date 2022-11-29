@@ -60,19 +60,19 @@ inline void windowed_sinc(ResamplingWindow &window,
 RppStatus resample_host_tensor(Rpp32f *srcPtr,
                                RpptDescPtr srcDescPtr,
                                Rpp32f *dstPtr,
-							   RpptDescPtr dstDescPtr,
+                               RpptDescPtr dstDescPtr,
                                Rpp32f *inRateTensor,
                                Rpp32f *outRateTensor,
                                Rpp32s *srcLengthTensor,
                                Rpp32s *channelTensor,
                                Rpp32f quality)
 {
-	omp_set_dynamic(0);
+    omp_set_dynamic(0);
 #pragma omp parallel for num_threads(srcDescPtr->n)
-	for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
-	{
-		Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
-		Rpp32f *dstPtrTemp = dstPtr + batchCount * dstDescPtr->strides.nStride;
+    for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
+    {
+        Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
+        Rpp32f *dstPtrTemp = dstPtr + batchCount * dstDescPtr->strides.nStride;
 
         Rpp32f inRate = inRateTensor[batchCount];
         Rpp32f outRate = outRateTensor[batchCount];
@@ -174,5 +174,5 @@ RppStatus resample_host_tensor(Rpp32f *srcPtr,
         }
     }
 
-	return RPP_SUCCESS;
+    return RPP_SUCCESS;
 }
