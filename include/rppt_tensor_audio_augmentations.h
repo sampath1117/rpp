@@ -30,11 +30,11 @@ extern "C" {
 
 /******************** non_silent_region_detection ********************/
 
-// Non Silent Region Detection augmentation for 1D audio buffer
+// Non Silent Region Detection augmentation for a NHW layout tensor
 
 // *param[in] srcPtr source tensor memory
 // *param[in] srcDescPtr source tensor descriptor
-// *param[in] srcSize source audio buffer length
+// *param[in] srcLengthTensor source audio buffer length
 // *param[out] detectedIndex beginning index of non silent region
 // *param[out] detectionLength length of non silent region
 // *param[in] cutOffDB threshold(dB) below which the signal is considered silent
@@ -45,11 +45,11 @@ extern "C" {
 // *retval RPP_SUCCESS : successful completion
 // *retval RPP_ERROR : Error
 
-RppStatus rppt_non_silent_region_detection_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, Rpp32s *srcSize, Rpp32f *detectedIndexTensor, Rpp32f *detectionLengthTensor, Rpp32f cutOffDB, Rpp32s windowLength, Rpp32f referencePower, Rpp32s resetInterval);
+RppStatus rppt_non_silent_region_detection_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, Rpp32s *srcLengthTensor, Rpp32f *detectedIndexTensor, Rpp32f *detectionLengthTensor, Rpp32f cutOffDB, Rpp32s windowLength, Rpp32f referencePower, Rpp32s resetInterval);
 
 /******************** to_decibels ********************/
 
-// To Decibels augmentation for magnitude buffer
+// To Decibels augmentation for a NHW layout tensor
 
 // *param[in] srcPtr source tensor memory
 // *param[in] srcDescPtr source tensor descriptor
@@ -67,30 +67,30 @@ RppStatus rppt_to_decibels_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_
 
 /******************** pre_emphasis_filter ********************/
 
-// Pre Emphasis Filter augmentation for 1D audio buffer
+// Pre Emphasis Filter augmentation for a NHW layout tensor
 
 // *param[in] srcPtr source tensor memory
 // *param[in] srcDescPtr source tensor descriptor
 // *param[out] dstPtr destination tensor memory
 // *param[in] dstDescPtr destination tensor descriptor
-// *param[in] srcSize source audio buffer length
+// *param[in] srcLengthTensor source audio buffer length
 // *param[in] coeffTensor preemphasis coefficient
 // *param[in] borderType border value policy
 // *returns a  RppStatus enumeration.
 // *retval RPP_SUCCESS : successful completion
 // *retval RPP_ERROR : Error
 
-RppStatus rppt_pre_emphasis_filter_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, Rpp32s *srcSizeTensor, Rpp32f *coeffTensor, RpptAudioBorderType borderType = RpptAudioBorderType::CLAMP);
+RppStatus rppt_pre_emphasis_filter_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, Rpp32s *srcLengthTensor, Rpp32f *coeffTensor, RpptAudioBorderType borderType = RpptAudioBorderType::CLAMP);
 
 /******************** down_mixing ********************/
 
-// Downmix multi channel audio buffer to single channel audio buffer
+// Downmixing augmentation for a NHW layout tensor
 
 // *param[in] srcPtr source tensor memory
 // *param[in] srcDescPtr source tensor descriptor
 // *param[out] dstPtr destination tensor memory
 // *param[in] dstDescPtr destination tensor descriptor
-// *param[in] srcLengthTensor number of samples per channel
+// *param[in] srcLengthTensor source audio buffer length
 // *param[in] channelsTensor number of channels in audio buffer
 // *returns a  RppStatus enumeration.
 // *retval RPP_SUCCESS : successful completion
@@ -100,13 +100,13 @@ RppStatus rppt_down_mixing_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_
 
 /******************** slice ********************/
 
-// Extracts a subtensor or slice from the audio file
+// Slice augmentation for a NHW layout tensor
 
 // *param[in] srcPtr source tensor memory
 // *param[in] srcDescPtr source tensor descriptor
 // *param[out] dstPtr destination tensor memory
 // *param[in] dstDescPtr destination tensor descriptor
-// *param[in] srcLengthTensor number of samples per channel
+// *param[in] srcDimsTensor
 // *param[in] anchor starting index of the slice
 // *param[in] shape length of the slice
 // *param[in] axes axes along which slice is needed
@@ -117,42 +117,46 @@ RppStatus rppt_down_mixing_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_
 // *retval RPP_SUCCESS : successful completion
 // *retval RPP_ERROR : Error
 
-RppStatus rppt_slice_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, Rpp32s *srcLengthTensor, Rpp32f *anchorTensor, Rpp32f *shapeTensor, Rpp32f *fillValues);
+RppStatus rppt_slice_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, Rpp32s *srcDimsTensor, Rpp32f *anchorTensor, Rpp32f *shapeTensor, Rpp32f *fillValues);
 
-// Mel Filter Bank augmentation
+/******************** mel_filter_bank ********************/
+
+// Mel Filter Bank augmentation for a NHW layout tensor
 
 // *param[in] srcPtr source tensor memory
 // *param[in] srcDescPtr source tensor descriptor
 // *param[out] dstPtr destination tensor memory
 // *param[in] dstDescPtr destination tensor descriptor
-// *param[in] srcDims
+// *param[in] srcDims source dimensions
 // *param[in] maxFreq maximum frequency if not provided maxFreq = sampleRate / 2
 // *param[in] minFreq minimum frequency
-// *param[in] melFormula
-// *param[in] numFilter
-// *param[in] sampleRate
-// *param[in] normalize
+// *param[in] melFormula Formula that will be used to convert frequencies from hertz to mel and from mel to hertz
+// *param[in] numFilter Number of mel filters
+// *param[in] sampleRate Sampling rate of the audio signal
+// *param[in] normalize Boolean value that determines whether to normalize the triangular filter weights by the width of their frequency bands
 // *returns a  RppStatus enumeration.
 // *retval RPP_SUCCESS : successful completion
 // *retval RPP_ERROR : Error
 
 RppStatus rppt_mel_filter_bank_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr srcDims, Rpp32f minFreq, Rpp32f maxFreq, RpptMelScaleFormula melFormula, Rpp32s numFilter, Rpp32f sampleRate, bool normalize);
 
-// Spectrogram augmentation
+/******************** spectrogram ********************/
+
+// Spectrogram augmentation for a NHW layout tensor
 
 // *param[in] srcPtr source tensor memory
 // *param[in] srcDescPtr source tensor descriptor
 // *param[out] dstPtr destination tensor memory
 // *param[in] dstDescPtr destination tensor descriptor
-// *param[in] srcLengthTensor number of samples per channel
-// *param[in] centerWindows
-// *param[in] reflectPadding
-// *param[in] windowFunction
-// *param[in] nfft
-// *param[in] power
-// *param[in] windowLength
-// *param[in] windowStep
-// *param[in] layout
+// *param[in] srcLengthTensor source audio buffer length
+// *param[in] centerWindows Indicates whether extracted windows should be padded so that the window function is centered at multiples of window_step
+// *param[in] reflectPadding Indicates the padding policy when sampling outside the bounds of the signal
+// *param[in] windowFunction Samples of the window function that will be multiplied to each extracted window when calculating the STFT
+// *param[in] nfft Size of the FFT
+// *param[in] power Exponent of the magnitude of the spectrum
+// *param[in] windowLength Window size in number of samples
+// *param[in] windowStep Step betweeen the STFT windows in number of samples
+// *param[in] layout output layout of spectrogram
 // *returns a  RppStatus enumeration.
 // *retval RPP_SUCCESS : successful completion
 // *retval RPP_ERROR : Error
@@ -161,17 +165,17 @@ RppStatus rppt_spectrogram_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_
 
 /******************** resample ********************/
 
-// Resample audio signal based on the target sample rate
+// Resample augmentation for a NHW layout tensor
 
 // *param[in] srcPtr source tensor memory
 // *param[in] srcDescPtr source tensor descriptor
 // *param[out] dstPtr destination tensor memory
 // *param[in] dstDescPtr destination tensor descriptor
-// *param[in] inRate
-// *param[in] outRate
-// *param[in] srcLengthTensor
-// *param[in] channelsTensor
-// *param[in] quality
+// *param[in] inRate Input sampling rate
+// *param[in] outRate Output sampling rate
+// *param[in] srcLengthTensor source audio buffer length
+// *param[in] channelsTensor number of channels in audio buffer
+// *param[in] quality Resampling quality, where 0 is the lowest, and 100 is the highest
 // *returns a  RppStatus enumeration.
 // *retval RPP_SUCCESS : successful completion
 // *retval RPP_ERROR : Error
@@ -179,6 +183,8 @@ RppStatus rppt_spectrogram_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_
 RppStatus rppt_resample_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, Rpp32f *inRateTensor, Rpp32f *outRateTensor, Rpp32s *srcLengthTensor, Rpp32s *channelsTensor, Rpp32f quality);
 
 /******************** normalize_audio ********************/
+
+// Normalize augmentation for a NHW layout tensor
 
 RppStatus rppt_normalize_audio_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, Rpp32s *srcLengthTensor, Rpp32s *channelsTensor, Rpp32s axisMask,
                                     Rpp32f mean, Rpp32f stdDev, Rpp32f scale, Rpp32f shift, Rpp32f epsilon, Rpp32s ddof, Rpp32s numOfDims);

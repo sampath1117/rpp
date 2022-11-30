@@ -25,6 +25,7 @@ THE SOFTWARE.
 #include "rppt_tensor_audio_augmentations.h"
 #include "cpu/host_tensor_audio_augmentations.hpp"
 
+/******************** non_silent_region_detection ********************/
 
 RppStatus rppt_non_silent_region_detection_host(RppPtr_t srcPtr,
                                                 RpptDescPtr srcDescPtr,
@@ -49,6 +50,8 @@ RppStatus rppt_non_silent_region_detection_host(RppPtr_t srcPtr,
     return RPP_SUCCESS;
 }
 
+/******************** to_decibels ********************/
+
 RppStatus rppt_to_decibels_host(RppPtr_t srcPtr,
                                 RpptDescPtr srcDescPtr,
                                 RppPtr_t dstPtr,
@@ -70,6 +73,8 @@ RppStatus rppt_to_decibels_host(RppPtr_t srcPtr,
     return RPP_SUCCESS;
 }
 
+/******************** pre_emphasis_filter ********************/
+
 RppStatus rppt_pre_emphasis_filter_host(RppPtr_t srcPtr,
                                         RpptDescPtr srcDescPtr,
                                         RppPtr_t dstPtr,
@@ -89,6 +94,8 @@ RppStatus rppt_pre_emphasis_filter_host(RppPtr_t srcPtr,
     return RPP_SUCCESS;
 }
 
+/******************** down_mixing ********************/
+
 RppStatus rppt_down_mixing_host(RppPtr_t srcPtr,
                                 RpptDescPtr srcDescPtr,
                                 RppPtr_t dstPtr,
@@ -107,6 +114,8 @@ RppStatus rppt_down_mixing_host(RppPtr_t srcPtr,
 
     return RPP_SUCCESS;
 }
+
+/******************** slice ********************/
 
 RppStatus rppt_slice_host(RppPtr_t srcPtr,
                           RpptDescPtr srcDescPtr,
@@ -128,6 +137,8 @@ RppStatus rppt_slice_host(RppPtr_t srcPtr,
 
     return RPP_SUCCESS;
 }
+
+/******************** mel_filter_bank ********************/
 
 RppStatus rppt_mel_filter_bank_host(RppPtr_t srcPtr,
                                     RpptDescPtr srcDescPtr,
@@ -155,6 +166,8 @@ RppStatus rppt_mel_filter_bank_host(RppPtr_t srcPtr,
 
     return RPP_SUCCESS;
 }
+
+/******************** spectrogram ********************/
 
 RppStatus rppt_spectrogram_host(RppPtr_t srcPtr,
                                 RpptDescPtr srcDescPtr,
@@ -187,6 +200,8 @@ RppStatus rppt_spectrogram_host(RppPtr_t srcPtr,
     return RPP_SUCCESS;
 }
 
+/******************** resample ********************/
+
 RppStatus rppt_resample_host(RppPtr_t srcPtr,
                              RpptDescPtr srcDescPtr,
                              RppPtr_t dstPtr,
@@ -209,6 +224,9 @@ RppStatus rppt_resample_host(RppPtr_t srcPtr,
 
     return RPP_SUCCESS;
 }
+
+/******************** normalize_audio ********************/
+
 RppStatus rppt_normalize_audio_host(RppPtr_t srcPtr,
                                     RpptDescPtr srcDescPtr,
                                     RppPtr_t dstPtr,
