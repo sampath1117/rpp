@@ -1677,6 +1677,7 @@ static const __m128 _ps_coscof_p1 = _mm_set1_ps(-1.388731625493765E-003f);
 static const __m128 _ps_coscof_p2 = _mm_set1_ps( 4.166664568298827E-002f);
 static const __m128 _ps_cephes_FOPI = _mm_set1_ps(1.27323954473516f); // 4 / M_PI
 
+static const __m256 _ps_0_avx = _mm256_set1_ps(0.f);
 static const __m256 _ps_1_avx = _mm256_set1_ps(1.f);
 static const __m256 _ps_0p5_avx = _mm256_set1_ps(0.5f);
 static const __m256 _ps_n0p5_avx = _mm256_set1_ps(-0.5f);
@@ -1684,6 +1685,7 @@ static const __m256 _ps_1p5_avx = _mm256_set1_ps(1.5f);
 static const __m256 _ps_min_norm_pos_avx = set1_ps_hex_avx(0x00800000);
 static const __m256 _ps_inv_mant_mask_avx = set1_ps_hex_avx(~0x7f800000);
 static const __m256 _ps_sign_mask_avx = set1_ps_hex_avx(0x80000000);
+static const __m256 _ps_inv_sign_mask_avx = set1_ps_hex_avx(~0x80000000);
 
 static const __m256i _pi32_1_avx = _mm256_set1_epi32(1);
 static const __m256i _pi32_inv1_avx = _mm256_set1_epi32(~1);
@@ -1868,10 +1870,20 @@ static const __m128 _ps_cephes_PIF = _mm_set1_ps(3.141592653589793238);
 static const __m128 _ps_cephes_PIO2F = _mm_set1_ps(1.5707963267948966192);
 static const __m128 _ps_cephes_PIO4F = _mm_set1_ps(0.7853981633974483096);
 
+static const __m256 _ps_atanrange_hi_avx = _mm256_set1_ps(2.414213562373095);
+static const __m256 _ps_atanrange_lo_avx = _mm256_set1_ps(0.4142135623730950);
+static const __m256 _ps_cephes_PIO2F_avx = _mm256_set1_ps(1.5707963267948966192);
+static const __m256 _ps_cephes_PIO4F_avx = _mm256_set1_ps(0.7853981633974483096);
+
 static const __m128 _ps_atancof_p0 = _mm_set1_ps(8.05374449538e-2);
 static const __m128 _ps_atancof_p1 = _mm_set1_ps(1.38776856032E-1);
 static const __m128 _ps_atancof_p2 = _mm_set1_ps(1.99777106478E-1);
 static const __m128 _ps_atancof_p3 = _mm_set1_ps(3.33329491539E-1);
+
+static const __m256 _ps_atancof_p0_avx = _mm256_set1_ps(8.05374449538e-2);
+static const __m256 _ps_atancof_p1_avx = _mm256_set1_ps(1.38776856032E-1);
+static const __m256 _ps_atancof_p2_avx = _mm256_set1_ps(1.99777106478E-1);
+static const __m256 _ps_atancof_p3_avx = _mm256_set1_ps(3.33329491539E-1);
 
 static inline __m128 atan_ps( __m128 x )
 {
@@ -1979,6 +1991,66 @@ static inline __m128 atan2_ps( __m128 y, __m128 x )
     result = _mm_or_ps( result, pi_result );
 
     return result;
+}
+
+static inline __m256 atan_ps_avx( __m256 x)
+{
+    __m256 sign_bit, y;
+
+    sign_bit = x;
+    // Take the absolute value
+    x = _mm256_and_ps(x, _ps_inv_sign_mask_avx);
+    // Extract the sign bit (upper one)
+    sign_bit = _mm256_and_ps(sign_bit, _ps_sign_mask_avx);
+
+    // Range reduction, init x and y depending on range
+
+    // x > 2.414213562373095
+    __m256 cmp0 = _mm256_cmp_ps(x, _ps_atanrange_hi_avx, _CMP_GT_OS);
+    // x > 0.4142135623730950
+    __m256 cmp1 = _mm256_cmp_ps(x, _ps_atanrange_lo_avx, _CMP_GT_OS);
+
+    // x > 0.4142135623730950 && !( x > 2.414213562373095 )
+    __m256 cmp2 = _mm256_andnot_ps( cmp0, cmp1 );
+
+    // -( 1.0/x )
+    __m256 y0 = _mm256_and_ps( cmp0, _ps_cephes_PIO2F_avx);
+    __m256 x0 = _mm256_div_ps(_ps_1_avx, x );
+    x0 = _mm256_xor_ps( x0, _ps_sign_mask_avx);
+
+    __m256 y1 = _mm256_and_ps( cmp2, _ps_cephes_PIO4F_avx);
+    // (x-1.0)/(x+1.0)
+    __m256 x1_o = _mm256_sub_ps( x, _ps_1_avx);
+    __m256 x1_u = _mm256_add_ps( x, _ps_1_avx);
+    __m256 x1 = _mm256_div_ps( x1_o, x1_u );
+
+    __m256 x2 = _mm256_and_ps( cmp2, x1 );
+    x0 = _mm256_and_ps( cmp0, x0 );
+    x2 = _mm256_or_ps( x2, x0 );
+    cmp1 = _mm256_or_ps( cmp0, cmp2 );
+    x2 = _mm256_and_ps( cmp1, x2 );
+    x = _mm256_andnot_ps( cmp1, x );
+    x = _mm256_or_ps( x2, x );
+
+    y = _mm256_or_ps( y0, y1 );
+
+    __m256 zz = _mm256_mul_ps( x, x );
+    __m256 acc = _ps_atancof_p0_avx;
+    acc = _mm256_mul_ps( acc, zz );
+    acc = _mm256_sub_ps( acc, _ps_atancof_p1_avx);
+    acc = _mm256_mul_ps( acc, zz );
+    acc = _mm256_add_ps( acc, _ps_atancof_p2_avx);
+    acc = _mm256_mul_ps( acc, zz );
+    acc = _mm256_sub_ps( acc, _ps_atancof_p3_avx);
+    acc = _mm256_mul_ps( acc, zz );
+    acc = _mm256_mul_ps( acc, x );
+    acc = _mm256_add_ps( acc, x );
+    y = _mm256_add_ps( y, acc );
+
+    // Update the sign
+    y = _mm256_xor_ps( y, sign_bit );
+
+    return y;
 }
 
 // Modified AVX2 version of the original SSE version at https://github.com/RJVB/sse_mathfun/blob/master/sse_mathfun.h

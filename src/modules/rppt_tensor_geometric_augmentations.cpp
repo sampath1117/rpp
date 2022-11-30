@@ -721,6 +721,82 @@ RppStatus rppt_resize_crop_mirror_host(RppPtr_t srcPtr,
     return RPP_SUCCESS;
 }
 
+/******************** lens_correction ********************/
+
+RppStatus rppt_lens_correction_host(RppPtr_t srcPtr,
+                                    RpptDescPtr srcDescPtr,
+                                    RppPtr_t dstPtr,
+                                    RpptDescPtr dstDescPtr,
+                                    RpptInterpolationType interpolationType,
+                                    Rpp32f *strengthTensor,
+                                    Rpp32f *zoomTensor,
+                                    RpptROIPtr roiTensorPtrSrc,
+                                    RpptRoiType roiType,
+                                    rppHandle_t rppHandle)
+{
+    RppLayoutParams srcLayoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
+
+    if (interpolationType != RpptInterpolationType::BILINEAR)
+        return RPP_ERROR_NOT_IMPLEMENTED;
+
+    if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
+    {
+        lens_correction_bilinear_u8_u8_host_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
+                                                  srcDescPtr,
+                                                  static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
+                                                  dstDescPtr,
+                                                  strengthTensor,
+                                                  zoomTensor,
+                                                  roiTensorPtrSrc,
+                                                  roiType,
+                                                  srcLayoutParams);
+    }
+    // else if ((srcDescPtr->dataType == RpptDataType::F16) && (dstDescPtr->dataType == RpptDataType::F16))
+    // {
+    //     lens_correction_bilinear_f16_f16_host_tensor((Rpp16f*) (static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes),
+    //                                                 srcDescPtr,
+    //                                                 (Rpp16f*) (static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes),
+    //                                                 dstDescPtr,
+    //                                                 dstImgSizes,
+    //                                                 meanTensor,
+    //                                                 stdDevTensor,
+    //                                                 mirrorTensor,
+    //                                                 roiTensorPtrSrc,
+    //                                                 roiType,
+    //                                                 srcLayoutParams);
+    // }
+    // else if ((srcDescPtr->dataType == RpptDataType::F32) && (dstDescPtr->dataType == RpptDataType::F32))
+    // {
+    //     lens_correction_bilinear_f32_f32_host_tensor((Rpp32f*) (static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes),
+    //                                                 srcDescPtr,
+    //                                                 (Rpp32f*) (static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes),
+    //                                                 dstDescPtr,
+    //                                                 dstImgSizes,
+    //                                                 meanTensor,
+    //                                                 stdDevTensor,
+    //                                                 mirrorTensor,
+    //                                                 roiTensorPtrSrc,
+    //                                                 roiType,
+    //                                                 srcLayoutParams);
+    // }
+    // else if ((srcDescPtr->dataType == RpptDataType::I8) && (dstDescPtr->dataType == RpptDataType::I8))
+    // {
+    //     lens_correction_bilinear_i8_i8_host_tensor(static_cast<Rpp8s*>(srcPtr) + srcDescPtr->offsetInBytes,
+    //                                               srcDescPtr,
+    //                                               static_cast<Rpp8s*>(dstPtr) + dstDescPtr->offsetInBytes,
+    //                                               dstDescPtr,
+    //                                               dstImgSizes,
+    //                                               meanTensor,
+    //                                               stdDevTensor,
+    //                                               mirrorTensor,
+    //                                               roiTensorPtrSrc,
+    //                                               roiType,
+    //                                               srcLayoutParams);
+    // }
+
+    return RPP_SUCCESS;
+}
+
 /********************************************************************************************************************/
 /*********************************************** RPP_GPU_SUPPORT = ON ***********************************************/
 /********************************************************************************************************************/
