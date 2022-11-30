@@ -22,8 +22,8 @@ THE SOFTWARE.
 
 #include "rppdefs.h"
 #include "rppi_validate.hpp"
-#include "rppt_tensor_audio.h"
-#include "cpu/host_tensor_audio.hpp"
+#include "rppt_tensor_audio_augmentations.h"
+#include "cpu/host_tensor_audio_augmentations.hpp"
 
 
 RppStatus rppt_non_silent_region_detection_host(RppPtr_t srcPtr,
@@ -36,7 +36,7 @@ RppStatus rppt_non_silent_region_detection_host(RppPtr_t srcPtr,
                                                 Rpp32f referencePower,
                                                 Rpp32s resetInterval)
 {
-    non_silent_region_detection_host_tensor((Rpp32f*)(srcPtr),
+    non_silent_region_detection_host_tensor((Rpp32f*)srcPtr,
                                             srcDescPtr,
                                             srcSize,
                                             detectedIndexTensor,
@@ -58,9 +58,9 @@ RppStatus rppt_to_decibels_host(RppPtr_t srcPtr,
                                 Rpp32f multiplier,
                                 Rpp32f referenceMagnitude)
 {
-    to_decibels_host_tensor((Rpp32f*)(srcPtr),
+    to_decibels_host_tensor((Rpp32f*)srcPtr,
                             srcDescPtr,
-                            (Rpp32f*)(dstPtr),
+                            (Rpp32f*)dstPtr,
                             dstDescPtr,
                             srcDims,
                             cutOffDB,
@@ -141,9 +141,9 @@ RppStatus rppt_mel_filter_bank_host(RppPtr_t srcPtr,
                                     Rpp32f sampleRate,
                                     bool normalize)
 {
-    mel_filter_bank_host_tensor((Rpp32f*)(srcPtr),
+    mel_filter_bank_host_tensor((Rpp32f*)srcPtr,
                                 srcDescPtr,
-                                (Rpp32f*)(dstPtr),
+                                (Rpp32f*)dstPtr,
                                 dstDescPtr,
                                 srcDims,
                                 maxFreq,
@@ -159,7 +159,7 @@ RppStatus rppt_mel_filter_bank_host(RppPtr_t srcPtr,
 RppStatus rppt_spectrogram_host(RppPtr_t srcPtr,
                                 RpptDescPtr srcDescPtr,
                                 RppPtr_t dstPtr,
-								RpptDescPtr dstDescPtr,
+                                RpptDescPtr dstDescPtr,
                                 Rpp32s *srcLengthTensor,
                                 bool centerWindows,
                                 bool reflectPadding,
@@ -170,10 +170,10 @@ RppStatus rppt_spectrogram_host(RppPtr_t srcPtr,
                                 Rpp32s windowStep,
                                 RpptSpectrogramLayout layout)
 {
-    spectrogram_host_tensor((Rpp32f*)(srcPtr),
+    spectrogram_host_tensor((Rpp32f*)srcPtr,
                             srcDescPtr,
-                            (Rpp32f*)(dstPtr),
-							dstDescPtr,
+                            (Rpp32f*)dstPtr,
+                            dstDescPtr,
                             srcLengthTensor,
                             centerWindows,
                             reflectPadding,
@@ -224,9 +224,9 @@ RppStatus rppt_normalize_audio_host(RppPtr_t srcPtr,
                                     Rpp32s ddof,
                                     Rpp32s numOfDims)
 {
-    normalize_audio_host_tensor((Rpp32f*)(srcPtr),
+    normalize_audio_host_tensor((Rpp32f*)srcPtr,
                                 srcDescPtr,
-                                (Rpp32f*)(dstPtr),
+                                (Rpp32f*)dstPtr,
                                 dstDescPtr,
                                 srcLengthTensor,
                                 channelsTensor,

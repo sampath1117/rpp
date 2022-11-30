@@ -263,13 +263,13 @@ typedef enum
 {
     SLANEY = 0,
     HTK,
-}RpptMelScaleFormula;
+} RpptMelScaleFormula;
 
 typedef enum
 {
     FT = 0,
     TF,
-}RpptSpectrogramLayout;
+} RpptSpectrogramLayout;
 
 typedef struct
 {

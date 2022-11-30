@@ -20,8 +20,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#ifndef RPPT_TENSOR_AUDIO_H
-#define RPPT_TENSOR_AUDIO_H
+#ifndef RPPT_TENSOR_AUDIO_AUGMENTATIONS_H
+#define RPPT_TENSOR_AUDIO_AUGMENTATIONS_H
 #include "rpp.h"
 #include "rppdefs.h"
 #ifdef __cplusplus
@@ -185,4 +185,4 @@ RppStatus rppt_normalize_audio_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, Rpp
 #ifdef __cplusplus
 }
 #endif
-#endif // RPPT_TENSOR_AUDIO_H
+#endif // RPPT_TENSOR_AUDIO_AUGMENTATIONS_H

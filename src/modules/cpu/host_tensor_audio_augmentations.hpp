@@ -20,8 +20,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#ifndef HOST_TENSOR_AUDIO_HPP
-#define HOST_TENSOR_AUDIO_HPP
+#ifndef HOST_TENSOR_AUDIO_AUGMENTATIONS_HPP
+#define HOST_TENSOR_AUDIO_AUGMENTATIONS_HPP
 
 #include "kernel/non_silent_region_detection.hpp"
 #include "kernel/to_decibels.hpp"
@@ -33,4 +33,4 @@ THE SOFTWARE.
 #include "kernel/resample.hpp"
 #include "kernel/normalize.hpp"
 
-#endif // HOST_TENSOR_AUDIO_HPP
+#endif // HOST_TENSOR_AUDIO_AUGMENTATIONS_HPP
