@@ -1615,8 +1615,8 @@ int main(int argc, char **argv)
             Rpp32f zoom[images];
             for (i = 0; i < images; i++)
             {
-                strength[i] = 0.8;
-                zoom[i] = 1;
+                strength[i] = 0.5;
+                zoom[i] = 5;
             }
 
             start_omp = omp_get_wtime();

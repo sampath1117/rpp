@@ -146,6 +146,9 @@ int main(int argc, char **argv)
     case 24:
         strcpy(funcName, "warp_affine");
         break;
+    case 26:
+        strcpy(funcName, "lens_correction");
+        break;
     case 31:
         strcpy(funcName, "color_cast");
         break;
@@ -1226,6 +1229,45 @@ int main(int argc, char **argv)
                 missingFuncFlag = 1;
             else if (ip_bitDepth == 5)
                 rppt_warp_affine_host(inputi8, srcDescPtr, outputi8, dstDescPtr, affineTensor, interpolationType, roiTensorPtrSrc, roiTypeSrc, handle);
+            else if (ip_bitDepth == 6)
+                missingFuncFlag = 1;
+            else
+                missingFuncFlag = 1;
+
+            break;
+        }
+        case 26:
+        {
+            test_case_name = "lens_correction";
+
+            if ((interpolationType != RpptInterpolationType::BILINEAR) && (interpolationType != RpptInterpolationType::NEAREST_NEIGHBOR))
+            {
+                missingFuncFlag = 1;
+                break;
+            }
+
+            Rpp32f strength[images];
+            Rpp32f zoom[images];
+            for (i = 0; i < images; i++)
+            {
+                strength[i] = 0.5;
+                zoom[i] = 5;
+            }
+
+            start_omp = omp_get_wtime();
+            start = clock();
+            if (ip_bitDepth == 0)
+                rppt_lens_correction_host(input, srcDescPtr, output, dstDescPtr, interpolationType, strength, zoom, roiTensorPtrSrc, roiTypeSrc, handle);
+            else if (ip_bitDepth == 1)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 2)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 3)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 4)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 5)
+                missingFuncFlag = 1;
             else if (ip_bitDepth == 6)
                 missingFuncFlag = 1;
             else

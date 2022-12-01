@@ -1255,6 +1255,12 @@ int main(int argc, char **argv)
     {
         test_case_name = "lens_correction";
 
+        if ((interpolationType != RpptInterpolationType::BILINEAR) && (interpolationType != RpptInterpolationType::NEAREST_NEIGHBOR))
+        {
+            missingFuncFlag = 1;
+            break;
+        }
+
         Rpp32f strength[images];
         Rpp32f zoom[images];
         for (i = 0; i < images; i++)

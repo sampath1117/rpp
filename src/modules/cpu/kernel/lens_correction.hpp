@@ -4,34 +4,32 @@
 
 /************* lens_correction helpers *************/
 
-inline void compute_lens_correction_src_loc(Rpp32s dstY, Rpp32f dstYSquared, Rpp32s dstX, Rpp32f &srcY, Rpp32f &srcX, Rpp32f &zoom, Rpp32f &correctionRadius, Rpp32s roiHalfHeight, Rpp32s roiHalfWidth)
+inline void compute_lens_correction_src_loc(Rpp32s dstRowLoc, Rpp32f dstRowLocSquared, Rpp32s dstColLoc, Rpp32f &srcRowLoc, Rpp32f &srcColLoc, Rpp32f &zoom, Rpp32f &invCorrectionRadius, Rpp32s roiHalfHeight, Rpp32s roiHalfWidth)
 {
-    dstX -= roiHalfWidth;
-    float r = (float)(sqrt(dstX * dstX + dstYSquared)) / correctionRadius;
+    dstColLoc -= roiHalfWidth;
+    float distance = (float)(sqrt(dstColLoc * dstColLoc + dstRowLocSquared)) * invCorrectionRadius;
 
     float theta;
-    if (r == 0)
+    if (distance == 0)
         theta = 1.0;
     else
-        theta = atan(r) / r;
+        theta = atan(distance) / distance;
 
-    srcX = (roiHalfWidth + theta * dstX * zoom);
-    srcY = (roiHalfHeight + theta * dstY * zoom);
+    srcColLoc = (roiHalfWidth + theta * dstColLoc * zoom);
+    srcRowLoc = (roiHalfHeight + theta * dstRowLoc * zoom);
 }
 
-inline void compute_lens_correction_src_loc_avx(__m256 &pDstY, __m256 &pDstYSquared, __m256 &pDstX, __m256 &pSrcY, __m256 &pSrcX, __m256 &pZoom, __m256 &pCorrectionRadius, __m256 &pHalfHeight, __m256 &pHalfWidth)
+inline void compute_lens_correction_src_loc_avx(__m256 &pDstRowLoc, __m256 &pDstRowLocSquared, __m256 &pDstColLoc, __m256 &pSrcRowLoc, __m256 &pSrcColLoc, __m256 &pZoom, __m256 &pinvCorrectionRadius, __m256 &pHalfHeight, __m256 &pHalfWidth)
 {
-    __m256 pColLoc = _mm256_sub_ps(pDstX, pHalfWidth);
-    pDstX = _mm256_add_ps(pDstX, avx_pDstLocInit);
-
-    __m256 pDistance = _mm256_sqrt_ps(_mm256_add_ps(_mm256_mul_ps(pColLoc, pColLoc), pDstYSquared));
-    pDistance = _mm256_mul_ps(pDistance, pCorrectionRadius);
+    __m256 pDstColLocNew = _mm256_sub_ps(pDstColLoc, pHalfWidth);
+    pDstColLoc = _mm256_add_ps(pDstColLoc, avx_p8);
+    __m256 pDistance = _mm256_sqrt_ps(_mm256_add_ps(_mm256_mul_ps(pDstColLocNew, pDstColLocNew), pDstRowLocSquared));
+    pDistance = _mm256_mul_ps(pDistance, pinvCorrectionRadius);
     __m256 pMask =  _mm256_cmp_ps(pDistance, avx_p0, _CMP_EQ_OQ);
     __m256 pTheta = _mm256_blendv_ps(_mm256_div_ps(atan_ps_avx(pDistance), pDistance), avx_p1, pMask);
-    __m256 pFactor = _mm256_mul_ps(pTheta, pZoom);
-
-    pSrcX = _mm256_add_ps(pHalfWidth, _mm256_mul_ps(pFactor, pColLoc));
-    pSrcY = _mm256_add_ps(pHalfHeight, _mm256_mul_ps(pFactor, pDstY));
+    __m256 pMulFactor = _mm256_mul_ps(pTheta, pZoom);
+    pSrcColLoc = _mm256_add_ps(pHalfWidth, _mm256_mul_ps(pDstColLocNew, pMulFactor));
+    pSrcRowLoc = _mm256_add_ps(pHalfHeight, _mm256_mul_ps(pDstRowLoc, pMulFactor));
 }
 
 // /************* BILINEAR INTERPOLATION *************/
@@ -65,11 +63,11 @@ omp_set_dynamic(0);
             strength = 0.000001;
         Rpp32s height = roi.xywhROI.roiHeight;
         Rpp32s width = roi.xywhROI.roiWidth;
-        Rpp32f correctionRadius = sqrt(width * width + height * height) / strength;
+        Rpp32f invCorrectionRadius = strength / sqrt(width * width + height * height) ;
 
-        __m256 pZoom, pCorrectionRadius, pHalfWidth, pHalfHeight;
+        __m256 pZoom, pinvCorrectionRadius, pHalfWidth, pHalfHeight;
         pZoom = _mm256_set1_ps(zoom);
-        pCorrectionRadius = _mm256_set1_ps(correctionRadius);
+        pinvCorrectionRadius = _mm256_set1_ps(invCorrectionRadius);
         pHalfWidth = _mm256_set1_ps(roiHalfWidth);
         pHalfHeight = _mm256_set1_ps(roiHalfHeight);
 
@@ -81,7 +79,7 @@ omp_set_dynamic(0);
 
         Rpp32s vectorIncrementPerChannel = 8;
         Rpp32s vectorIncrementPkd = 24;
-        Rpp32u bufferLength = roi.xywhROI.roiWidth * srcLayoutParams.bufferMultiplier;
+        Rpp32u bufferLength = roi.xywhROI.roiWidth;
         Rpp32u alignedLength = bufferLength & ~7;   // Align dst width to process 8 dst pixels per iteration
 
         __m256 pBilinearCoeffs[4];
@@ -97,39 +95,37 @@ omp_set_dynamic(0);
         pxSrcStridesCHW[2] = _mm256_set1_epi32(srcDescPtr->strides.wStride);
         RpptBilinearNbhoodLocsVecLen8 srcLocs;
 
-        // Lens Correction with fused output-layout toggle (NCHW -> NCHW)
-        if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
+        // Lens Correction with fused output-layout toggle (NHWC -> NCHW)
+        if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NCHW))
         {
             Rpp8u *dstPtrRowR, *dstPtrRowG, *dstPtrRowB;
             dstPtrRowR = dstPtrChannel;
             dstPtrRowG = dstPtrRowR + dstDescPtr->strides.cStride;
             dstPtrRowB = dstPtrRowG + dstDescPtr->strides.cStride;
 
-            for(int i = 0; i < roi.xywhROI.roiHeight; i++)
+            for(int i = 0; i < height; i++)
             {
                 Rpp8u *dstPtrTempR, *dstPtrTempG, *dstPtrTempB;
                 dstPtrTempR = dstPtrRowR;
                 dstPtrTempG = dstPtrRowG;
                 dstPtrTempB = dstPtrRowB;
 
-                Rpp32f srcX, srcY;
-                __m256 pSrcX, pSrcY, pDstX, pDstY, pDstYSquared;
+                Rpp32f srcRowLoc, srcColLoc, dstRowLoc, dstRowLocSquared;
+                __m256 pSrcRowLoc, pSrcColLoc, pDstRowLoc, pDstRowLocSquared, pDstColLoc;
+                dstRowLoc = (i - roiHalfHeight);
+                dstRowLocSquared = dstRowLoc * dstRowLoc;
 
-                Rpp32f dstY, dstYSquared;
-                dstY = (i - roiHalfHeight);
-                dstYSquared = dstY * dstY;
-
-                pDstY = _mm256_set1_ps(dstY);
-                pDstYSquared = _mm256_set1_ps(dstYSquared);
-                pDstX = avx_pDstLocInit;
+                pDstRowLoc = _mm256_set1_ps(dstRowLoc);
+                pDstRowLocSquared = _mm256_set1_ps(dstRowLocSquared);
+                pDstColLoc = avx_pDstLocInit;
 
                 int vectorLoopCount = 0;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannel)
                 {
                     __m256 pSrc[12], pDst[3];
-                    compute_lens_correction_src_loc_avx(pDstY, pDstYSquared, pDstX, pSrcY, pSrcX, pZoom, pCorrectionRadius, pHalfHeight, pHalfWidth);
-                    compute_generic_bilinear_srclocs_3c_avx(pSrcY, pSrcX, srcLocs, pBilinearCoeffs, pSrcStrideH, pxSrcStridesCHW, srcDescPtr->c, false);
-                    rpp_simd_load(rpp_generic_bilinear_load_3c_avx<Rpp8u>, srcPtrChannel, srcDescPtr, srcLocs, pSrcY, pSrcX, pRoiLTRB, pSrc);  // Load input pixels required for bilinear interpolation
+                    compute_lens_correction_src_loc_avx(pDstRowLoc, pDstRowLocSquared, pDstColLoc, pSrcRowLoc, pSrcColLoc, pZoom, pinvCorrectionRadius, pHalfHeight, pHalfWidth);
+                    compute_generic_bilinear_srclocs_3c_avx(pSrcRowLoc, pSrcColLoc, srcLocs, pBilinearCoeffs, pSrcStrideH, pxSrcStridesCHW, srcDescPtr->c, true);
+                    rpp_simd_load(rpp_generic_bilinear_load_3c_avx<Rpp8u>, srcPtrChannel, srcDescPtr, srcLocs, pSrcRowLoc, pSrcColLoc, pRoiLTRB, pSrc);  // Load input pixels required for bilinear interpolation
                     compute_bilinear_interpolation_3c_avx(pSrc, pBilinearCoeffs, pDst); // Compute Bilinear interpolation
                     rpp_simd_store(rpp_store24_f32pln3_to_u8pln3_avx, dstPtrTempR, dstPtrTempG, dstPtrTempB, pDst); // Store dst pixels
                     dstPtrTempR += vectorIncrementPerChannel;
@@ -138,12 +134,179 @@ omp_set_dynamic(0);
                 }
                 for (; vectorLoopCount < bufferLength; vectorLoopCount++)
                 {
-                    compute_lens_correction_src_loc(dstY, dstYSquared, vectorLoopCount, srcY, srcX, zoom, correctionRadius, roiHalfHeight, roiHalfWidth);
-                    compute_generic_bilinear_interpolation_pln_to_pln(srcY, srcX, &roiLTRB, dstPtrTempR++, srcPtrChannel, srcDescPtr, dstDescPtr);
+                    compute_lens_correction_src_loc(dstRowLoc, dstRowLocSquared, vectorLoopCount, srcRowLoc, srcColLoc, zoom, invCorrectionRadius, roiHalfHeight, roiHalfWidth);
+                    compute_generic_bilinear_interpolation_pkd3_to_pln3(srcRowLoc, srcColLoc, &roiLTRB, dstPtrTempR++, dstPtrTempG++, dstPtrTempB++, srcPtrChannel, srcDescPtr);
                 }
                 dstPtrRowR += dstDescPtr->strides.hStride;
                 dstPtrRowG += dstDescPtr->strides.hStride;
                 dstPtrRowB += dstDescPtr->strides.hStride;
+            }
+        }
+
+        // Lens Correction with fused output-layout toggle (NCHW -> NHWC)
+        else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NHWC))
+        {
+            Rpp8u *dstPtrRow;
+            dstPtrRow = dstPtrChannel;
+
+            for(int i = 0; i < height; i++)
+            {
+                Rpp8u *dstPtrTemp;
+                dstPtrTemp = dstPtrRow;
+
+                Rpp32f srcRowLoc, srcColLoc, dstRowLoc, dstRowLocSquared;
+                __m256 pSrcRowLoc, pSrcColLoc, pDstRowLoc, pDstRowLocSquared, pDstColLoc;
+                dstRowLoc = (i - roiHalfHeight);
+                dstRowLocSquared = dstRowLoc * dstRowLoc;
+
+                pDstRowLoc = _mm256_set1_ps(dstRowLoc);
+                pDstRowLocSquared = _mm256_set1_ps(dstRowLocSquared);
+                pDstColLoc = avx_pDstLocInit;
+
+                int vectorLoopCount = 0;
+                for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannel)
+                {
+                    __m256 pSrc[12], pDst[3];
+                    compute_lens_correction_src_loc_avx(pDstRowLoc, pDstRowLocSquared, pDstColLoc, pSrcRowLoc, pSrcColLoc, pZoom, pinvCorrectionRadius, pHalfHeight, pHalfWidth);
+                    compute_generic_bilinear_srclocs_3c_avx(pSrcRowLoc, pSrcColLoc, srcLocs, pBilinearCoeffs, pSrcStrideH, pxSrcStridesCHW, srcDescPtr->c, false);
+                    rpp_simd_load(rpp_generic_bilinear_load_3c_avx<Rpp8u>, srcPtrChannel, srcDescPtr, srcLocs, pSrcRowLoc, pSrcColLoc, pRoiLTRB, pSrc);  // Load input pixels required for bilinear interpolation
+                    compute_bilinear_interpolation_3c_avx(pSrc, pBilinearCoeffs, pDst); // Compute Bilinear interpolation
+                    rpp_simd_store(rpp_store24_f32pln3_to_u8pkd3_avx, dstPtrTemp, pDst); // Store dst pixels
+                    dstPtrTemp += vectorIncrementPkd;
+                }
+
+                for (; vectorLoopCount < dstDescPtr->w; vectorLoopCount++)
+                {
+                    compute_lens_correction_src_loc(dstRowLoc, dstRowLocSquared, vectorLoopCount, srcRowLoc, srcColLoc, zoom, invCorrectionRadius, roiHalfHeight, roiHalfWidth);
+                    compute_generic_bilinear_interpolation_pln3pkd3_to_pkd3(srcRowLoc, srcColLoc, &roiLTRB, dstPtrTemp, srcPtrChannel, srcDescPtr);
+                    dstPtrTemp += 3;
+                }
+                dstPtrRow += dstDescPtr->strides.hStride;
+            }
+        }
+
+        // Lens Correction without fused output-layout toggle (NHWC -> NHWC)
+        else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
+        {
+            Rpp8u *dstPtrRow;
+            dstPtrRow = dstPtrChannel;
+
+            for(int i = 0; i < height; i++)
+            {
+                Rpp8u *dstPtrTemp;
+                dstPtrTemp = dstPtrRow;
+
+                Rpp32f srcRowLoc, srcColLoc, dstRowLoc, dstRowLocSquared;
+                __m256 pSrcRowLoc, pSrcColLoc, pDstRowLoc, pDstRowLocSquared, pDstColLoc;
+                dstRowLoc = (i - roiHalfHeight);
+                dstRowLocSquared = dstRowLoc * dstRowLoc;
+
+                pDstRowLoc = _mm256_set1_ps(dstRowLoc);
+                pDstRowLocSquared = _mm256_set1_ps(dstRowLocSquared);
+                pDstColLoc = avx_pDstLocInit;
+
+                int vectorLoopCount = 0;
+                for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannel)
+                {
+                    __m256 pSrc[12], pDst[3];
+                    compute_lens_correction_src_loc_avx(pDstRowLoc, pDstRowLocSquared, pDstColLoc, pSrcRowLoc, pSrcColLoc, pZoom, pinvCorrectionRadius, pHalfHeight, pHalfWidth);
+                    compute_generic_bilinear_srclocs_3c_avx(pSrcRowLoc, pSrcColLoc, srcLocs, pBilinearCoeffs, pSrcStrideH, pxSrcStridesCHW, srcDescPtr->c, true);
+                    rpp_simd_load(rpp_generic_bilinear_load_3c_avx<Rpp8u>, srcPtrChannel, srcDescPtr, srcLocs, pSrcRowLoc, pSrcColLoc, pRoiLTRB, pSrc);  // Load input pixels required for bilinear interpolation
+                    compute_bilinear_interpolation_3c_avx(pSrc, pBilinearCoeffs, pDst); // Compute Bilinear interpolation
+                    rpp_simd_store(rpp_store24_f32pln3_to_u8pkd3_avx, dstPtrTemp, pDst); // Store dst pixels
+                    dstPtrTemp += vectorIncrementPkd;
+                }
+                for (; vectorLoopCount < bufferLength; vectorLoopCount++)
+                {
+                    compute_lens_correction_src_loc(dstRowLoc, dstRowLocSquared, vectorLoopCount, srcRowLoc, srcColLoc, zoom, invCorrectionRadius, roiHalfHeight, roiHalfWidth);
+                    compute_generic_bilinear_interpolation_pln3pkd3_to_pkd3(srcRowLoc, srcColLoc, &roiLTRB, dstPtrTemp, srcPtrChannel, srcDescPtr);
+                    dstPtrTemp += 3;
+                }
+                dstPtrRow += dstDescPtr->strides.hStride;
+            }
+        }
+
+        // Lens Correction with fused output-layout toggle (NCHW -> NCHW)
+        else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
+        {
+            Rpp8u *dstPtrRowR, *dstPtrRowG, *dstPtrRowB;
+            dstPtrRowR = dstPtrChannel;
+            dstPtrRowG = dstPtrRowR + dstDescPtr->strides.cStride;
+            dstPtrRowB = dstPtrRowG + dstDescPtr->strides.cStride;
+
+            for(int i = 0; i < height; i++)
+            {
+                Rpp8u *dstPtrTempR, *dstPtrTempG, *dstPtrTempB;
+                dstPtrTempR = dstPtrRowR;
+                dstPtrTempG = dstPtrRowG;
+                dstPtrTempB = dstPtrRowB;
+
+                Rpp32f srcRowLoc, srcColLoc, dstRowLoc, dstRowLocSquared;
+                __m256 pSrcRowLoc, pSrcColLoc, pDstRowLoc, pDstRowLocSquared, pDstColLoc;
+                dstRowLoc = (i - roiHalfHeight);
+                dstRowLocSquared = dstRowLoc * dstRowLoc;
+
+                pDstRowLoc = _mm256_set1_ps(dstRowLoc);
+                pDstRowLocSquared = _mm256_set1_ps(dstRowLocSquared);
+                pDstColLoc = avx_pDstLocInit;
+
+                int vectorLoopCount = 0;
+                for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannel)
+                {
+                    __m256 pSrc[12], pDst[3];
+                    compute_lens_correction_src_loc_avx(pDstRowLoc, pDstRowLocSquared, pDstColLoc, pSrcRowLoc, pSrcColLoc, pZoom, pinvCorrectionRadius, pHalfHeight, pHalfWidth);
+                    compute_generic_bilinear_srclocs_3c_avx(pSrcRowLoc, pSrcColLoc, srcLocs, pBilinearCoeffs, pSrcStrideH, pxSrcStridesCHW, srcDescPtr->c, false);
+                    rpp_simd_load(rpp_generic_bilinear_load_3c_avx<Rpp8u>, srcPtrChannel, srcDescPtr, srcLocs, pSrcRowLoc, pSrcColLoc, pRoiLTRB, pSrc);  // Load input pixels required for bilinear interpolation
+                    compute_bilinear_interpolation_3c_avx(pSrc, pBilinearCoeffs, pDst); // Compute Bilinear interpolation
+                    rpp_simd_store(rpp_store24_f32pln3_to_u8pln3_avx, dstPtrTempR, dstPtrTempG, dstPtrTempB, pDst); // Store dst pixels
+                    dstPtrTempR += vectorIncrementPerChannel;
+                    dstPtrTempG += vectorIncrementPerChannel;
+                    dstPtrTempB += vectorIncrementPerChannel;
+                }
+                for (; vectorLoopCount < bufferLength; vectorLoopCount++)
+                {
+                    compute_lens_correction_src_loc(dstRowLoc, dstRowLocSquared, vectorLoopCount, srcRowLoc, srcColLoc, zoom, invCorrectionRadius, roiHalfHeight, roiHalfWidth);
+                    compute_generic_bilinear_interpolation_pln_to_pln(srcRowLoc, srcColLoc, &roiLTRB, dstPtrTempR++, srcPtrChannel, srcDescPtr, dstDescPtr);
+                }
+                dstPtrRowR += dstDescPtr->strides.hStride;
+                dstPtrRowG += dstDescPtr->strides.hStride;
+                dstPtrRowB += dstDescPtr->strides.hStride;
+            }
+        }
+
+        // Lens Correction without fused output-layout toggle single channel (NCHW -> NCHW)
+        else if ((srcDescPtr->c == 1) && (srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
+        {
+            Rpp8u *dstPtrRow = dstPtrChannel;
+            for(int i = 0; i < roi.xywhROI.roiHeight; i++)
+            {
+                Rpp8u *dstPtrTemp = dstPtrRow;
+                Rpp32f srcRowLoc, srcColLoc, dstRowLoc, dstRowLocSquared;
+                __m256 pSrcRowLoc, pSrcColLoc, pDstRowLoc, pDstRowLocSquared, pDstColLoc;
+                dstRowLoc = (i - roiHalfHeight);
+                dstRowLocSquared = dstRowLoc * dstRowLoc;
+
+                pDstRowLoc = _mm256_set1_ps(dstRowLoc);
+                pDstRowLocSquared = _mm256_set1_ps(dstRowLocSquared);
+                pDstColLoc = avx_pDstLocInit;
+
+                int vectorLoopCount = 0;
+                for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannel)
+                {
+                    __m256 pSrc[4], pDst;
+                    compute_lens_correction_src_loc_avx(pDstRowLoc, pDstRowLocSquared, pDstColLoc, pSrcRowLoc, pSrcColLoc, pZoom, pinvCorrectionRadius, pHalfHeight, pHalfWidth);
+                    compute_generic_bilinear_srclocs_1c_avx(pSrcRowLoc, pSrcColLoc, srcLocs, pBilinearCoeffs, pSrcStrideH, pxSrcStridesCHW);
+                    rpp_simd_load(rpp_generic_bilinear_load_1c_avx<Rpp8u>, srcPtrChannel, srcDescPtr, srcLocs, pSrcRowLoc, pSrcColLoc, pRoiLTRB, pSrc);  // Load input pixels required for bilinear interpolation
+                    compute_bilinear_interpolation_1c_avx(pSrc, pBilinearCoeffs, pDst); // Compute Bilinear interpolation
+                    rpp_simd_store(rpp_store8_f32pln1_to_u8pln1_avx, dstPtrTemp, pDst); // Store dst pixels
+                    dstPtrTemp += vectorIncrementPerChannel;
+                }
+                for (; vectorLoopCount < bufferLength; vectorLoopCount++)
+                {
+                    compute_lens_correction_src_loc(dstRowLoc, dstRowLocSquared, vectorLoopCount, srcRowLoc, srcColLoc, zoom, invCorrectionRadius, roiHalfHeight, roiHalfWidth);
+                    compute_generic_bilinear_interpolation_pln_to_pln(srcRowLoc, srcColLoc, &roiLTRB, dstPtrTemp++, srcPtrChannel, srcDescPtr, dstDescPtr);
+                }
+                dstPtrRow += dstDescPtr->strides.hStride;
             }
         }
     }
