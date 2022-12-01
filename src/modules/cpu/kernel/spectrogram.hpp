@@ -2,7 +2,7 @@
 #include "rpp_cpu_simd.hpp"
 #include "rpp_cpu_common.hpp"
 #include <chrono>
-#include<complex>
+#include <complex>
 
 Rpp32f reduce_add_ps1(__m256 src) {
     __m256 src_add = _mm256_add_ps(src, _mm256_permute2f128_ps(src, src, 1));

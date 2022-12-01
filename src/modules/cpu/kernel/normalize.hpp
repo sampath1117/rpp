@@ -14,32 +14,32 @@ float accumalate_ps(__m256 src) {
 
 __m256 mask_mov_ps(__m256 src, unsigned short msk, __m256 set1) {
     __m256i bitsArr = _mm256_set_epi32(128, 64, 32, 16, 8, 4, 2, 1);
-    //Checks if specific is set and if so makes all bits high for corresponding element in bitsSet
+    // Checks if specific is set and if so makes all bits high for corresponding element in bitsSet
     __m256i bitsSet = _mm256_and_si256(bitsArr, _mm256_set1_epi32(msk));
     bitsSet = _mm256_cmpeq_epi32(bitsSet, bitsArr);
-    //Stores the complement of the elements in bitsSet
+    // Stores the complement of the elements in bitsSet
     __m256i bitsUnset = _mm256_xor_si256(bitsSet, _mm256_set1_epi32(0xFFFFFFFF));
-    //setResult stores the values of set1 based on the bitsSet
+    // setResult stores the values of set1 based on the bitsSet
     __m256 setResult = _mm256_and_ps(set1, _mm256_castsi256_ps(bitsSet));
-    //Stores the elements of src wherever bits are not set in the mask
+    // Stores the elements of src wherever bits are not set in the mask
     __m256 unsetResult = _mm256_and_ps(src, _mm256_castsi256_ps(bitsUnset));
-    //Computes the final results based on the previous results
+    // Computes the final results based on the previous results
     __m256 finalResult = _mm256_add_ps(setResult, unsetResult);
     return finalResult;
 }
 
 __m256i mask_mov_epi32(__m256i src, unsigned short msk, __m256i set1) {
     __m256i bitsArr = _mm256_set_epi32(128, 64, 32, 16, 8, 4, 2, 1);
-    //Checks if specific is set and if so makes all bits high for corresponding element in bitsSet
+    // Checks if specific is set and if so makes all bits high for corresponding element in bitsSet
     __m256i bitsSet = _mm256_and_si256(bitsArr, _mm256_set1_epi32(msk));
     bitsSet = _mm256_cmpeq_epi32(bitsSet, bitsArr);
-    //Stores the complement of the elements in bitsSet
+    // Stores the complement of the elements in bitsSet
     __m256i bitsUnset = _mm256_xor_si256(bitsSet, _mm256_set1_epi32(0xFFFFFFFF));
-    //setResult stores the values of set1 based on the bitsSet
+    // setResult stores the values of set1 based on the bitsSet
     __m256i setResult = _mm256_and_si256(set1, (bitsSet));
-    //Stores the elements of src wherever bits are not set in the mask
+    // Stores the elements of src wherever bits are not set in the mask
     __m256i unsetResult = _mm256_and_si256(src, (bitsUnset));
-    //Computes the final results based on the previous results
+    // Computes the final results based on the previous results
     __m256i finalResult = _mm256_add_epi32(setResult, unsetResult);
     return finalResult;
 }
@@ -75,7 +75,7 @@ void compute_2D_mean(Rpp32f *srcPtr, Rpp32f *meanPtr, Rpp32u *dims, Rpp32u *stri
             if ((j == (v_n - 1)) && (rem != 0)) {
                 k_n = maskGenerate_epi32((int32_t)2147483648, rem);
             }
-            //meanPtr[i] += (*(srcPtrTemp + j * stride[0]));
+            // meanPtr[i] += (*(srcPtrTemp + j * stride[0]));
             __m256 stride_j_n = _mm256_mul_ps(j_n, stride_n);
             __m256 meanPtr_n = _mm256_mask_i32gather_ps( _mm256_setzero_ps(), srcPtrTemp, _mm256_cvtps_epi32(stride_j_n), _mm256_castsi256_ps(k_n), 4);
             meanPtr[i] += accumalate_ps(meanPtr_n);
@@ -104,7 +104,7 @@ void compute_2D_mean_axis1(Rpp32f *srcPtr, Rpp32f *meanPtr, Rpp32u *dims, Rpp32u
 
         // Inner loop with length
         for(Rpp32u j = 0; j < (v_n - 1); j++) {
-            //meanPtr[i] += (*(srcPtrTemp + j * stride[0]));
+            // meanPtr[i] += (*(srcPtrTemp + j * stride[0]));
             __m256 stride_j_n = _mm256_mul_ps(j_n, stride_n);
             __m256 srcPtrTemp_n = _mm256_i32gather_ps(srcPtrTemp, _mm256_cvtps_epi32(stride_j_n), 4);
             meanPtr_n = _mm256_add_ps(srcPtrTemp_n, meanPtr_n);
@@ -303,7 +303,7 @@ void compute_2D_mean_axis2(Rpp32f *srcPtr, Rpp32f *meanPtr, Rpp32u *dims, Rpp32u
 
         // Inner loop channel
         for(Rpp32u j = 0; j < (v_n - 1); j++) {
-            //meanPtr[i] += (*(srcPtrTemp + j * stride[0]));
+            // meanPtr[i] += (*(srcPtrTemp + j * stride[0]));
             __m256 srcPtrTemp_n = _mm256_loadu_ps(srcPtrTemp);
             meanPtr_n = _mm256_add_ps(srcPtrTemp_n, meanPtr_n);
             srcPtrTemp +=PACK;
@@ -340,7 +340,7 @@ void compute_2D_mean_axis3(Rpp32f *srcPtr, Rpp32f *meanPtr,  Rpp32u *dims, Rpp32
 
     // Total length loop
     for(Rpp32u j = 0; j < (v_n - 1); j++) {
-        //meanPtr[i] += (*(srcPtrTemp + j * stride[0]));
+        // meanPtr[i] += (*(srcPtrTemp + j * stride[0]));
         meanPtr_n = _mm256_add_ps(_mm256_loadu_ps(srcPtrTemp), meanPtr_n);
         srcPtrTemp += PACK;
     }
@@ -375,8 +375,8 @@ void compute_2D_inv_std_dev(Rpp32f *srcPtr, Rpp32f *meanPtr, Rpp32f *stdDevPtr, 
               k_n = maskGenerate_epi32((int32_t)2147483648, rem);
               meanptr_n = maskGenerate_ps(meanPtr[i], rem);
             }
-            //Rpp32f diff = (*(srcPtrTemp + j * stride[0]) - meanPtr[i]);
-            //stdDevPtr[i] += (diff * diff);
+            // Rpp32f diff = (*(srcPtrTemp + j * stride[0]) - meanPtr[i]);
+            // stdDevPtr[i] += (diff * diff);
             __m256 stride_j_n = _mm256_mul_ps(j_n, stride_n);
             __m256 diff_n = _mm256_sub_ps(_mm256_mask_i32gather_ps(_mm256_setzero_ps(), srcPtrTemp, _mm256_cvtps_epi32(stride_j_n), _mm256_castsi256_ps(k_n), 4), meanptr_n);
             stdDevPtr[i] += accumalate_ps(_mm256_mul_ps(diff_n, diff_n));
@@ -407,8 +407,8 @@ void compute_2D_inv_std_dev_axis1(Rpp32f *srcPtr, Rpp32f *meanPtr, Rpp32f *stdDe
 
         // Inner loop length
         for(Rpp32u j = 0; j < (v_n - 1); j++) {
-            //Rpp32f diff = (*(srcPtrTemp + j * stride[0]) - meanPtr[i]);
-            //stdDevPtr[i] += (diff * diff);
+            // Rpp32f diff = (*(srcPtrTemp + j * stride[0]) - meanPtr[i]);
+            // stdDevPtr[i] += (diff * diff);
             __m256 stride_j_n = _mm256_mul_ps(j_n, stride_n);
             __m256 diff_n = _mm256_sub_ps(_mm256_i32gather_ps(srcPtrTemp, _mm256_cvtps_epi32(stride_j_n), 4), meanptr_n);
             stdDevPtr_n = _mm256_add_ps(stdDevPtr_n, _mm256_mul_ps(diff_n, diff_n));
@@ -450,8 +450,8 @@ void compute_2D_inv_std_dev_axis2(Rpp32f *srcPtr, Rpp32f *meanPtr, Rpp32f *stdDe
 
         // Inner loop channels
         for(Rpp32u j = 0; j < (v_n-1); j++) {
-            //Rpp32f diff = (*(srcPtrTemp + j * stride[0]) - meanPtr[i]);
-            //stdDevPtr[i] += (diff * diff);
+            // Rpp32f diff = (*(srcPtrTemp + j * stride[0]) - meanPtr[i]);
+            // stdDevPtr[i] += (diff * diff);
             __m256 diff_n = _mm256_sub_ps(_mm256_loadu_ps(srcPtrTemp), meanptr_n);
             stdDevPtr_n = _mm256_add_ps(stdDevPtr_n, _mm256_mul_ps(diff_n, diff_n));
             srcPtrTemp += PACK;
@@ -489,8 +489,8 @@ void compute_2D_inv_std_dev_axis3(Rpp32f *srcPtr, Rpp32f *meanPtr, Rpp32f *stdDe
     stdDevPtr[0] = 0;
 
     for(Rpp32u j = 0; j < (v_n - 1); j++) {
-        //Rpp32f diff = (*(srcPtrTemp + j * stride[0]) - meanPtr[i]);
-        //stdDevPtr[i] += (diff * diff);
+        // Rpp32f diff = (*(srcPtrTemp + j * stride[0]) - meanPtr[i]);
+        // stdDevPtr[i] += (diff * diff);
         __m256 diff_n = _mm256_sub_ps(_mm256_loadu_ps(srcPtrTemp) , meanptr_n);
         stdDevPtr_n = _mm256_add_ps(_mm256_mul_ps(diff_n, diff_n), stdDevPtr_n);
         srcPtrTemp += PACK;
@@ -752,12 +752,12 @@ RppStatus normalize_audio_host_tensor(Rpp32f* srcPtr,
                                       Rpp32s ddof,
                                       Rpp32u numOfDims)
 {
-	omp_set_dynamic(0);
+    omp_set_dynamic(0);
 #pragma omp parallel for num_threads(srcDescPtr->n)
-	for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
-	{
+    for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
+    {
         Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
-		Rpp32f *dstPtrTemp = dstPtr + batchCount * dstDescPtr->strides.nStride;
+        Rpp32f *dstPtrTemp = dstPtr + batchCount * dstDescPtr->strides.nStride;
         Rpp32u srcAudioDims[numOfDims], srcReductionDims[numOfDims], srcStride[numOfDims], paramStride[numOfDims];
         srcAudioDims[0] = srcLengthTensor[batchCount];
 
