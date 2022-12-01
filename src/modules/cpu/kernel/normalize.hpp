@@ -5,43 +5,43 @@
 #define PACK 8
 
 float accumalate_ps(__m256 src) {
-  __m256 src_add = _mm256_add_ps(src, _mm256_permute2f128_ps(src, src, 1));
-  src_add = _mm256_add_ps(src_add, _mm256_shuffle_ps(src_add, src_add, _MM_SHUFFLE(1, 0, 3, 2)));
-  src_add = _mm256_add_ps(src_add, _mm256_shuffle_ps(src_add, src_add, _MM_SHUFFLE(2, 3, 0, 1)));
-  float* addResult = (float*)&src_add;
-  return addResult[0];
+    __m256 src_add = _mm256_add_ps(src, _mm256_permute2f128_ps(src, src, 1));
+    src_add = _mm256_add_ps(src_add, _mm256_shuffle_ps(src_add, src_add, _MM_SHUFFLE(1, 0, 3, 2)));
+    src_add = _mm256_add_ps(src_add, _mm256_shuffle_ps(src_add, src_add, _MM_SHUFFLE(2, 3, 0, 1)));
+    float* addResult = (float*)&src_add;
+    return addResult[0];
 }
 
 __m256 mask_mov_ps(__m256 src, unsigned short msk, __m256 set1) {
-  __m256i bitsArr = _mm256_set_epi32(128, 64, 32, 16, 8, 4, 2, 1);
-  //Checks if specific is set and if so makes all bits high for corresponding element in bitsSet
-  __m256i bitsSet = _mm256_and_si256(bitsArr, _mm256_set1_epi32(msk));
-  bitsSet = _mm256_cmpeq_epi32(bitsSet, bitsArr);
-  //Stores the complement of the elements in bitsSet
-  __m256i bitsUnset = _mm256_xor_si256(bitsSet, _mm256_set1_epi32(0xFFFFFFFF));
-  //setResult stores the values of set1 based on the bitsSet
-  __m256 setResult = _mm256_and_ps(set1, _mm256_castsi256_ps(bitsSet));
-  //Stores the elements of src wherever bits are not set in the mask
-  __m256 unsetResult = _mm256_and_ps(src, _mm256_castsi256_ps(bitsUnset));
-  //Computes the final results based on the previous results
-  __m256 finalResult = _mm256_add_ps(setResult, unsetResult);
-  return finalResult;
+    __m256i bitsArr = _mm256_set_epi32(128, 64, 32, 16, 8, 4, 2, 1);
+    //Checks if specific is set and if so makes all bits high for corresponding element in bitsSet
+    __m256i bitsSet = _mm256_and_si256(bitsArr, _mm256_set1_epi32(msk));
+    bitsSet = _mm256_cmpeq_epi32(bitsSet, bitsArr);
+    //Stores the complement of the elements in bitsSet
+    __m256i bitsUnset = _mm256_xor_si256(bitsSet, _mm256_set1_epi32(0xFFFFFFFF));
+    //setResult stores the values of set1 based on the bitsSet
+    __m256 setResult = _mm256_and_ps(set1, _mm256_castsi256_ps(bitsSet));
+    //Stores the elements of src wherever bits are not set in the mask
+    __m256 unsetResult = _mm256_and_ps(src, _mm256_castsi256_ps(bitsUnset));
+    //Computes the final results based on the previous results
+    __m256 finalResult = _mm256_add_ps(setResult, unsetResult);
+    return finalResult;
 }
 
 __m256i mask_mov_epi32(__m256i src, unsigned short msk, __m256i set1) {
-__m256i bitsArr = _mm256_set_epi32(128, 64, 32, 16, 8, 4, 2, 1);
-  //Checks if specific is set and if so makes all bits high for corresponding element in bitsSet
-  __m256i bitsSet = _mm256_and_si256(bitsArr, _mm256_set1_epi32(msk));
-  bitsSet = _mm256_cmpeq_epi32(bitsSet, bitsArr);
-  //Stores the complement of the elements in bitsSet
-  __m256i bitsUnset = _mm256_xor_si256(bitsSet, _mm256_set1_epi32(0xFFFFFFFF));
-  //setResult stores the values of set1 based on the bitsSet
-  __m256i setResult = _mm256_and_si256(set1, (bitsSet));
-  //Stores the elements of src wherever bits are not set in the mask
-  __m256i unsetResult = _mm256_and_si256(src, (bitsUnset));
-  //Computes the final results based on the previous results
-  __m256i finalResult = _mm256_add_epi32(setResult, unsetResult);
-  return finalResult;
+    __m256i bitsArr = _mm256_set_epi32(128, 64, 32, 16, 8, 4, 2, 1);
+    //Checks if specific is set and if so makes all bits high for corresponding element in bitsSet
+    __m256i bitsSet = _mm256_and_si256(bitsArr, _mm256_set1_epi32(msk));
+    bitsSet = _mm256_cmpeq_epi32(bitsSet, bitsArr);
+    //Stores the complement of the elements in bitsSet
+    __m256i bitsUnset = _mm256_xor_si256(bitsSet, _mm256_set1_epi32(0xFFFFFFFF));
+    //setResult stores the values of set1 based on the bitsSet
+    __m256i setResult = _mm256_and_si256(set1, (bitsSet));
+    //Stores the elements of src wherever bits are not set in the mask
+    __m256i unsetResult = _mm256_and_si256(src, (bitsUnset));
+    //Computes the final results based on the previous results
+    __m256i finalResult = _mm256_add_epi32(setResult, unsetResult);
+    return finalResult;
 }
 
 __m256i maskGenerate_epi32(int32_t value, int rem) {

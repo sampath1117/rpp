@@ -13,11 +13,11 @@ Rpp32f reduce_add_ps1(__m256 src) {
 }
 
 void HannWindow(float *output, int N) {
-  double a = (2 * M_PI / N);
-  for (int t = 0; t < N; t++) {
-    double phase = a * (t + 0.5);
-    output[t] = (0.5 * (1.0 - std::cos(phase)));
-  }
+    double a = (2 * M_PI / N);
+    for (int t = 0; t < N; t++) {
+        double phase = a * (t + 0.5);
+        output[t] = (0.5 * (1.0 - std::cos(phase)));
+    }
 }
 
 int getOutputSize(int length, int windowLength, int windowStep, bool centerWindows) {
@@ -31,12 +31,13 @@ int getIdxReflect(int idx, int lo, int hi) {
     if (hi - lo < 2)
         return hi - 1;
     for (;;) {
-        if (idx < lo)
+        if (idx < lo) {
             idx = 2 * lo - idx;
-        else if (idx >= hi)
+        } else if (idx >= hi) {
             idx = 2 * hi - 2 - idx;
-        else
-            break;
+        } else {
+            break;            
+        }
     }
     return idx;
 }
