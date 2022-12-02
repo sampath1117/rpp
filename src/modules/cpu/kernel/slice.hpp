@@ -20,7 +20,8 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
         Rpp32s sampleBatchCount = batchCount * 2;
 
         // Slice for 1D input
-        if (srcDimsTensor[sampleBatchCount + 1] == 1) {
+        if (srcDimsTensor[sampleBatchCount + 1] == 1)
+        {
             Rpp32s srcBufferLength = srcDimsTensor[sampleBatchCount];
             Rpp32f anchorRaw = anchorTensor[sampleBatchCount];
             Rpp32f shapeRaw = shapeTensor[sampleBatchCount];
@@ -29,17 +30,21 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
             Rpp32s anchor = std::llround(anchorRaw);
             Rpp32s shape = std::llround(shapeRaw);
 
-            if (anchor == 0 && shape == srcBufferLength) {
+            if (anchor == 0 && shape == srcBufferLength)
+            {
             // Do a memcpy if output dimension matches input dimension
                 memcpy(dstPtrTemp, srcPtrTemp, shape * sizeof(Rpp32f));
-            } else {
+            }
+            else
+            {
                 Rpp32s vectorIncrement = 8;
                 Rpp32s alignedLength = (shape / 8) * 8;
                 __m256 pFillValue = _mm256_set1_ps(fillValue);
 
                 bool needPad = (anchor < 0) || ((anchor + shape) > srcBufferLength);
                 Rpp32s dstIdx = 0;
-                if (needPad) {
+                if (needPad)
+                {
                     // out of bounds (left side)
                     Rpp32s numIndices = std::abs(std::min(anchor, 0));
                     Rpp32s leftPadLength = std::min(numIndices, shape);
@@ -67,7 +72,8 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
                 dstIdx += lengthInBounds;
                 dstPtrTemp += lengthInBounds;
 
-                if (needPad) {
+                if (needPad)
+                {
                     // out of bounds (right side)
                     for (; dstIdx < alignedLength; dstIdx += vectorIncrement)
                     {
@@ -81,7 +87,9 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
                     }
                 }
             }
-        } else if (srcDimsTensor[sampleBatchCount + 1] > 1) {
+        }
+        else if (srcDimsTensor[sampleBatchCount + 1] > 1)
+        {
             Rpp32f anchorRaw[2], shapeRaw[2];
             Rpp32s anchor[2], shape[2];
             anchorRaw[0] = anchorTensor[sampleBatchCount];
@@ -107,7 +115,8 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
 
             srcPtrTemp = srcPtrTemp + anchor[0] * srcDescPtr->strides.hStride;
             int row = 0;
-            for (; row < rowBound; row++) {
+            for (; row < rowBound; row++)
+            {
                 int col = 0;
                 Rpp32f *srcPtrRow = srcPtrTemp + row * srcDescPtr->strides.hStride + anchor[1];
                 Rpp32f *dstPtrRow = dstPtrTemp;
@@ -116,8 +125,10 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
                 dstPtrRow += colBound;
 
                 // Fill the columns which are beyond the input width with fill value specified
-                if (col < shape[1] && needColPad) {
-                    for (; col < alignedCol; col += vectorIncrement) {
+                if (col < shape[1] && needColPad)
+                {
+                    for (; col < alignedCol; col += vectorIncrement)
+                    {
                         _mm256_storeu_ps(dstPtrRow, pFillValue);
                         dstPtrRow += vectorIncrement;
                     }
@@ -129,11 +140,14 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
             }
 
             // Fill the rows which are beyond the input height with fill value specified
-            if (row < shape[0]  && needRowPad) {
-                for (; row < shape[0]; row++) {
+            if (row < shape[0]  && needRowPad)
+            {
+                for (; row < shape[0]; row++)
+                {
                     Rpp32f *dstPtrRow = dstPtrTemp;
                     int vectorLoopCount = 0;
-                    for (; vectorLoopCount < alignedColMax; vectorLoopCount += vectorIncrement) {
+                    for (; vectorLoopCount < alignedColMax; vectorLoopCount += vectorIncrement)
+                    {
                         _mm256_storeu_ps(dstPtrRow, pFillValue);
                         dstPtrRow += vectorIncrement;
                     }

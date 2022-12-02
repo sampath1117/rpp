@@ -35,8 +35,8 @@ extern "C" {
 // *param[in] srcPtr source tensor memory
 // *param[in] srcDescPtr source tensor descriptor
 // *param[in] srcLengthTensor source audio buffer length
-// *param[out] detectedIndex beginning index of non silent region
-// *param[out] detectionLength length of non silent region
+// *param[out] detectedIndex beginning index of non silent region (1D tensor of size batchSize)
+// *param[out] detectionLength length of non silent region (1D tensor of size batchSize)
 // *param[in] cutOffDB threshold(dB) below which the signal is considered silent
 // *param[in] windowLength size of the sliding window used to calculate of the short-term power of the signal
 // *param[in] referencePower reference power that is used to convert the signal to dB.
@@ -73,8 +73,8 @@ RppStatus rppt_to_decibels_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_
 // *param[in] srcDescPtr source tensor descriptor
 // *param[out] dstPtr destination tensor memory
 // *param[in] dstDescPtr destination tensor descriptor
-// *param[in] srcLengthTensor source audio buffer length
-// *param[in] coeffTensor preemphasis coefficient
+// *param[in] srcLengthTensor source audio buffer length (1D tensor of size batchSize)
+// *param[in] coeffTensor preemphasis coefficient (1D tensor of size batchSize)
 // *param[in] borderType border value policy
 // *returns a  RppStatus enumeration.
 // *retval RPP_SUCCESS : successful completion
@@ -90,8 +90,8 @@ RppStatus rppt_pre_emphasis_filter_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr,
 // *param[in] srcDescPtr source tensor descriptor
 // *param[out] dstPtr destination tensor memory
 // *param[in] dstDescPtr destination tensor descriptor
-// *param[in] srcLengthTensor source audio buffer length
-// *param[in] channelsTensor number of channels in audio buffer
+// *param[in] srcLengthTensor source audio buffer length (1D tensor of size batchSize)
+// *param[in] channelsTensor number of channels in audio buffer (1D tensor of size batchSize)
 // *returns a  RppStatus enumeration.
 // *retval RPP_SUCCESS : successful completion
 // *retval RPP_ERROR : Error
@@ -106,13 +106,10 @@ RppStatus rppt_down_mixing_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_
 // *param[in] srcDescPtr source tensor descriptor
 // *param[out] dstPtr destination tensor memory
 // *param[in] dstDescPtr destination tensor descriptor
-// *param[in] srcDimsTensor
-// *param[in] anchor starting index of the slice
-// *param[in] shape length of the slice
-// *param[in] axes axes along which slice is needed
+// *param[in] srcDimsTensor (1D tensor of size batchSize * 2)
+// *param[in] anchorTensor starting index of the slice (1D tensor of size batchSize * 2)
+// *param[in] shapeTensor length of the slice (1D tensor of size batchSize * 2)
 // *param[in] fillValues fill values based on out of Bound policy
-// *param[in] normalized anchor determines whether the anchor positional input should be interpreted as normalized or as absolute coordinates
-// *param[in] normalized shape determines whether the shape positional input should be interpreted as normalized or as absolute coordinates
 // *returns a  RppStatus enumeration.
 // *retval RPP_SUCCESS : successful completion
 // *retval RPP_ERROR : Error
@@ -148,7 +145,7 @@ RppStatus rppt_mel_filter_bank_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, Rpp
 // *param[in] srcDescPtr source tensor descriptor
 // *param[out] dstPtr destination tensor memory
 // *param[in] dstDescPtr destination tensor descriptor
-// *param[in] srcLengthTensor source audio buffer length
+// *param[in] srcLengthTensor source audio buffer length (1D tensor of size batchSize)
 // *param[in] centerWindows Indicates whether extracted windows should be padded so that the window function is centered at multiples of window_step
 // *param[in] reflectPadding Indicates the padding policy when sampling outside the bounds of the signal
 // *param[in] windowFunction Samples of the window function that will be multiplied to each extracted window when calculating the STFT
@@ -171,10 +168,10 @@ RppStatus rppt_spectrogram_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_
 // *param[in] srcDescPtr source tensor descriptor
 // *param[out] dstPtr destination tensor memory
 // *param[in] dstDescPtr destination tensor descriptor
-// *param[in] inRate Input sampling rate
-// *param[in] outRate Output sampling rate
-// *param[in] srcLengthTensor source audio buffer length
-// *param[in] channelsTensor number of channels in audio buffer
+// *param[in] inRate Input sampling rate (1D tensor of size batchSize)
+// *param[in] outRate Output sampling rate (1D tensor of size batchSize)
+// *param[in] srcLengthTensor source audio buffer length (1D tensor of size batchSize)
+// *param[in] channelsTensor number of channels in audio buffer (1D tensor of size batchSize)
 // *param[in] quality Resampling quality, where 0 is the lowest, and 100 is the highest
 // *returns a  RppStatus enumeration.
 // *retval RPP_SUCCESS : successful completion
@@ -185,6 +182,24 @@ RppStatus rppt_resample_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t d
 /******************** normalize_audio ********************/
 
 // Normalize augmentation for a NHW layout tensor
+
+// *param[in] srcPtr source tensor memory
+// *param[in] srcDescPtr source tensor descriptor
+// *param[out] dstPtr destination tensor memory
+// *param[in] dstDescPtr destination tensor descriptor
+// *param[in] srcLengthTensor source audio buffer length (1D tensor of size batchSize)
+// *param[in] channelsTensor number of channels in audio buffer (1D tensor of size batchSize)
+// *param[in] axisMask axis along which normalization needs to be done
+// *param[in] mean mean value to be subtracted from input
+// *param[in] stdDev standard deviation value to scale the input
+// *param[in] scale scaling factor applied to output
+// *param[in] shift value to which the mean will map in the output
+// *param[in] epsilon  value that is added to the variance to avoid division by small number
+// *param[in] ddof Delta Degrees of Freedom for Bessel’s correction
+// *param[in] numOfDims number of dimensions of input
+// *returns a  RppStatus enumeration.
+// *retval RPP_SUCCESS : successful completion
+// *retval RPP_ERROR : Error
 
 RppStatus rppt_normalize_audio_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, Rpp32s *srcLengthTensor, Rpp32s *channelsTensor, Rpp32s axisMask,
                                     Rpp32f mean, Rpp32f stdDev, Rpp32f scale, Rpp32f shift, Rpp32f epsilon, Rpp32s ddof, Rpp32s numOfDims);
