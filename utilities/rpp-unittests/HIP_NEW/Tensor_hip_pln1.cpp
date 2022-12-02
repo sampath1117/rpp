@@ -159,6 +159,10 @@ int main(int argc, char **argv)
         strcpy(funcName, "warp_affine");
         outputFormatToggle = 0;
         break;
+    case 26:
+        strcpy(funcName, "lens_correction");
+        outputFormatToggle = 0;
+        break;
     case 31:
         strcpy(funcName, "color_cast");
         outputFormatToggle = 0;
@@ -1336,6 +1340,46 @@ int main(int argc, char **argv)
             missingFuncFlag = 1;
         else if (ip_bitDepth == 5)
             rppt_warp_affine_gpu(d_inputi8, srcDescPtr, d_outputi8, dstDescPtr, affineTensor, interpolationType, d_roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 6)
+            missingFuncFlag = 1;
+        else
+            missingFuncFlag = 1;
+
+        break;
+    }
+    case 26:
+    {
+        test_case_name = "lens_correction";
+
+        if ((interpolationType != RpptInterpolationType::BILINEAR) && (interpolationType != RpptInterpolationType::NEAREST_NEIGHBOR))
+        {
+            missingFuncFlag = 1;
+            break;
+        }
+
+        Rpp32f strength[images];
+        Rpp32f zoom[images];
+        for (i = 0; i < images; i++)
+        {
+            strength[i] = 0.5;
+            zoom[i] = 5;
+        }
+
+        hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
+
+        start = clock();
+        if (ip_bitDepth == 0)
+            rppt_lens_correction_gpu(d_input, srcDescPtr, d_output, dstDescPtr, interpolationType, strength, zoom, d_roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 1)
+            rppt_lens_correction_gpu(d_inputf16, srcDescPtr, d_outputf16, dstDescPtr, interpolationType, strength, zoom, d_roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 2)
+            rppt_lens_correction_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, interpolationType, strength, zoom, d_roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 3)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 4)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 5)
+            rppt_lens_correction_gpu(d_inputi8, srcDescPtr, d_outputi8, dstDescPtr, interpolationType, strength, zoom, d_roiTensorPtrSrc, roiTypeSrc, handle);
         else if (ip_bitDepth == 6)
             missingFuncFlag = 1;
         else
