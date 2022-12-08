@@ -145,6 +145,9 @@ int main(int argc, char **argv)
     case 24:
         strcpy(funcName, "warp_affine");
         break;
+    case 26:
+        strcpy(funcName, "lens_correction");
+        break;
     case 31:
         strcpy(funcName, "color_cast");
         break;
@@ -425,8 +428,8 @@ int main(int argc, char **argv)
 
     // Optionally set w stride as a multiple of 8 for src/dst
 
-    srcDescPtr->w = ((srcDescPtr->w / 8) * 8) + 8;
-    dstDescPtr->w = ((dstDescPtr->w / 8) * 8) + 8;
+    // srcDescPtr->w = ((srcDescPtr->w / 8) * 8) + 8;
+    // dstDescPtr->w = ((dstDescPtr->w / 8) * 8) + 8;
 
     // Set n/c/h/w strides for src/dst
 
@@ -1333,6 +1336,137 @@ int main(int argc, char **argv)
 
         break;
     }
+    case 26:
+    {
+        test_case_name = "lens_correction";
+
+        // Uncomment to run test case with an xywhROI override
+        // for (i = 0; i < images; i++)
+        // {
+        //     roiTensorPtrSrc[i].xywhROI.xy.x = 0;
+        //     roiTensorPtrSrc[i].xywhROI.xy.y = 0;
+        //     dstImgSizes[i].width = roiTensorPtrSrc[i].xywhROI.roiWidth = 100;
+        //     dstImgSizes[i].height = roiTensorPtrSrc[i].xywhROI.roiHeight = 180;
+        // }
+
+        // Uncomment to run test case with an ltrbROI override
+        /*for (i = 0; i < images; i++)
+        {
+            roiTensorPtrSrc[i].ltrbROI.lt.x = 50;
+            roiTensorPtrSrc[i].ltrbROI.lt.y = 30;
+            roiTensorPtrSrc[i].ltrbROI.rb.x = 210;
+            roiTensorPtrSrc[i].ltrbROI.rb.y = 210;
+            dstImgSizes[i].width = roiTensorPtrSrc[i].ltrbROI.rb.x - roiTensorPtrSrc[i].ltrbROI.lt.x + 1;
+            dstImgSizes[i].height = roiTensorPtrSrc[i].ltrbROI.rb.y - roiTensorPtrSrc[i].ltrbROI.lt.y + 1;
+        }
+        roiTypeSrc = RpptRoiType::LTRB;
+        roiTypeDst = RpptRoiType::LTRB;*/
+
+        RpptDescPtr tableDescPtr;
+        RpptDesc tableDesc;
+
+        tableDescPtr = &tableDesc;
+        tableDesc = srcDesc;
+        tableDescPtr->c = 1;
+        tableDescPtr->strides.nStride = srcDescPtr->h * srcDescPtr->w;
+        tableDescPtr->strides.hStride = srcDescPtr->w;
+        tableDescPtr->strides.wStride = tableDescPtr->strides.cStride = 1;
+
+        Rpp32u *rowRemapTable = (Rpp32u*) calloc(ioBufferSize, sizeof(Rpp32u));
+        Rpp32u *colRemapTable = (Rpp32u*) calloc(ioBufferSize, sizeof(Rpp32u));
+
+        // for (Rpp32u count = 0; count < images; count++)
+        // {
+        //     Rpp32u *rowRemapTableTemp, *colRemapTableTemp;
+        //     rowRemapTableTemp = rowRemapTable + count * tableDescPtr->strides.nStride;
+        //     colRemapTableTemp = colRemapTable + count * tableDescPtr->strides.nStride;
+        //     Rpp32u halfWidth = roiTensorPtrSrc[count].xywhROI.roiWidth / 2;
+        //     for (Rpp32u i = 0; i < roiTensorPtrSrc[count].xywhROI.roiHeight; i++)
+        //     {
+        //         Rpp32u *rowRemapTableTempRow, *colRemapTableTempRow;
+        //         rowRemapTableTempRow = rowRemapTableTemp + i * tableDescPtr->strides.hStride;
+        //         colRemapTableTempRow = colRemapTableTemp + i * tableDescPtr->strides.hStride;
+        //         Rpp32u j = 0;
+        //         for (; j < halfWidth; j++)
+        //         {
+        //             *rowRemapTableTempRow = i;
+        //             *colRemapTableTempRow = halfWidth - j;
+
+        //             rowRemapTableTempRow++;
+        //             colRemapTableTempRow++;
+        //         }
+        //         for (; j < roiTensorPtrSrc[count].xywhROI.roiWidth; j++)
+        //         {
+        //             *rowRemapTableTempRow = i;
+        //             *colRemapTableTempRow = j;
+
+        //             rowRemapTableTempRow++;
+        //             colRemapTableTempRow++;
+        //         }
+        //     }
+        // }
+
+        Rpp32f *cameraMatrix = (Rpp32f*) calloc(9 * images, sizeof(Rpp32f));
+        Rpp32f *distanceCoeffs = (Rpp32f*) calloc(14 * images, sizeof(Rpp32f));
+
+        // {{286.703, 0, 413.346}, {0, 286.781, 397.178}, {0, 0, 1}};
+        // double distCoeffs[8] = {-0.01078, 0.04842, -0.0454, 0.00873, 0, 0, 0, 0};
+
+        for (i = 0; i < images; i++)
+        {
+            cameraMatrix[9 * i] = 286.703;
+            cameraMatrix[9 * i + 1] = 0;
+            cameraMatrix[9 * i + 2] = 413.346;
+            cameraMatrix[9 * i + 3] = 0;
+            cameraMatrix[9 * i + 4] = 286.781;
+            cameraMatrix[9 * i + 5] = 397.178;
+            cameraMatrix[9 * i + 6] = 0;
+            cameraMatrix[9 * i + 7] = 0;
+            cameraMatrix[9 * i + 8] = 1;
+
+            distanceCoeffs[14 * i] = -0.01078;
+            distanceCoeffs[14 * i + 1] = 0.04842;
+            distanceCoeffs[14 * i + 2] = -0.0454;
+            distanceCoeffs[14 * i + 3] = 0.00873;
+            distanceCoeffs[14 * i + 4] = 0;
+            distanceCoeffs[14 * i + 5] = 0;
+            distanceCoeffs[14 * i + 6] = 0;
+            distanceCoeffs[14 * i + 7] = 0;
+        }
+
+        void *d_rowRemapTable, *d_colRemapTable;
+        hipMalloc(&d_rowRemapTable, ioBufferSize * sizeof(Rpp32u));
+        hipMalloc(&d_colRemapTable, ioBufferSize * sizeof(Rpp32u));
+        hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
+
+        start = clock();
+
+        if (ip_bitDepth == 0)
+            rppt_lens_correction_gpu(d_input, srcDescPtr, d_output, dstDescPtr, rowRemapTable, colRemapTable, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, cameraMatrix, distanceCoeffs, d_roiTensorPtrSrc, roiTypeSrc, handle);
+        // else if (ip_bitDepth == 1)
+        //     rppt_remap_gpu(d_inputf16, srcDescPtr, d_outputf16, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
+        // else if (ip_bitDepth == 2)
+        //     rppt_remap_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
+        // else if (ip_bitDepth == 3)
+        //     missingFuncFlag = 1;
+        // else if (ip_bitDepth == 4)
+        //     missingFuncFlag = 1;
+        // else if (ip_bitDepth == 5)
+        //     rppt_remap_gpu(d_inputi8, srcDescPtr, d_outputi8, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
+        // else if (ip_bitDepth == 6)
+        //     missingFuncFlag = 1;
+        else
+            missingFuncFlag = 1;
+
+        free(cameraMatrix);
+        free(distanceCoeffs);
+        free(rowRemapTable);
+        free(colRemapTable);
+        hipFree(d_rowRemapTable);
+        hipFree(d_colRemapTable);
+
+        break;
+    }
     case 31:
     {
         test_case_name = "color_cast";
@@ -1837,10 +1971,10 @@ int main(int argc, char **argv)
         }
         roiTypeSrc = RpptRoiType::LTRB;
         roiTypeDst = RpptRoiType::LTRB;*/
-        
+
         RpptDescPtr tableDescPtr;
         RpptDesc tableDesc;
-        
+
         tableDescPtr = &tableDesc;
         tableDesc = srcDesc;
         tableDescPtr->c = 1;
@@ -1851,64 +1985,96 @@ int main(int argc, char **argv)
         Rpp32u *rowRemapTable = (Rpp32u*) calloc(ioBufferSize, sizeof(Rpp32u));
         Rpp32u *colRemapTable = (Rpp32u*) calloc(ioBufferSize, sizeof(Rpp32u));
 
-        for (Rpp32u count = 0; count < images; count++)
+        // for (Rpp32u count = 0; count < images; count++)
+        // {
+        //     Rpp32u *rowRemapTableTemp, *colRemapTableTemp;
+        //     rowRemapTableTemp = rowRemapTable + count * tableDescPtr->strides.nStride;
+        //     colRemapTableTemp = colRemapTable + count * tableDescPtr->strides.nStride;
+        //     Rpp32u halfWidth = roiTensorPtrSrc[count].xywhROI.roiWidth / 2;
+        //     for (Rpp32u i = 0; i < roiTensorPtrSrc[count].xywhROI.roiHeight; i++)
+        //     {
+        //         Rpp32u *rowRemapTableTempRow, *colRemapTableTempRow;
+        //         rowRemapTableTempRow = rowRemapTableTemp + i * tableDescPtr->strides.hStride;
+        //         colRemapTableTempRow = colRemapTableTemp + i * tableDescPtr->strides.hStride;
+        //         Rpp32u j = 0;
+        //         for (; j < halfWidth; j++)
+        //         {
+        //             *rowRemapTableTempRow = i;
+        //             *colRemapTableTempRow = halfWidth - j;
+
+        //             rowRemapTableTempRow++;
+        //             colRemapTableTempRow++;
+        //         }
+        //         for (; j < roiTensorPtrSrc[count].xywhROI.roiWidth; j++)
+        //         {
+        //             *rowRemapTableTempRow = i;
+        //             *colRemapTableTempRow = j;
+
+        //             rowRemapTableTempRow++;
+        //             colRemapTableTempRow++;
+        //         }
+        //     }
+        // }
+
+        Rpp32f *cameraMatrix = (Rpp32f*) calloc(9 * images, sizeof(Rpp32f));
+        Rpp32f *distanceCoeffs = (Rpp32f*) calloc(14 * images, sizeof(Rpp32f));
+
+        // {{286.703, 0, 413.346}, {0, 286.781, 397.178}, {0, 0, 1}};
+        // double distCoeffs[8] = {-0.01078, 0.04842, -0.0454, 0.00873, 0, 0, 0, 0};
+
+        for (i = 0; i < images; i++)
         {
-            Rpp32u *rowRemapTableTemp, *colRemapTableTemp;
-            rowRemapTableTemp = rowRemapTable + count * tableDescPtr->strides.nStride;
-            colRemapTableTemp = colRemapTable + count * tableDescPtr->strides.nStride;
-            Rpp32u halfWidth = roiTensorPtrSrc[count].xywhROI.roiWidth / 2;
-            for (Rpp32u i = 0; i < roiTensorPtrSrc[count].xywhROI.roiHeight; i++)
-            {
-                Rpp32u *rowRemapTableTempRow, *colRemapTableTempRow;
-                rowRemapTableTempRow = rowRemapTableTemp + i * tableDescPtr->strides.hStride;
-                colRemapTableTempRow = colRemapTableTemp + i * tableDescPtr->strides.hStride;
-                Rpp32u j = 0;
-                for (; j < halfWidth; j++)
-                {
-                    *rowRemapTableTempRow = i;
-                    *colRemapTableTempRow = halfWidth - j;
+            cameraMatrix[9 * i] = 286.703;
+            cameraMatrix[9 * i + 1] = 0;
+            cameraMatrix[9 * i + 2] = 413.346;
+            cameraMatrix[9 * i + 3] = 0;
+            cameraMatrix[9 * i + 4] = 286.781;
+            cameraMatrix[9 * i + 5] = 397.178;
+            cameraMatrix[9 * i + 6] = 0;
+            cameraMatrix[9 * i + 7] = 0;
+            cameraMatrix[9 * i + 8] = 1;
 
-                    rowRemapTableTempRow++;
-                    colRemapTableTempRow++;
-                }
-                for (; j < roiTensorPtrSrc[count].xywhROI.roiWidth; j++)
-                {
-                    *rowRemapTableTempRow = i;
-                    *colRemapTableTempRow = j;
-
-                    rowRemapTableTempRow++;
-                    colRemapTableTempRow++;
-                }
-            }
+            distanceCoeffs[14 * i] = -0.01078;
+            distanceCoeffs[14 * i + 1] = 0.04842;
+            distanceCoeffs[14 * i + 2] = -0.0454;
+            distanceCoeffs[14 * i + 3] = 0.00873;
+            distanceCoeffs[14 * i + 4] = 0;
+            distanceCoeffs[14 * i + 5] = 0;
+            distanceCoeffs[14 * i + 6] = 0;
+            distanceCoeffs[14 * i + 7] = 0;
         }
-        
+
         void *d_rowRemapTable, *d_colRemapTable;
         hipMalloc(&d_rowRemapTable, ioBufferSize * sizeof(Rpp32u));
         hipMalloc(&d_colRemapTable, ioBufferSize * sizeof(Rpp32u));
 
-        hipMemcpy(d_rowRemapTable, (void *)rowRemapTable, ioBufferSize * sizeof(Rpp32u), hipMemcpyHostToDevice);
-        hipMemcpy(d_colRemapTable, (void *)colRemapTable, ioBufferSize * sizeof(Rpp32u), hipMemcpyHostToDevice);
-        
+        // hipMemcpy(d_rowRemapTable, (void *)rowRemapTable, ioBufferSize * sizeof(Rpp32u), hipMemcpyHostToDevice);
+        // hipMemcpy(d_colRemapTable, (void *)colRemapTable, ioBufferSize * sizeof(Rpp32u), hipMemcpyHostToDevice);
+
         hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
         start = clock();
-        
+
         if (ip_bitDepth == 0)
-            rppt_remap_gpu(d_input, srcDescPtr, d_output, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
-        else if (ip_bitDepth == 1)
-            rppt_remap_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
-        else if (ip_bitDepth == 2)
-            rppt_remap_gpu(d_inputf16, srcDescPtr, d_outputf16, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
-        else if (ip_bitDepth == 3)
-            missingFuncFlag = 1;
-        else if (ip_bitDepth == 4)
-            missingFuncFlag = 1;
-        else if (ip_bitDepth == 5)
-            rppt_remap_gpu(d_inputi8, srcDescPtr, d_outputi8, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
-        else if (ip_bitDepth == 6)
-            missingFuncFlag = 1;
+            // rppt_remap_gpu(d_input, srcDescPtr, d_output, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
+            rppt_lens_correction_gpu(d_input, srcDescPtr, d_output, dstDescPtr, rowRemapTable, colRemapTable, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, cameraMatrix, distanceCoeffs, d_roiTensorPtrSrc, roiTypeSrc, handle);
+        // else if (ip_bitDepth == 1)
+        //     rppt_remap_gpu(d_inputf16, srcDescPtr, d_outputf16, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
+        // else if (ip_bitDepth == 2)
+        //     rppt_remap_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
+        // else if (ip_bitDepth == 3)
+        //     missingFuncFlag = 1;
+        // else if (ip_bitDepth == 4)
+        //     missingFuncFlag = 1;
+        // else if (ip_bitDepth == 5)
+        //     rppt_remap_gpu(d_inputi8, srcDescPtr, d_outputi8, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
+        // else if (ip_bitDepth == 6)
+        //     missingFuncFlag = 1;
         else
             missingFuncFlag = 1;
+
+        free(cameraMatrix);
+        free(distanceCoeffs);
 
         break;
     }

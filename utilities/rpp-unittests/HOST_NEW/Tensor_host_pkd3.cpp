@@ -74,6 +74,38 @@ std::string get_noise_type(unsigned int val)
 
 int main(int argc, char **argv)
 {
+    bool cv_test = false;
+    if (cv_test)
+    {
+        int perfcount = 100;
+        double cv_time_used = 0;
+        Mat cameraMatrix = Mat(3,3, CV_64F, double(0));
+        Mat distortionCoeffs = Mat(1,4, CV_64F, double(0));
+
+        cameraMatrix.at<double>(0, 0) = 286.7037963867188;
+        cameraMatrix.at<double>(0, 1) = 0;
+        cameraMatrix.at<double>(0, 2) = 413.3463134765625;
+        cameraMatrix.at<double>(1, 0) = 0;
+        cameraMatrix.at<double>(1, 1) = 286.7817993164062;
+        cameraMatrix.at<double>(1, 2) = 397.1785888671875;
+        cameraMatrix.at<double>(2, 0) = 0;
+        cameraMatrix.at<double>(2, 1) = 0;
+        cameraMatrix.at<double>(2, 2) = 1;
+
+        distortionCoeffs.at<double>(0,0) = -0.01078350003808737;
+        distortionCoeffs.at<double>(0,1) = 0.04842806980013847;
+        distortionCoeffs.at<double>(0,2) = -0.04542399942874908;
+        distortionCoeffs.at<double>(0,3) = 0.008737384341657162;
+
+        Mat input_frame = cv::imread("/media/sampath/audio/sampath_rpp/utilities/rpp-unittests/TEST_IMAGES/single_image_224x224_src1/224x224.jpg");
+        Mat output_frame;
+
+        undistort(input_frame, output_frame, cameraMatrix, distortionCoeffs, cv::noArray());
+        cv::imwrite("lens_output.jpg", output_frame);
+
+        exit(0);
+    }
+
     // Handle inputs
 
     const int MIN_ARG_COUNT = 8;
@@ -147,6 +179,9 @@ int main(int argc, char **argv)
         break;
     case 24:
         strcpy(funcName, "warp_affine");
+        break;
+    case 26:
+        strcpy(funcName, "lens_correction");
         break;
     case 31:
         strcpy(funcName, "color_cast");
@@ -461,6 +496,9 @@ int main(int argc, char **argv)
     Rpp8s *inputi8 = (Rpp8s *)calloc(ioBufferSize, sizeof(Rpp8s));
     Rpp8s *inputi8_second = (Rpp8s *)calloc(ioBufferSize, sizeof(Rpp8s));
     Rpp8s *outputi8 = (Rpp8s *)calloc(oBufferSize, sizeof(Rpp8s));
+
+    Rpp32u *rowRemapTable = (Rpp32u*) calloc(ioBufferSize, sizeof(Rpp32u));
+    Rpp32u *colRemapTable = (Rpp32u*) calloc(ioBufferSize, sizeof(Rpp32u));
 
     // Set 8u host buffers for src/dst
 
@@ -1176,6 +1214,78 @@ int main(int argc, char **argv)
 
         break;
     }
+    case 26:
+    {
+        test_case_name = "lens_correction";
+
+        Rpp32f cameraMatrix[9 * images];
+        Rpp32f distanceCoeffs[14 * images];
+
+        for (i = 0; i < images; i++)
+        {
+            cameraMatrix[9 * i] = 286.703;
+            cameraMatrix[9 * i + 1] = 0;
+            cameraMatrix[9 * i + 2] = 413.346;
+            cameraMatrix[9 * i + 3] = 0;
+            cameraMatrix[9 * i + 4] = 286.781;
+            cameraMatrix[9 * i + 5] = 397.178;
+            cameraMatrix[9 * i + 6] = 0;
+            cameraMatrix[9 * i + 7] = 0;
+            cameraMatrix[9 * i + 8] = 1;
+
+            distanceCoeffs[14 * i] = -0.01078;
+            distanceCoeffs[14 * i + 1] = 0.04842;
+            distanceCoeffs[14 * i + 2] = -0.0454;
+            distanceCoeffs[14 * i + 3] = 0.00873;
+            distanceCoeffs[14 * i + 4] = 0;
+            distanceCoeffs[14 * i + 5] = 0;
+            distanceCoeffs[14 * i + 6] = 0;
+            distanceCoeffs[14 * i + 7] = 0;
+        }
+
+        // Uncomment to run test case with an xywhROI override
+        // for (i = 0; i < images; i++)
+        // {
+        //     roiTensorPtrSrc[i].xywhROI.xy.x = 0;
+        //     roiTensorPtrSrc[i].xywhROI.xy.y = 0;
+        //     dstImgSizes[i].width = roiTensorPtrSrc[i].xywhROI.roiWidth = 100;
+        //     dstImgSizes[i].height = roiTensorPtrSrc[i].xywhROI.roiHeight = 180;
+        // }
+
+        // Uncomment to run test case with an ltrbROI override
+        /*for (i = 0; i < images; i++)
+        {
+            roiTensorPtrSrc[i].ltrbROI.lt.x = 50;
+            roiTensorPtrSrc[i].ltrbROI.lt.y = 30;
+            roiTensorPtrSrc[i].ltrbROI.rb.x = 210;
+            roiTensorPtrSrc[i].ltrbROI.rb.y = 210;
+            dstImgSizes[i].width = roiTensorPtrSrc[i].ltrbROI.rb.x - roiTensorPtrSrc[i].ltrbROI.lt.x + 1;
+            dstImgSizes[i].height = roiTensorPtrSrc[i].ltrbROI.rb.y - roiTensorPtrSrc[i].ltrbROI.lt.y + 1;
+        }
+        roiTypeSrc = RpptRoiType::LTRB;
+        roiTypeDst = RpptRoiType::LTRB;*/
+
+        start_omp = omp_get_wtime();
+        start = clock();
+        if (ip_bitDepth == 0)
+            rppt_lens_correction_host(input, srcDescPtr, output, dstDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffs, roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 1)
+            rppt_lens_correction_host(inputf16, srcDescPtr, outputf16, dstDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffs, roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 2)
+            rppt_lens_correction_host(inputf32, srcDescPtr, outputf32, dstDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffs, roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 3)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 4)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 5)
+            rppt_lens_correction_host(inputi8, srcDescPtr, outputi8, dstDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffs, roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 6)
+            missingFuncFlag = 1;
+        else
+            missingFuncFlag = 1;
+
+        break;
+    }
     case 31:
     {
         test_case_name = "color_cast";
@@ -1517,19 +1627,15 @@ int main(int argc, char **argv)
         }
         roiTypeSrc = RpptRoiType::LTRB;
         roiTypeDst = RpptRoiType::LTRB;*/
-        
-        Rpp32u *rowRemapTable = (Rpp32u*) calloc(ioBufferSize, sizeof(Rpp32u));
-        Rpp32u *colRemapTable = (Rpp32u*) calloc(ioBufferSize, sizeof(Rpp32u));
 
         Rpp32u *rowRemapTableTemp, *colRemapTableTemp;
-        rowRemapTableTemp = rowRemapTable;
-        colRemapTableTemp = colRemapTable;
-
         for (Rpp32u count = 0; count < images; count++)
         {
             Rpp32u halfWidth = roiTensorPtrSrc[count].xywhROI.roiWidth / 2;
             for (Rpp32u i = 0; i < roiTensorPtrSrc[count].xywhROI.roiHeight; i++)
             {
+                rowRemapTableTemp = rowRemapTable + i * srcDescPtr->w;
+                colRemapTableTemp = colRemapTable + i * srcDescPtr->w;
                 Rpp32u j = 0;
                 for (; j < halfWidth; j++)
                 {
@@ -2116,6 +2222,8 @@ int main(int argc, char **argv)
     free(inputi8);
     free(inputi8_second);
     free(outputi8);
+    free(rowRemapTable);
+    free(colRemapTable);
 
     return 0;
 }

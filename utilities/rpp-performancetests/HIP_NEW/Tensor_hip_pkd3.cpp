@@ -1826,39 +1826,51 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
             
+            RpptDescPtr tableDescPtr;
+            RpptDesc tableDesc;
+            
+            tableDescPtr = &tableDesc;
+            tableDesc = srcDesc;
+            tableDescPtr->c = 1;
+            tableDescPtr->strides.nStride = srcDescPtr->h * srcDescPtr->w;
+            tableDescPtr->strides.hStride = srcDescPtr->w;
+            tableDescPtr->strides.wStride = tableDescPtr->strides.cStride = 1;
+
             Rpp32u *rowRemapTable = (Rpp32u*) calloc(ioBufferSize, sizeof(Rpp32u));
             Rpp32u *colRemapTable = (Rpp32u*) calloc(ioBufferSize, sizeof(Rpp32u));
 
-            Rpp32u *rowRemapTableTemp, *colRemapTableTemp;
-            rowRemapTableTemp = rowRemapTable;
-            colRemapTableTemp = colRemapTable;
-
             for (Rpp32u count = 0; count < images; count++)
             {
+                Rpp32u *rowRemapTableTemp, *colRemapTableTemp;
+                rowRemapTableTemp = rowRemapTable + count * tableDescPtr->strides.nStride;
+                colRemapTableTemp = colRemapTable + count * tableDescPtr->strides.nStride;
                 Rpp32u halfWidth = roiTensorPtrSrc[count].xywhROI.roiWidth / 2;
                 for (Rpp32u i = 0; i < roiTensorPtrSrc[count].xywhROI.roiHeight; i++)
                 {
+                    Rpp32u *rowRemapTableTempRow, *colRemapTableTempRow;
+                    rowRemapTableTempRow = rowRemapTableTemp + i * tableDescPtr->strides.hStride;
+                    colRemapTableTempRow = colRemapTableTemp + i * tableDescPtr->strides.hStride;
                     Rpp32u j = 0;
                     for (; j < halfWidth; j++)
                     {
-                        *rowRemapTableTemp = i;
-                        *colRemapTableTemp = halfWidth - j;
+                        *rowRemapTableTempRow = i;
+                        *colRemapTableTempRow = halfWidth - j;
 
-                        rowRemapTableTemp++;
-                        colRemapTableTemp++;
+                        rowRemapTableTempRow++;
+                        colRemapTableTempRow++;
                     }
                     for (; j < roiTensorPtrSrc[count].xywhROI.roiWidth; j++)
                     {
-                        *rowRemapTableTemp = i;
-                        *colRemapTableTemp = j;
+                        *rowRemapTableTempRow = i;
+                        *colRemapTableTempRow = j;
 
-                        rowRemapTableTemp++;
-                        colRemapTableTemp++;
+                        rowRemapTableTempRow++;
+                        colRemapTableTempRow++;
                     }
                 }
             }
             
-            Rpp32u *d_rowRemapTable, *d_colRemapTable;
+            void *d_rowRemapTable, *d_colRemapTable;
             hipMalloc(&d_rowRemapTable, ioBufferSize * sizeof(Rpp32u));
             hipMalloc(&d_colRemapTable, ioBufferSize * sizeof(Rpp32u));
 
@@ -1870,17 +1882,17 @@ int main(int argc, char **argv)
             start = clock();
             
             if (ip_bitDepth == 0)
-                rppt_remap_gpu(d_input, srcDescPtr, d_output, dstDescPtr, d_rowRemapTable, d_colRemapTable, d_roiTensorPtrSrc, roiTypeSrc, handle);
+                rppt_remap_gpu(d_input, srcDescPtr, d_output, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
-                rppt_remap_gpu(d_inputf16, srcDescPtr, d_outputf16, dstDescPtr, d_rowRemapTable, d_colRemapTable, d_roiTensorPtrSrc, roiTypeSrc, handle);
+                rppt_remap_gpu(d_inputf16, srcDescPtr, d_outputf16, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 2)
-                rppt_remap_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, d_rowRemapTable, d_colRemapTable, d_roiTensorPtrSrc, roiTypeSrc, handle);
+                rppt_remap_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 3)
                 missingFuncFlag = 1;
             else if (ip_bitDepth == 4)
                 missingFuncFlag = 1;
             else if (ip_bitDepth == 5)
-                rppt_remap_gpu(d_inputi8, srcDescPtr, d_outputi8, dstDescPtr, d_rowRemapTable, d_colRemapTable, d_roiTensorPtrSrc, roiTypeSrc, handle);
+                rppt_remap_gpu(d_inputi8, srcDescPtr, d_outputi8, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 6)
                 missingFuncFlag = 1;
             else

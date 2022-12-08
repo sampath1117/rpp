@@ -785,6 +785,73 @@ RppStatus rppt_remap_host(RppPtr_t srcPtr,
     return RPP_SUCCESS;
 }
 
+RppStatus rppt_lens_correction_host(RppPtr_t srcPtr,
+                                    RpptDescPtr srcDescPtr,
+                                    RppPtr_t dstPtr,
+                                    RpptDescPtr dstDescPtr,
+                                    Rpp32u *rowRemapTable,
+                                    Rpp32u *colRemapTable,
+                                    Rpp32f *cameraMatrix,
+                                    Rpp32f *distanceCoeffsMatrix,
+                                    RpptROIPtr roiTensorPtrSrc,
+                                    RpptRoiType roiType,
+                                    rppHandle_t rppHandle)
+{
+    RppLayoutParams srcLayoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
+    compute_lens_correction_remap_tables(srcDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffsMatrix, roiTensorPtrSrc);
+
+    if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
+    {
+        remap_u8_u8_host_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
+                                srcDescPtr,
+                                static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
+                                dstDescPtr,
+                                rowRemapTable,
+                                colRemapTable,
+                                roiTensorPtrSrc,
+                                roiType,
+                                srcLayoutParams);
+    }
+    else if ((srcDescPtr->dataType == RpptDataType::F16) && (dstDescPtr->dataType == RpptDataType::F16))
+    {
+        remap_f16_f16_host_tensor((Rpp16f*) static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
+                                  srcDescPtr,
+                                  (Rpp16f*) static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
+                                  dstDescPtr,
+                                  rowRemapTable,
+                                  colRemapTable,
+                                  roiTensorPtrSrc,
+                                  roiType,
+                                  srcLayoutParams);
+    }
+    else if ((srcDescPtr->dataType == RpptDataType::F32) && (dstDescPtr->dataType == RpptDataType::F32))
+    {
+        remap_f32_f32_host_tensor((Rpp32f*) static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
+                                  srcDescPtr,
+                                  (Rpp32f*) static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
+                                  dstDescPtr,
+                                  rowRemapTable,
+                                  colRemapTable,
+                                  roiTensorPtrSrc,
+                                  roiType,
+                                  srcLayoutParams);
+    }
+    if ((srcDescPtr->dataType == RpptDataType::I8) && (dstDescPtr->dataType == RpptDataType::I8))
+    {
+        remap_i8_i8_host_tensor(static_cast<Rpp8s*>(srcPtr) + srcDescPtr->offsetInBytes,
+                                srcDescPtr,
+                                static_cast<Rpp8s*>(dstPtr) + dstDescPtr->offsetInBytes,
+                                dstDescPtr,
+                                rowRemapTable,
+                                colRemapTable,
+                                roiTensorPtrSrc,
+                                roiType,
+                                srcLayoutParams);
+    }
+
+    return RPP_SUCCESS;
+}
+
 /********************************************************************************************************************/
 /*********************************************** RPP_GPU_SUPPORT = ON ***********************************************/
 /********************************************************************************************************************/
@@ -1405,4 +1472,47 @@ RppStatus rppt_remap_gpu(RppPtr_t srcPtr,
     return RPP_ERROR_NOT_IMPLEMENTED;
 #endif // backend
 }
+
+/******************** lens_correction ********************/
+RppStatus rppt_lens_correction_gpu(RppPtr_t srcPtr,
+                                    RpptDescPtr srcDescPtr,
+                                    RppPtr_t dstPtr,
+                                    RpptDescPtr dstDescPtr,
+                                    Rpp32u *rowRemapTable,
+                                    Rpp32u *colRemapTable,
+                                    Rpp32u *d_rowRemapTable,
+                                    Rpp32u *d_colRemapTable,
+                                    RpptDescPtr tableDescPtr,
+                                    Rpp32f *cameraMatrix,
+                                    Rpp32f *distanceCoeffsMatrix,
+                                    RpptROIPtr roiTensorPtrSrc,
+                                    RpptRoiType roiType,
+                                    rppHandle_t rppHandle)
+{
+    RppLayoutParams srcLayoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
+    compute_lens_correction_remap_tables(srcDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffsMatrix, roiTensorPtrSrc);
+#ifdef HIP_COMPILE
+    unsigned long long ioBufferSize = (unsigned long long)srcDescPtr->h * (unsigned long long)srcDescPtr->w * (unsigned long long)srcDescPtr->c * (unsigned long long)srcDescPtr->n;
+    hipMemcpy(d_rowRemapTable, (void *)rowRemapTable, ioBufferSize * sizeof(Rpp32u), hipMemcpyHostToDevice);
+    hipMemcpy(d_colRemapTable, (void *)colRemapTable, ioBufferSize * sizeof(Rpp32u), hipMemcpyHostToDevice);
+    if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
+    {
+        hip_exec_remap_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
+                              srcDescPtr,
+                              static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
+                              dstDescPtr,
+                              d_rowRemapTable,
+                              d_colRemapTable,
+                              tableDescPtr,
+                              roiTensorPtrSrc,
+                              roiType,
+                              rpp::deref(rppHandle));
+    }
+
+    return RPP_SUCCESS;
+#elif defined(OCL_COMPILE)
+    return RPP_ERROR_NOT_IMPLEMENTED;
+#endif // backend
+}
+
 #endif // GPU_SUPPORT

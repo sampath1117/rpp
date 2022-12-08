@@ -4,6 +4,7 @@
 #include "stdio.h"
 #include "rppdefs.h"
 #include <half/half.hpp>
+#include <omp.h>
 using halfhpp = half_float::half;
 typedef halfhpp Rpp16f;
 
@@ -3125,4 +3126,163 @@ inline void rpp_store12_f32pkd3_to_f32pkd3(Rpp32f* dstPtr, __m128 *p)
     _mm_storeu_ps(dstPtr + 9, p[3]); /* Store RGB set 4 */
 }
 
+
+inline void get_inverse(float m[3][3], float inv_m[3][3])
+{
+    float det = 0.0;
+    //Calculate determinant of the matrix
+    for (int i = 0; i < 3; i++)
+        det = det + (m[0][i] * (m[1][(i + 1) % 3] * m[2][(i + 2) % 3] - m[1][(i + 2) % 3] * m[2][(i + 1) % 3]));
+
+    if (det == 0)
+        return;
+
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            inv_m[j][i] = ((m[(i + 1) % 3][(j + 1) % 3] * m[(i + 2) % 3][(j + 2) % 3]) - (m[(i + 1) % 3][(j + 2) % 3] * m[(i + 2) % 3][(j + 1) % 3])) / det;
+}
+
+inline void compute_lens_correction_remap_tables(RpptDescPtr srcDescPtr, Rpp32u *rowRemapTable, Rpp32u *colRemapTable, Rpp32f *cameraMatrixTensor, Rpp32f *distanceCoeffsTensor, RpptROIPtr roiTensorPtrSrc)
+{
+    Rpp32u tableStride = srcDescPtr->h * srcDescPtr->w;
+    omp_set_dynamic(0);
+#pragma omp parallel for num_threads(srcDescPtr->n)
+    for(int batchcount = 0; batchcount < srcDescPtr->n; batchcount++)
+    {
+        Rpp32u *rowRemapTableTemp, *colRemapTableTemp;
+        rowRemapTableTemp = rowRemapTable + batchcount * tableStride;
+        colRemapTableTemp = colRemapTable + batchcount * tableStride;
+
+        Rpp32s height = roiTensorPtrSrc[batchcount].xywhROI.roiHeight;
+        Rpp32s width = roiTensorPtrSrc[batchcount].xywhROI.roiWidth;
+        Rpp32f *cameraMatrix = cameraMatrixTensor + batchcount * 9;
+        Rpp32f *distCoeffs = distanceCoeffsTensor + batchcount * 14;
+        Rpp32s stride = width;
+        Rpp32s alignedLength = (width / 8) * 8;
+        Rpp32s vectorIncrement = 8;
+
+        Rpp32f newCameraMatrix[3][3];
+        memcpy(newCameraMatrix, cameraMatrix, 9 * sizeof(Rpp32f));
+
+        Rpp32f k1 = distCoeffs[0], k2 = distCoeffs[1];
+        Rpp32f p1 = distCoeffs[2], p2 = distCoeffs[3];
+        Rpp32f k3 = distCoeffs[4], k4 = distCoeffs[5], k5 = distCoeffs[6], k6 = distCoeffs[7];
+        Rpp32f u0 = cameraMatrix[2],  v0 = cameraMatrix[5];
+        Rpp32f fx = cameraMatrix[0],  fy = cameraMatrix[4];
+
+        Rpp32f invNewCameraMatrix[3][3];
+        get_inverse(newCameraMatrix, invNewCameraMatrix);
+        Rpp32f* ir = &invNewCameraMatrix[0][0];
+
+        __m256 pK1 = _mm256_set1_ps(k1);
+        __m256 pK2 = _mm256_set1_ps(k2);
+        __m256 pK3 = _mm256_set1_ps(k3);
+        __m256 pK4 = _mm256_set1_ps(k4);
+        __m256 pK5 = _mm256_set1_ps(k5);
+        __m256 pK6 = _mm256_set1_ps(k6);
+
+        __m256 P1 = _mm256_set1_ps(p1);
+        __m256 P2 = _mm256_set1_ps(p2);
+        __m256 pFx = _mm256_set1_ps(fx);
+        __m256 pFy = _mm256_set1_ps(fy);
+        __m256 pU0 = _mm256_set1_ps(u0);
+        __m256 pV0 = _mm256_set1_ps(v0);
+
+        __m256 pIr0 = _mm256_set1_ps(ir[0]);
+        __m256 pIr3 = _mm256_set1_ps(ir[3]);
+        __m256 pIr6 = _mm256_set1_ps(ir[6]);
+
+        __m256i pxHeightLimit = _mm256_set1_epi32(height - 1);
+        __m256i pxWidthLimit = _mm256_set1_epi32(width - 1);
+
+        __m256 p_XInit = _mm256_mul_ps(avx_pDstLocInit, pIr0);
+        __m256 p_YInit = _mm256_mul_ps(avx_pDstLocInit, pIr3);
+        __m256 p_WInit = _mm256_mul_ps(avx_pDstLocInit, pIr6);
+
+        __m256 p_XIncrement = _mm256_mul_ps(avx_p8, pIr0);
+        __m256 p_YIncrement = _mm256_mul_ps(avx_p8, pIr3);
+        __m256 p_WIncrement = _mm256_mul_ps(avx_p8, pIr6);
+
+        for(int i = 0; i < height; i++ )
+        {
+            Rpp32u *rowRemapTableRow = rowRemapTableTemp + i * stride;
+            Rpp32u *colRemapTableRow = colRemapTableTemp + i * stride;
+            Rpp32f _x = i * ir[1] + ir[2];
+            Rpp32f _y = i * ir[4] + ir[5];
+            Rpp32f _w = i * ir[7] + ir[8];
+            __m256 p_X = _mm256_add_ps(_mm256_set1_ps(_x), p_XInit);
+            __m256 p_Y = _mm256_add_ps(_mm256_set1_ps(_y), p_YInit);
+            __m256 p_W = _mm256_add_ps(_mm256_set1_ps(_w), p_WInit);
+            int vectorLoopCount = 0;
+            for(; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement)
+            {
+                // double w = 1./_w, x = _x*w, y = _y*w;
+                __m256 pW = _mm256_div_ps(avx_p1, p_W);
+                __m256 pX = _mm256_mul_ps(p_X, pW);
+                __m256 pY = _mm256_mul_ps(p_Y, pW);
+
+                // double x2 = x*x, y2 = y*y;
+                __m256 pX2 = _mm256_mul_ps(pX, pX);
+                __m256 pY2 = _mm256_mul_ps(pY, pY);
+
+                // double r2 = x2 + y2;
+                __m256 pR2 = _mm256_add_ps(pX2, pY2);
+
+                //double _2xy = 2*x*y;
+                __m256 p2xy = _mm256_mul_ps(avx_p2, _mm256_mul_ps(pX, pY));
+
+                // double kr = (1 + ((k3*r2 + k2)*r2 + k1)*r2)/(1 + ((k6*r2 + k5)*r2 + k4)*r2);
+                __m256 pNum = _mm256_fmadd_ps(_mm256_fmadd_ps(_mm256_fmadd_ps(pK3, pR2, pK2), pR2, pK1), pR2, avx_p1);
+                __m256 pDen = _mm256_fmadd_ps(_mm256_fmadd_ps(_mm256_fmadd_ps(pK6, pR2, pK5), pR2, pK4), pR2, avx_p1);
+                __m256 pKR = _mm256_div_ps(pNum, pDen);
+
+                // double u = fx*(x*kr + p1*_2xy + p2*(r2 + 2*x2)) + u0;
+                __m256 pFac1 = _mm256_mul_ps(pX, pKR);
+                __m256 pFac2 = _mm256_mul_ps(P1, p2xy);
+                __m256 pFac3 = _mm256_mul_ps(P2, _mm256_fmadd_ps(avx_p2, pX2, pR2));
+                __m256 pSrcCol = _mm256_fmadd_ps(pFx, _mm256_add_ps(pFac1, _mm256_add_ps(pFac2, pFac3)), pU0);
+
+                // double v = fy*(y*kr + p1*(r2 + 2*y2) + p2*_2xy) + v0;
+                pFac1 = _mm256_mul_ps(pY, pKR);
+                pFac2 = _mm256_mul_ps(P2, p2xy);
+                pFac3 = _mm256_mul_ps(P1, _mm256_fmadd_ps(avx_p2, pY2, pR2));
+                __m256 pSrcRow = _mm256_fmadd_ps(pFy, _mm256_add_ps(pFac1, _mm256_add_ps(pFac2, pFac3)), pV0);
+
+                __m256i pxSrcRow = _mm256_cvtps_epi32(pSrcRow);
+                __m256i pxSrcCol = _mm256_cvtps_epi32(pSrcCol);
+
+                // rowRemapTableRow++ = std::min(std::max(0, ui), height - 1);
+                // colRemapTableRow++ = std::min(std::max(0, vi), width - 1);
+                pxSrcCol = _mm256_min_epi32(_mm256_max_epi32(pxSrcCol, avx_px0), pxWidthLimit);
+                pxSrcRow = _mm256_min_epi32(_mm256_max_epi32(pxSrcRow, avx_px0), pxHeightLimit);
+                _mm256_storeu_si256((__m256i *)colRemapTableRow, pxSrcCol);
+                _mm256_storeu_si256((__m256i *)rowRemapTableRow, pxSrcRow);
+                rowRemapTableRow += vectorIncrement;
+                colRemapTableRow += vectorIncrement;
+
+                // _x += ir[0], _y += ir[3], _w += ir[6]
+                p_X = _mm256_add_ps(p_X, p_XIncrement);
+                p_Y = _mm256_add_ps(p_Y, p_YIncrement);
+                p_W = _mm256_add_ps(p_W, p_WIncrement);
+            }
+            for(; vectorLoopCount < width; vectorLoopCount++)
+            {
+                Rpp32f w = 1./_w, x = _x * w, y = _y * w;
+                Rpp32f x2 = x * x, y2 = y * y;
+                Rpp32f r2 = x2 + y2, _2xy = 2 * x * y;
+                Rpp32f kr = (1 + ((k3 * r2 + k2) * r2 + k1) * r2) / (1 + ((k6 * r2 + k5) * r2 + k4) *r2);
+                Rpp32f u = fx * (x * kr + p1 *_2xy + p2 * (r2 + 2 * x2)) + u0;
+                Rpp32f v = fy * (y * kr + p1 * (r2 + 2 * y2 ) + p2 *_2xy) + v0;
+                Rpp32s ui = floor(u);
+                Rpp32s vi = floor(v);
+                *rowRemapTableRow++ = std::min(std::max(0, ui), width - 1);
+                *colRemapTableRow++ = std::min(std::max(0, vi), height - 1);
+
+                _x += ir[0];
+                _y += ir[3];
+                _w += ir[6];
+            }
+        }
+    }
+}
 #endif //AMD_RPP_RPP_CPU_SIMD_HPP

@@ -1782,9 +1782,9 @@ int main(int argc, char **argv)
         if (ip_bitDepth == 0)
             rppt_remap_gpu(d_input, srcDescPtr, d_output, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
         else if (ip_bitDepth == 1)
-            rppt_remap_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
-        else if (ip_bitDepth == 2)
             rppt_remap_gpu(d_inputf16, srcDescPtr, d_outputf16, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 2)
+            rppt_remap_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
         else if (ip_bitDepth == 3)
             missingFuncFlag = 1;
         else if (ip_bitDepth == 4)
