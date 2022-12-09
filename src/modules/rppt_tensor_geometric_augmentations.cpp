@@ -1480,8 +1480,6 @@ RppStatus rppt_lens_correction_gpu(RppPtr_t srcPtr,
                                     RpptDescPtr dstDescPtr,
                                     Rpp32u *rowRemapTable,
                                     Rpp32u *colRemapTable,
-                                    Rpp32u *d_rowRemapTable,
-                                    Rpp32u *d_colRemapTable,
                                     RpptDescPtr tableDescPtr,
                                     Rpp32f *cameraMatrix,
                                     Rpp32f *distanceCoeffsMatrix,
@@ -1490,19 +1488,25 @@ RppStatus rppt_lens_correction_gpu(RppPtr_t srcPtr,
                                     rppHandle_t rppHandle)
 {
     RppLayoutParams srcLayoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
-    compute_lens_correction_remap_tables(srcDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffsMatrix, roiTensorPtrSrc);
 #ifdef HIP_COMPILE
-    unsigned long long ioBufferSize = (unsigned long long)srcDescPtr->h * (unsigned long long)srcDescPtr->w * (unsigned long long)srcDescPtr->c * (unsigned long long)srcDescPtr->n;
-    hipMemcpy(d_rowRemapTable, (void *)rowRemapTable, ioBufferSize * sizeof(Rpp32u), hipMemcpyHostToDevice);
-    hipMemcpy(d_colRemapTable, (void *)colRemapTable, ioBufferSize * sizeof(Rpp32u), hipMemcpyHostToDevice);
     if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
     {
+        hip_exec_lens_correction_tensor(dstDescPtr,
+                                        rowRemapTable,
+                                        colRemapTable,
+                                        tableDescPtr,
+                                        cameraMatrix,
+                                        distanceCoeffsMatrix,
+                                        roiTensorPtrSrc,
+                                        roiType,
+                                        rpp::deref(rppHandle));
+
         hip_exec_remap_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
                               srcDescPtr,
                               static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
                               dstDescPtr,
-                              d_rowRemapTable,
-                              d_colRemapTable,
+                              rowRemapTable,
+                              colRemapTable,
                               tableDescPtr,
                               roiTensorPtrSrc,
                               roiType,

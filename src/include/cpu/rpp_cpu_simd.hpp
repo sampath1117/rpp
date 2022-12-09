@@ -3127,19 +3127,22 @@ inline void rpp_store12_f32pkd3_to_f32pkd3(Rpp32f* dstPtr, __m128 *p)
 }
 
 
-inline void get_inverse(float m[3][3], float inv_m[3][3])
+inline void get_inverse(float *m, float *inv_m)
 {
-    float det = 0.0;
-    //Calculate determinant of the matrix
-    for (int i = 0; i < 3; i++)
-        det = det + (m[0][i] * (m[1][(i + 1) % 3] * m[2][(i + 2) % 3] - m[1][(i + 2) % 3] * m[2][(i + 1) % 3]));
-
-    if (det == 0)
-        return;
-
-    for (int i = 0; i < 3; i++)
-        for (int j = 0; j < 3; j++)
-            inv_m[j][i] = ((m[(i + 1) % 3][(j + 1) % 3] * m[(i + 2) % 3][(j + 2) % 3]) - (m[(i + 1) % 3][(j + 2) % 3] * m[(i + 2) % 3][(j + 1) % 3])) / det;
+    float det = m[0] * (m[4] * m[8] - m[7] * m[5]) - m[1] * (m[3] * m[8] - m[5] * m[6]) + m[2] * (m[3] * m[7] - m[4] * m[6]);
+    if(det != 0)
+    {
+        float invDet = 1 / det;
+        inv_m[0] = (m[4] * m[8] - m[7] * m[5]) * invDet;
+        inv_m[1] = (m[2] * m[7] - m[1] * m[8]) * invDet;
+        inv_m[2] = (m[1] * m[5] - m[2] * m[4]) * invDet;
+        inv_m[3] = (m[5] * m[6] - m[3] * m[8]) * invDet;
+        inv_m[4] = (m[0] * m[8] - m[2] * m[6]) * invDet;
+        inv_m[5] = (m[3] * m[2] - m[0] * m[5]) * invDet;
+        inv_m[6] = (m[3] * m[7] - m[6] * m[4]) * invDet;
+        inv_m[7] = (m[6] * m[1] - m[0] * m[7]) * invDet;
+        inv_m[8] = (m[0] * m[4] - m[3] * m[1]) * invDet;
+    }
 }
 
 inline void compute_lens_correction_remap_tables(RpptDescPtr srcDescPtr, Rpp32u *rowRemapTable, Rpp32u *colRemapTable, Rpp32f *cameraMatrixTensor, Rpp32f *distanceCoeffsTensor, RpptROIPtr roiTensorPtrSrc)
@@ -3161,7 +3164,7 @@ inline void compute_lens_correction_remap_tables(RpptDescPtr srcDescPtr, Rpp32u 
         Rpp32s alignedLength = (width / 8) * 8;
         Rpp32s vectorIncrement = 8;
 
-        Rpp32f newCameraMatrix[3][3];
+        Rpp32f newCameraMatrix[9];
         memcpy(newCameraMatrix, cameraMatrix, 9 * sizeof(Rpp32f));
 
         Rpp32f k1 = distCoeffs[0], k2 = distCoeffs[1];
@@ -3170,9 +3173,9 @@ inline void compute_lens_correction_remap_tables(RpptDescPtr srcDescPtr, Rpp32u 
         Rpp32f u0 = cameraMatrix[2],  v0 = cameraMatrix[5];
         Rpp32f fx = cameraMatrix[0],  fy = cameraMatrix[4];
 
-        Rpp32f invNewCameraMatrix[3][3];
+        Rpp32f invNewCameraMatrix[9];
         get_inverse(newCameraMatrix, invNewCameraMatrix);
-        Rpp32f* ir = &invNewCameraMatrix[0][0];
+        Rpp32f* ir = &invNewCameraMatrix[0];
 
         __m256 pK1 = _mm256_set1_ps(k1);
         __m256 pK2 = _mm256_set1_ps(k2);
