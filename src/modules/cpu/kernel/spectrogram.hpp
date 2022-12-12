@@ -98,9 +98,9 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
     }
 
     Rpp32u hStride = dstDescPtr->strides.hStride;
-    Rpp32s alignednfftLength = (nfft / 8) * 8;
-    Rpp32s alignednbinsLength = (numBins / 8) * 8;
-    Rpp32s alignedwindowLength = (windowLength / 8) * 8;
+    Rpp32s alignednfftLength = nfft & ~7;
+    Rpp32s alignednbinsLength = numBins & ~7;
+    Rpp32s alignedwindowLength = windowLength & ~7;
 
     if (vertical)
     {

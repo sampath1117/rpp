@@ -63,7 +63,7 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
         if(width == 1)
         {
             int vectorIncrement = 8;
-            int alignedLength = (height / 8) * 8;
+            int alignedLength = height & ~7;
             int vectorLoopCount = 0;
 
             for(; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement)
@@ -88,7 +88,7 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
         else
         {
             int vectorIncrement = 8;
-            int alignedLength = (width / 8) * 8;
+            int alignedLength = width & ~7;
 
             Rpp32f *srcPtrRow, *dstPtrRow;
             srcPtrRow = srcPtrCurrent;

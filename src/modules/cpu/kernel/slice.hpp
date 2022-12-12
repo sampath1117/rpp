@@ -38,7 +38,7 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
             else
             {
                 Rpp32s vectorIncrement = 8;
-                Rpp32s alignedLength = (shape / 8) * 8;
+                Rpp32s alignedLength = shape & ~7;
                 __m256 pFillValue = _mm256_set1_ps(fillValue);
 
                 bool needPad = (anchor < 0) || ((anchor + shape) > srcBufferLength);
@@ -48,7 +48,7 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
                     // out of bounds (left side)
                     Rpp32s numIndices = std::abs(std::min(anchor, 0));
                     Rpp32s leftPadLength = std::min(numIndices, shape);
-                    Rpp32s alignedLeftPadLength = (leftPadLength / 8) * 8;
+                    Rpp32s alignedLeftPadLength = leftPadLength & ~7;
 
                     for (; dstIdx < alignedLeftPadLength; dstIdx += vectorIncrement)
                     {
@@ -110,8 +110,8 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
 
             Rpp32s vectorIncrement = 8;
             __m256 pFillValue = _mm256_set1_ps(fillValue);
-            Rpp32s alignedCol = (shape[1] / vectorIncrement) * vectorIncrement;
-            Rpp32s alignedColMax = (dstDescPtr->strides.hStride / vectorIncrement) * vectorIncrement;
+            Rpp32s alignedCol = shape[1] & ~(vectorIncrement - 1);
+            Rpp32s alignedColMax = dstDescPtr->strides.hStride & ~(vectorIncrement - 1);
 
             srcPtrTemp = srcPtrTemp + anchor[0] * srcDescPtr->strides.hStride;
             int row = 0;

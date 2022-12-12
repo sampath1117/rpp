@@ -137,7 +137,7 @@ RppStatus mel_filter_bank_host_tensor(Rpp32f *srcPtr,
         memset(dstPtrTemp, 0.0f, (size_t)(numFilter * numFrames * sizeof(Rpp32f)));
 
         Rpp32u vectorIncrement = 8;
-        Rpp32u alignedLength = (numFrames / 8) * 8;
+        Rpp32u alignedLength = numFrames & ~7;
         __m256 pSrc, pDst;
         Rpp32f *srcRowPtr = srcPtrTemp + fftBinStart * numFrames;
         for (int64_t fftBin = fftBinStart; fftBin <= fftBinEnd; fftBin++)
@@ -167,7 +167,6 @@ RppStatus mel_filter_bank_host_tensor(Rpp32f *srcPtr,
                     dstRowPtrTemp += vectorIncrement;
                     srcRowPtrTemp += vectorIncrement;
                 }
-
                 for (; vectorLoopCount < numFrames; vectorLoopCount++)
                 {
                     (*dstRowPtrTemp) += weightDown * (*srcRowPtrTemp);
@@ -196,7 +195,6 @@ RppStatus mel_filter_bank_host_tensor(Rpp32f *srcPtr,
                     dstRowPtrTemp += vectorIncrement;
                     srcRowPtrTemp += vectorIncrement;
                 }
-
                 for (; vectorLoopCount < numFrames; vectorLoopCount++)
                 {
                     (*dstRowPtrTemp) += weightUp * (*srcRowPtrTemp);

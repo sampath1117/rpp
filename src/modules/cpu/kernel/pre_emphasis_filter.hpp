@@ -27,7 +27,7 @@ RppStatus pre_emphasis_filter_host_tensor(Rpp32f *srcPtr,
             dstPtrTemp[0] = srcPtrTemp[0] - coeff * srcPtrTemp[1];
 
         int vectorIncrement = 8;
-        int alignedLength = (bufferLength / 8) * 8;
+        int alignedLength = bufferLength & ~7;
         __m256 pCoeff = _mm256_set1_ps(coeff);
 
         int vectorLoopCount = 1;
@@ -43,7 +43,6 @@ RppStatus pre_emphasis_filter_host_tensor(Rpp32f *srcPtr,
             srcPtrTemp += vectorIncrement;
             dstPtrTemp += vectorIncrement;
         }
-
         for(; vectorLoopCount < bufferLength; vectorLoopCount++)
             dstPtrTemp[vectorLoopCount] = srcPtrTemp[vectorLoopCount] - coeff * srcPtrTemp[vectorLoopCount - 1];
     }
