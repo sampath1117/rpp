@@ -793,12 +793,13 @@ RppStatus rppt_lens_correction_host(RppPtr_t srcPtr,
                                     Rpp32u *colRemapTable,
                                     Rpp32f *cameraMatrix,
                                     Rpp32f *distanceCoeffsMatrix,
+                                    Rpp32f *newCameraMatrix,
                                     RpptROIPtr roiTensorPtrSrc,
                                     RpptRoiType roiType,
                                     rppHandle_t rppHandle)
 {
     RppLayoutParams srcLayoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
-    compute_lens_correction_remap_tables(srcDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffsMatrix, roiTensorPtrSrc);
+    compute_lens_correction_remap_tables(srcDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffsMatrix, newCameraMatrix, roiTensorPtrSrc);
 
     if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
     {
@@ -1483,6 +1484,7 @@ RppStatus rppt_lens_correction_gpu(RppPtr_t srcPtr,
                                     RpptDescPtr tableDescPtr,
                                     Rpp32f *cameraMatrix,
                                     Rpp32f *distanceCoeffsMatrix,
+                                    Rpp32f *newCameraMatrix,
                                     RpptROIPtr roiTensorPtrSrc,
                                     RpptRoiType roiType,
                                     rppHandle_t rppHandle)
@@ -1497,6 +1499,7 @@ RppStatus rppt_lens_correction_gpu(RppPtr_t srcPtr,
                                         tableDescPtr,
                                         cameraMatrix,
                                         distanceCoeffsMatrix,
+                                        newCameraMatrix,
                                         roiTensorPtrSrc,
                                         roiType,
                                         rpp::deref(rppHandle));

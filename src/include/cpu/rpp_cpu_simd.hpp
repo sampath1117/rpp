@@ -3145,7 +3145,7 @@ inline void get_inverse(float *m, float *inv_m)
     }
 }
 
-inline void compute_lens_correction_remap_tables(RpptDescPtr srcDescPtr, Rpp32u *rowRemapTable, Rpp32u *colRemapTable, Rpp32f *cameraMatrixTensor, Rpp32f *distanceCoeffsTensor, RpptROIPtr roiTensorPtrSrc)
+inline void compute_lens_correction_remap_tables(RpptDescPtr srcDescPtr, Rpp32u *rowRemapTable, Rpp32u *colRemapTable, Rpp32f *cameraMatrixTensor, Rpp32f *distanceCoeffsTensor, Rpp32f *newCameraMatrixTensor, RpptROIPtr roiTensorPtrSrc)
 {
     Rpp32u tableStride = srcDescPtr->h * srcDescPtr->w;
     omp_set_dynamic(0);
@@ -3160,16 +3160,15 @@ inline void compute_lens_correction_remap_tables(RpptDescPtr srcDescPtr, Rpp32u 
         Rpp32s width = roiTensorPtrSrc[batchcount].xywhROI.roiWidth;
         Rpp32f *cameraMatrix = cameraMatrixTensor + batchcount * 9;
         Rpp32f *distCoeffs = distanceCoeffsTensor + batchcount * 14;
+        Rpp32f *newCameraMatrix = newCameraMatrixTensor + batchcount * 9;
         Rpp32s stride = width;
         Rpp32s alignedLength = (width / 8) * 8;
         Rpp32s vectorIncrement = 8;
 
-        Rpp32f newCameraMatrix[9];
-        memcpy(newCameraMatrix, cameraMatrix, 9 * sizeof(Rpp32f));
-
         Rpp32f k1 = distCoeffs[0], k2 = distCoeffs[1];
         Rpp32f p1 = distCoeffs[2], p2 = distCoeffs[3];
         Rpp32f k3 = distCoeffs[4], k4 = distCoeffs[5], k5 = distCoeffs[6], k6 = distCoeffs[7];
+        Rpp32f s1 = distCoeffs[8], s2 = distCoeffs[9], s3 = distCoeffs[10], s4 = distCoeffs[11];
         Rpp32f u0 = cameraMatrix[2],  v0 = cameraMatrix[5];
         Rpp32f fx = cameraMatrix[0],  fy = cameraMatrix[4];
 
@@ -3183,6 +3182,10 @@ inline void compute_lens_correction_remap_tables(RpptDescPtr srcDescPtr, Rpp32u 
         __m256 pK4 = _mm256_set1_ps(k4);
         __m256 pK5 = _mm256_set1_ps(k5);
         __m256 pK6 = _mm256_set1_ps(k6);
+        __m256 pS1 = _mm256_set1_ps(s1);
+        __m256 pS2 = _mm256_set1_ps(s2);
+        __m256 pS3 = _mm256_set1_ps(s3);
+        __m256 pS4 = _mm256_set1_ps(s4);
 
         __m256 P1 = _mm256_set1_ps(p1);
         __m256 P2 = _mm256_set1_ps(p2);
@@ -3273,13 +3276,16 @@ inline void compute_lens_correction_remap_tables(RpptDescPtr srcDescPtr, Rpp32u 
                 Rpp32f w = 1./_w, x = _x * w, y = _y * w;
                 Rpp32f x2 = x * x, y2 = y * y;
                 Rpp32f r2 = x2 + y2, _2xy = 2 * x * y;
+                Rpp32f r4 = r2 * r2;
                 Rpp32f kr = (1 + ((k3 * r2 + k2) * r2 + k1) * r2) / (1 + ((k6 * r2 + k5) * r2 + k4) *r2);
                 Rpp32f u = fx * (x * kr + p1 *_2xy + p2 * (r2 + 2 * x2)) + u0;
                 Rpp32f v = fy * (y * kr + p1 * (r2 + 2 * y2 ) + p2 *_2xy) + v0;
+                // Rpp32f u = fx * (x * kr + p1 *_2xy + p2 * (r2 + 2 * x2) + s1 * r2 + s2 * r4) + u0;
+                // Rpp32f v = fy * (y * kr + p1 * (r2 + 2 * y2 ) + p2 *_2xy + s3 * r2 + s4 * r4) + v0;
                 Rpp32s ui = floor(u);
                 Rpp32s vi = floor(v);
-                *rowRemapTableRow++ = std::min(std::max(0, ui), width - 1);
-                *colRemapTableRow++ = std::min(std::max(0, vi), height - 1);
+                *rowRemapTableRow++ = std::min(std::max(0, vi), width - 1);
+                *colRemapTableRow++ = std::min(std::max(0, ui), height - 1);
 
                 _x += ir[0];
                 _y += ir[3];

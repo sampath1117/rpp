@@ -80,6 +80,7 @@ int main(int argc, char **argv)
         int perfcount = 100;
         double cv_time_used = 0;
         Mat cameraMatrix = Mat(3,3, CV_64F, double(0));
+        Mat newcameraMatrix = Mat(3,3, CV_64F, double(0));
         Mat distortionCoeffs = Mat(1,4, CV_64F, double(0));
 
         cameraMatrix.at<double>(0, 0) = 286.7037963867188;
@@ -92,6 +93,16 @@ int main(int argc, char **argv)
         cameraMatrix.at<double>(2, 1) = 0;
         cameraMatrix.at<double>(2, 2) = 1;
 
+        newcameraMatrix.at<double>(0, 0) = 286.7037963867188;
+        newcameraMatrix.at<double>(0, 1) = 0;
+        newcameraMatrix.at<double>(0, 2) = 413.3463134765625;
+        newcameraMatrix.at<double>(1, 0) = 0;
+        newcameraMatrix.at<double>(1, 1) = 286.7817993164062;
+        newcameraMatrix.at<double>(1, 2) = 397.1785888671875;
+        newcameraMatrix.at<double>(2, 0) = 0;
+        newcameraMatrix.at<double>(2, 1) = 0;
+        newcameraMatrix.at<double>(2, 2) = 1;
+
         distortionCoeffs.at<double>(0,0) = -0.01078350003808737;
         distortionCoeffs.at<double>(0,1) = 0.04842806980013847;
         distortionCoeffs.at<double>(0,2) = -0.04542399942874908;
@@ -100,7 +111,7 @@ int main(int argc, char **argv)
         Mat input_frame = cv::imread("/media/sampath/audio/sampath_rpp/utilities/rpp-unittests/TEST_IMAGES/single_image_224x224_src1/224x224.jpg");
         Mat output_frame;
 
-        undistort(input_frame, output_frame, cameraMatrix, distortionCoeffs, cv::noArray());
+        undistort(input_frame, output_frame, cameraMatrix, distortionCoeffs, newcameraMatrix);
         cv::imwrite("lens_output.jpg", output_frame);
 
         exit(0);
@@ -1219,19 +1230,20 @@ int main(int argc, char **argv)
         test_case_name = "lens_correction";
 
         Rpp32f cameraMatrix[9 * images];
+        Rpp32f newCameraMatrix[9 * images];
         Rpp32f distanceCoeffs[14 * images];
 
         for (i = 0; i < images; i++)
         {
-            cameraMatrix[9 * i] = 286.703;
-            cameraMatrix[9 * i + 1] = 0;
-            cameraMatrix[9 * i + 2] = 413.346;
-            cameraMatrix[9 * i + 3] = 0;
-            cameraMatrix[9 * i + 4] = 286.781;
-            cameraMatrix[9 * i + 5] = 397.178;
-            cameraMatrix[9 * i + 6] = 0;
-            cameraMatrix[9 * i + 7] = 0;
-            cameraMatrix[9 * i + 8] = 1;
+            cameraMatrix[9 * i] = newCameraMatrix[9 * i] = 286.703;
+            cameraMatrix[9 * i + 1] =  newCameraMatrix[9 * i + 1] = 0;
+            cameraMatrix[9 * i + 2] =  newCameraMatrix[9 * i + 2] = 413.346;
+            cameraMatrix[9 * i + 3] = newCameraMatrix[9 * i + 3] = 0;
+            cameraMatrix[9 * i + 4] = newCameraMatrix[9 * i + 4] = 286.781;
+            cameraMatrix[9 * i + 5] = newCameraMatrix[9 * i + 5] = 397.178;
+            cameraMatrix[9 * i + 6] = newCameraMatrix[9 * i + 6] = 0;
+            cameraMatrix[9 * i + 7] = newCameraMatrix[9 * i + 7] = 0;
+            cameraMatrix[9 * i + 8] = newCameraMatrix[9 * i + 8] = 1;
 
             distanceCoeffs[14 * i] = -0.01078;
             distanceCoeffs[14 * i + 1] = 0.04842;
@@ -1268,19 +1280,19 @@ int main(int argc, char **argv)
         start_omp = omp_get_wtime();
         start = clock();
         if (ip_bitDepth == 0)
-            rppt_lens_correction_host(input, srcDescPtr, output, dstDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffs, roiTensorPtrSrc, roiTypeSrc, handle);
-        else if (ip_bitDepth == 1)
-            rppt_lens_correction_host(inputf16, srcDescPtr, outputf16, dstDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffs, roiTensorPtrSrc, roiTypeSrc, handle);
-        else if (ip_bitDepth == 2)
-            rppt_lens_correction_host(inputf32, srcDescPtr, outputf32, dstDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffs, roiTensorPtrSrc, roiTypeSrc, handle);
-        else if (ip_bitDepth == 3)
-            missingFuncFlag = 1;
-        else if (ip_bitDepth == 4)
-            missingFuncFlag = 1;
-        else if (ip_bitDepth == 5)
-            rppt_lens_correction_host(inputi8, srcDescPtr, outputi8, dstDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffs, roiTensorPtrSrc, roiTypeSrc, handle);
-        else if (ip_bitDepth == 6)
-            missingFuncFlag = 1;
+            rppt_lens_correction_host(input, srcDescPtr, output, dstDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffs, newCameraMatrix, roiTensorPtrSrc, roiTypeSrc, handle);
+        // else if (ip_bitDepth == 1)
+        //     rppt_lens_correction_host(inputf16, srcDescPtr, outputf16, dstDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffs, cameraMatrix, roiTensorPtrSrc, roiTypeSrc, handle);
+        // else if (ip_bitDepth == 2)
+        //     rppt_lens_correction_host(inputf32, srcDescPtr, outputf32, dstDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffs, cameraMatrix, roiTensorPtrSrc, roiTypeSrc, handle);
+        // else if (ip_bitDepth == 3)
+        //     missingFuncFlag = 1;
+        // else if (ip_bitDepth == 4)
+        //     missingFuncFlag = 1;
+        // else if (ip_bitDepth == 5)
+        //     rppt_lens_correction_host(inputi8, srcDescPtr, outputi8, dstDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffs, cameraMatrix, roiTensorPtrSrc, roiTypeSrc, handle);
+        // else if (ip_bitDepth == 6)
+        //     missingFuncFlag = 1;
         else
             missingFuncFlag = 1;
 
