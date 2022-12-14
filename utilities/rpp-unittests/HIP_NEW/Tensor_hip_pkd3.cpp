@@ -1390,14 +1390,14 @@ int main(int argc, char **argv)
             cameraMatrix[9 * i + 7] = 0;
             cameraMatrix[9 * i + 8] = 1;
 
-            distanceCoeffs[14 * i] = -0.01078;
-            distanceCoeffs[14 * i + 1] = 0.04842;
-            distanceCoeffs[14 * i + 2] = -0.0454;
-            distanceCoeffs[14 * i + 3] = 0.00873;
-            distanceCoeffs[14 * i + 4] = 0;
-            distanceCoeffs[14 * i + 5] = 0;
-            distanceCoeffs[14 * i + 6] = 0;
-            distanceCoeffs[14 * i + 7] = 0;
+            distanceCoeffs[8 * i] = -0.01078;
+            distanceCoeffs[8 * i + 1] = 0.04842;
+            distanceCoeffs[8 * i + 2] = -0.0454;
+            distanceCoeffs[8 * i + 3] = 0.00873;
+            distanceCoeffs[8 * i + 4] = 0;
+            distanceCoeffs[8 * i + 5] = 0;
+            distanceCoeffs[8 * i + 6] = 0;
+            distanceCoeffs[8 * i + 7] = 0;
         }
 
         float *d_cameraMatrix, *d_distanceCoeffs;
@@ -2006,14 +2006,14 @@ int main(int argc, char **argv)
             cameraMatrix[9 * i + 7] = 0;
             cameraMatrix[9 * i + 8] = 1;
 
-            distanceCoeffs[14 * i] = -0.01078;
-            distanceCoeffs[14 * i + 1] = 0.04842;
-            distanceCoeffs[14 * i + 2] = -0.0454;
-            distanceCoeffs[14 * i + 3] = 0.00873;
-            distanceCoeffs[14 * i + 4] = 0;
-            distanceCoeffs[14 * i + 5] = 0;
-            distanceCoeffs[14 * i + 6] = 0;
-            distanceCoeffs[14 * i + 7] = 0;
+            distanceCoeffs[8 * i] = -0.01078;
+            distanceCoeffs[8 * i + 1] = 0.04842;
+            distanceCoeffs[8 * i + 2] = -0.0454;
+            distanceCoeffs[8 * i + 3] = 0.00873;
+            distanceCoeffs[8 * i + 4] = 0;
+            distanceCoeffs[8 * i + 5] = 0;
+            distanceCoeffs[8 * i + 6] = 0;
+            distanceCoeffs[8 * i + 7] = 0;
         }
 
         void *d_rowRemapTable, *d_colRemapTable;

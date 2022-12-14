@@ -23,7 +23,7 @@ __global__ void compute_remap_tables(uint *rowRemapTable,
                                      uint *colRemapTable,
                                      d_float9 *cameraMatrixTensor,
                                      d_float9 *inverseMatrixTensor,
-                                     d_float14 *distanceCoeffsTensor,
+                                     d_float8 *distanceCoeffsTensor,
                                      d_float9 *newCameraMatrixTensor,
                                      uint2 remapTableStridesNH,
                                      RpptROIPtr roiTensorPtrSrc)
@@ -43,7 +43,7 @@ __global__ void compute_remap_tables(uint *rowRemapTable,
     d_float9 cameraMatrix = cameraMatrixTensor[id_z];
     d_float9 newCameraMatrix = newCameraMatrixTensor[id_z];
     d_float9 ir = inverseMatrixTensor[id_z];
-    d_float14 distCoeffs = distanceCoeffsTensor[id_z];
+    d_float8 distCoeffs = distanceCoeffsTensor[id_z];
 
     if(id_x == 0 && id_y == 0)
         get_inverse_hip(&newCameraMatrix, &ir);
@@ -52,7 +52,6 @@ __global__ void compute_remap_tables(uint *rowRemapTable,
     float k1 = distCoeffs.f1[0], k2 = distCoeffs.f1[1];
     float p1 = distCoeffs.f1[2], p2 = distCoeffs.f1[3];
     float k3 = distCoeffs.f1[4], k4 = distCoeffs.f1[5], k5 = distCoeffs.f1[6], k6 = distCoeffs.f1[7];
-    float s1 = distCoeffs.f1[8], s2 = distCoeffs.f1[9], s3 = distCoeffs.f1[10], s4 = distCoeffs.f1[11];
     float u0 = cameraMatrix.f1[2],  v0 = cameraMatrix.f1[5];
     float fx = cameraMatrix.f1[0],  fy = cameraMatrix.f1[4];
 
@@ -66,10 +65,9 @@ __global__ void compute_remap_tables(uint *rowRemapTable,
     float w = 1./_w, x = _x * w, y = _y * w;
     float x2 = x * x, y2 = y * y;
     float r2 = x2 + y2, _2xy = 2 * x * y;
-    float r4 = r2 * r2;
     float kr = (1 + ((k3 * r2 + k2) * r2 + k1) * r2) / (1 + ((k6 * r2 + k5) * r2 + k4) *r2);
-    float u = fx * (x * kr + p1 *_2xy + p2 * (r2 + 2 * x2) + s1 * r2 + s2 * r4) + u0;
-    float v = fy * (y * kr + p1 * (r2 + 2 * y2 ) + p2 *_2xy + s3 * r2 + s4 * r4) + v0;
+    float u = fx * (x * kr + p1 *_2xy + p2 * (r2 + 2 * x2)) + u0;
+    float v = fy * (y * kr + p1 * (r2 + 2 * y2 ) + p2 *_2xy) + v0;
     int ui = floor(u);
     int vi = floor(v);
     *colRemapTableTemp = min(max(0, ui), width - 1);
@@ -112,7 +110,7 @@ RppStatus hip_exec_lens_correction_tensor(RpptDescPtr dstDescPtr,
                            colRemapTable,
                            (d_float9 *)cameraMatrix,
                            (d_float9 *)inverseMatrix,
-                           (d_float14 *)distanceCoeffs,
+                           (d_float8 *)distanceCoeffs,
                            (d_float9 *)newCameraMatrix,
                            make_uint2(remapTableDescPtr->strides.nStride, remapTableDescPtr->strides.hStride),
                            roiTensorPtrSrc);

@@ -1247,7 +1247,7 @@ int main(int argc, char **argv)
             test_case_name = "lens_correction";
 
             Rpp32f cameraMatrix[9 * images];
-            Rpp32f distanceCoeffs[14 * images];
+            Rpp32f distanceCoeffs[8 * images];
 
             for (i = 0; i < images; i++)
             {
@@ -1261,14 +1261,14 @@ int main(int argc, char **argv)
                 cameraMatrix[9 * i + 7] = 0;
                 cameraMatrix[9 * i + 8] = 1;
 
-                distanceCoeffs[14 * i] = -0.01078;
-                distanceCoeffs[14 * i + 1] = 0.04842;
-                distanceCoeffs[14 * i + 2] = -0.0454;
-                distanceCoeffs[14 * i + 3] = 0.00873;
-                distanceCoeffs[14 * i + 4] = 0;
-                distanceCoeffs[14 * i + 5] = 0;
-                distanceCoeffs[14 * i + 6] = 0;
-                distanceCoeffs[14 * i + 7] = 0;
+                distanceCoeffs[8 * i] = -0.01078;
+                distanceCoeffs[8 * i + 1] = 0.04842;
+                distanceCoeffs[8 * i + 2] = -0.0454;
+                distanceCoeffs[8 * i + 3] = 0.00873;
+                distanceCoeffs[8 * i + 4] = 0;
+                distanceCoeffs[8 * i + 5] = 0;
+                distanceCoeffs[8 * i + 6] = 0;
+                distanceCoeffs[8 * i + 7] = 0;
             }
 
             // Uncomment to run test case with an xywhROI override
