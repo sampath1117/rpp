@@ -268,6 +268,15 @@ inline void rpp_saturate8_0to1_avx(__m256 *p)
     p[0] = _mm256_min_ps(_mm256_max_ps(p[0], avx_p0), avx_p1);
 }
 
+inline Rpp32f rpp_horizontal_add_sse(__m128 p)
+{
+    __m128 shuf = _mm_movehdup_ps(p);
+    __m128 sums = _mm_add_ps(p, shuf);
+    shuf = _mm_movehl_ps(shuf, sums);
+    sums = _mm_add_ss(sums, shuf);
+    return _mm_cvtss_f32(sums);
+}
+
 // SSE loads and stores
 
 inline void rpp_load48_u8pkd3_to_f32pln3(Rpp8u *srcPtr, __m128 *p)

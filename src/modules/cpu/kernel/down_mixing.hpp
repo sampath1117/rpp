@@ -1,15 +1,6 @@
 #include "rppdefs.h"
 #include <omp.h>
 
-float hsum_ps(__m128 x)
-{
-    __m128 shuf = _mm_movehdup_ps(x);        // broadcast elements 3,1 to 2,0
-    __m128 sums = _mm_add_ps(x, shuf);
-    shuf = _mm_movehl_ps(shuf, sums);        // high half -> low half
-    sums = _mm_add_ss(sums, shuf);
-    return _mm_cvtss_f32(sums);
-}
-
 RppStatus down_mixing_host_tensor(Rpp32f *srcPtr,
                                   RpptDescPtr srcDescPtr,
                                   Rpp32f *dstPtr,
@@ -35,9 +26,9 @@ RppStatus down_mixing_host_tensor(Rpp32f *srcPtr,
         }
         else
         {
-            std::vector<float> weights;
+            std::vector<Rpp32f> weights;
             weights.resize(channels, 1.f / channels);
-            std::vector<float> normalizedWeights;
+            std::vector<Rpp32f> normalizedWeights;
 
             if(normalizeWeights)
             {
@@ -56,12 +47,12 @@ RppStatus down_mixing_host_tensor(Rpp32f *srcPtr,
                 weights = normalizedWeights;
             }
 
-            int channelIncrement = 4;
-            int alignedChannels = (channels / 4) * 4;
+            Rpp32u channelIncrement = 4;
+            Rpp32u alignedChannels = (channels / 4) * 4;
 
             // use weights to downmix to mono
             Rpp32f *srcPtrRow = srcPtrCurrent;
-            for(int64_t dstIdx = 0; dstIdx < samples; dstIdx++)
+            for(Rpp64s dstIdx = 0; dstIdx < samples; dstIdx++)
             {
                 Rpp32f *srcPtrTemp = srcPtrRow;
                 __m128 pDst = xmm_p0;
@@ -75,7 +66,7 @@ RppStatus down_mixing_host_tensor(Rpp32f *srcPtr,
                     pDst = _mm_add_ps(pDst, pSrc);
                     srcPtrTemp += channelIncrement;
                 }
-                dstPtrCurrent[dstIdx] = hsum_ps(pDst);
+                dstPtrCurrent[dstIdx] = rpp_horizontal_add_sse(pDst);
                 for(; channelLoopCount < channels; channelLoopCount++)
                 {
                     dstPtrCurrent[dstIdx] += ((*srcPtrTemp) * weights[channelLoopCount]);

@@ -7,7 +7,7 @@ Rpp32f getSquare(Rpp32f &value)
     return (res * res);
 }
 
-Rpp32f getMax(std::vector<float> &values, int length)
+Rpp32f getMax(std::vector<Rpp32f> &values, Rpp32s length)
 {
     Rpp32f max = values[0];
     for(int i = 1; i < length; i++)
@@ -40,20 +40,20 @@ RppStatus non_silent_region_detection_host_tensor(Rpp32f *srcPtr,
 
         // Calculate buffer size for mms array and allocate mms buffer
         Rpp32s mmsBufferSize = srcSize - windowLength + 1;
-        std::vector<float> mmsBuffer;
+        std::vector<Rpp32f> mmsBuffer;
         mmsBuffer.reserve(mmsBufferSize);
 
         // Calculate moving mean square of input array and store in mms buffer
         Rpp32f meanFactor = 1.0f / windowLength;
-        int windowBegin = 0;
+        Rpp32s windowBegin = 0;
         while(windowBegin <= srcSize - windowLength)
         {
             Rpp32f sumOfSquares = 0.0f;
             for(int i = windowBegin; i < windowBegin + windowLength; i++)
                 sumOfSquares += getSquare(srcPtrTemp[i]);
             mmsBuffer[windowBegin] = sumOfSquares * meanFactor;
-            auto interval_endIdx = std::min(windowBegin + resetLength, srcSize) - windowLength + 1;
-            for(windowBegin++; windowBegin < interval_endIdx; windowBegin++)
+            auto intervalEndIdx = std::min(windowBegin + resetLength, srcSize) - windowLength + 1;
+            for(windowBegin++; windowBegin < intervalEndIdx; windowBegin++)
             {
                 sumOfSquares += getSquare(srcPtrTemp[windowBegin + windowLength - 1]) - getSquare(srcPtrTemp[windowBegin - 1]);
                 mmsBuffer[windowBegin] = sumOfSquares * meanFactor;
@@ -65,8 +65,8 @@ RppStatus non_silent_region_detection_host_tensor(Rpp32f *srcPtr,
         Rpp32f cutOffMag = base * std::pow(10.0f, cutOffDB * 0.1f);
 
         // Calculate begining index, length of non silent region from the mms buffer
-        int endIdx = mmsBufferSize;
-        int beginIdx = endIdx;
+        Rpp32s endIdx = mmsBufferSize;
+        Rpp32s beginIdx = endIdx;
         for(int i = 0; i < endIdx; i++)
         {
             if(mmsBuffer[i] >= cutOffMag)

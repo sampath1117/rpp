@@ -36,7 +36,7 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
         // Compute maximum value in the input buffer
         if(!referenceMax)
         {
-            referenceMagnitude = -std::numeric_limits<float>::max();
+            referenceMagnitude = -std::numeric_limits<Rpp32f>::max();
             Rpp32f *srcPtrTemp = srcPtrCurrent;
             if(width == 1)
             {
@@ -62,10 +62,10 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
         // Interpret as 1D array
         if(width == 1)
         {
-            int vectorIncrement = 8;
-            int alignedLength = height & ~7;
-            int vectorLoopCount = 0;
+            Rpp32u vectorIncrement = 8;
+            Rpp32u alignedLength = height & ~7;
 
+            int vectorLoopCount = 0;
             for(; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement)
             {
                 __m256 pSrc;
@@ -87,8 +87,8 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
         }
         else
         {
-            int vectorIncrement = 8;
-            int alignedLength = width & ~7;
+            Rpp32u vectorIncrement = 8;
+            Rpp32u alignedLength = width & ~7;
 
             Rpp32f *srcPtrRow, *dstPtrRow;
             srcPtrRow = srcPtrCurrent;
