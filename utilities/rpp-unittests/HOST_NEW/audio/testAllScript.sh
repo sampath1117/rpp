@@ -72,7 +72,7 @@ do
     then
         SRC_FOLDER="$cwd/../../../TEST_AUDIO_FILES/single_sample_multi_channel_src1/"
     else
-        SRC_FOLDER="$cwd/../../../TEST_AUDIO_FILES/eight_samples_single_channel_src1/"
+        SRC_FOLDER=$DEFAULT_SRC_FOLDER
     fi
 
     printf "\n\n\n\n"
