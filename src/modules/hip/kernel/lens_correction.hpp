@@ -45,10 +45,7 @@ __global__ void compute_remap_tables(uint *rowRemapTable,
     d_float9 ir = inverseMatrixTensor[id_z];
     d_float8 distCoeffs = distanceCoeffsTensor[id_z];
 
-    if(id_x == 0 && id_y == 0)
-        get_inverse_hip(&newCameraMatrix, &ir);
-    __syncthreads();
-
+    get_inverse_hip(&newCameraMatrix, &ir);
     float k1 = distCoeffs.f1[0], k2 = distCoeffs.f1[1];
     float p1 = distCoeffs.f1[2], p2 = distCoeffs.f1[3];
     float k3 = distCoeffs.f1[4], k4 = distCoeffs.f1[5], k5 = distCoeffs.f1[6], k6 = distCoeffs.f1[7];

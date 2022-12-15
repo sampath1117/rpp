@@ -77,41 +77,30 @@ int main(int argc, char **argv)
     bool cv_test = false;
     if (cv_test)
     {
-        int perfcount = 100;
-        double cv_time_used = 0;
         Mat cameraMatrix = Mat(3,3, CV_64F, double(0));
         Mat newcameraMatrix = Mat(3,3, CV_64F, double(0));
-        Mat distortionCoeffs = Mat(1,4, CV_64F, double(0));
+        Mat distortionCoeffs = Mat(1,5, CV_64F, double(0));
 
-        cameraMatrix.at<double>(0, 0) = 286.7037963867188;
+        cameraMatrix.at<double>(0, 0) = 503.68477278;
         cameraMatrix.at<double>(0, 1) = 0;
-        cameraMatrix.at<double>(0, 2) = 413.3463134765625;
+        cameraMatrix.at<double>(0, 2) = 313.67563674;
         cameraMatrix.at<double>(1, 0) = 0;
-        cameraMatrix.at<double>(1, 1) = 286.7817993164062;
-        cameraMatrix.at<double>(1, 2) = 397.1785888671875;
+        cameraMatrix.at<double>(1, 1) = 503.37989194;
+        cameraMatrix.at<double>(1, 2) = 243.25575476;
         cameraMatrix.at<double>(2, 0) = 0;
         cameraMatrix.at<double>(2, 1) = 0;
         cameraMatrix.at<double>(2, 2) = 1;
 
-        newcameraMatrix.at<double>(0, 0) = 286.7037963867188;
-        newcameraMatrix.at<double>(0, 1) = 0;
-        newcameraMatrix.at<double>(0, 2) = 413.3463134765625;
-        newcameraMatrix.at<double>(1, 0) = 0;
-        newcameraMatrix.at<double>(1, 1) = 286.7817993164062;
-        newcameraMatrix.at<double>(1, 2) = 397.1785888671875;
-        newcameraMatrix.at<double>(2, 0) = 0;
-        newcameraMatrix.at<double>(2, 1) = 0;
-        newcameraMatrix.at<double>(2, 2) = 1;
+        distortionCoeffs.at<double>(0,0) = 2.08346324e-01;
+        distortionCoeffs.at<double>(0,1) = -4.68650266e-01;
+        distortionCoeffs.at<double>(0,2) = 4.51079181e-04;
+        distortionCoeffs.at<double>(0,3) = -1.93373893e-03;
+        distortionCoeffs.at<double>(0,4) = 2.37592401e-01;
 
-        distortionCoeffs.at<double>(0,0) = -0.01078350003808737;
-        distortionCoeffs.at<double>(0,1) = 0.04842806980013847;
-        distortionCoeffs.at<double>(0,2) = -0.04542399942874908;
-        distortionCoeffs.at<double>(0,3) = 0.008737384341657162;
-
-        Mat input_frame = cv::imread("/media/sampath/audio/sampath_rpp/utilities/rpp-unittests/TEST_IMAGES/single_image_224x224_src1/224x224.jpg");
+        Mat input_frame = cv::imread("/media/sampath/audio/sampath_rpp/utilities/rpp-unittests/TEST_IMAGES/lens_distortion/image_5.jpg");
         Mat output_frame;
 
-        undistort(input_frame, output_frame, cameraMatrix, distortionCoeffs, newcameraMatrix);
+        undistort(input_frame, output_frame, cameraMatrix, distortionCoeffs, cameraMatrix);
         cv::imwrite("lens_output.jpg", output_frame);
 
         exit(0);
@@ -1235,21 +1224,21 @@ int main(int argc, char **argv)
 
         for (i = 0; i < images; i++)
         {
-            cameraMatrix[9 * i] = newCameraMatrix[9 * i] = 286.703;
+            cameraMatrix[9 * i] = newCameraMatrix[9 * i] = 534.07088364;
             cameraMatrix[9 * i + 1] =  newCameraMatrix[9 * i + 1] = 0;
-            cameraMatrix[9 * i + 2] =  newCameraMatrix[9 * i + 2] = 413.346;
+            cameraMatrix[9 * i + 2] =  newCameraMatrix[9 * i + 2] = 341.53407554;
             cameraMatrix[9 * i + 3] = newCameraMatrix[9 * i + 3] = 0;
-            cameraMatrix[9 * i + 4] = newCameraMatrix[9 * i + 4] = 286.781;
-            cameraMatrix[9 * i + 5] = newCameraMatrix[9 * i + 5] = 397.178;
+            cameraMatrix[9 * i + 4] = newCameraMatrix[9 * i + 4] = 534.11914595;
+            cameraMatrix[9 * i + 5] = newCameraMatrix[9 * i + 5] = 232.94565259;
             cameraMatrix[9 * i + 6] = newCameraMatrix[9 * i + 6] = 0;
             cameraMatrix[9 * i + 7] = newCameraMatrix[9 * i + 7] = 0;
             cameraMatrix[9 * i + 8] = newCameraMatrix[9 * i + 8] = 1;
 
-            distanceCoeffs[8 * i] = -0.01078;
-            distanceCoeffs[8 * i + 1] = 0.04842;
-            distanceCoeffs[8 * i + 2] = -0.0454;
-            distanceCoeffs[8 * i + 3] = 0.00873;
-            distanceCoeffs[8 * i + 4] = 0;
+            distanceCoeffs[8 * i] = -0.29297164;
+            distanceCoeffs[8 * i + 1] = 0.10770696;
+            distanceCoeffs[8 * i + 2] = 0.00131038;
+            distanceCoeffs[8 * i + 3] = -0.0000311;
+            distanceCoeffs[8 * i + 4] = 0.0434798;
             distanceCoeffs[8 * i + 5] = 0;
             distanceCoeffs[8 * i + 6] = 0;
             distanceCoeffs[8 * i + 7] = 0;

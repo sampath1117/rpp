@@ -684,6 +684,14 @@ int main(int argc, char **argv)
     hipStreamCreate(&stream);
     rppCreateWithStreamAndBatchSize(&handle, stream, noOfImages);
 
+    float *d_cameraMatrix, *d_distanceCoeffs;
+    hipMalloc(&d_cameraMatrix, images * 9 * sizeof(Rpp32f));
+    hipMalloc(&d_distanceCoeffs, images * 8 * sizeof(Rpp32f));
+
+    void *d_rowRemapTable, *d_colRemapTable;
+    hipMalloc(&d_rowRemapTable, ioBufferSize * sizeof(Rpp32u));
+    hipMalloc(&d_colRemapTable, ioBufferSize * sizeof(Rpp32u));
+
     clock_t start, end;
     double gpu_time_used;
 
@@ -1362,6 +1370,32 @@ int main(int argc, char **argv)
         roiTypeSrc = RpptRoiType::LTRB;
         roiTypeDst = RpptRoiType::LTRB;*/
 
+        Rpp32f cameraMatrix[9 * images];
+        Rpp32f newCameraMatrix[9 * images];
+        Rpp32f distanceCoeffs[8 * images];
+
+        for (i = 0; i < images; i++)
+        {
+            cameraMatrix[9 * i] = newCameraMatrix[9 * i] = 534.07088364;
+            cameraMatrix[9 * i + 1] =  newCameraMatrix[9 * i + 1] = 0;
+            cameraMatrix[9 * i + 2] =  newCameraMatrix[9 * i + 2] = 341.53407554;
+            cameraMatrix[9 * i + 3] = newCameraMatrix[9 * i + 3] = 0;
+            cameraMatrix[9 * i + 4] = newCameraMatrix[9 * i + 4] = 534.11914595;
+            cameraMatrix[9 * i + 5] = newCameraMatrix[9 * i + 5] = 232.94565259;
+            cameraMatrix[9 * i + 6] = newCameraMatrix[9 * i + 6] = 0;
+            cameraMatrix[9 * i + 7] = newCameraMatrix[9 * i + 7] = 0;
+            cameraMatrix[9 * i + 8] = newCameraMatrix[9 * i + 8] = 1;
+
+            distanceCoeffs[8 * i] = -0.29297164;
+            distanceCoeffs[8 * i + 1] = 0.10770696;
+            distanceCoeffs[8 * i + 2] = 0.00131038;
+            distanceCoeffs[8 * i + 3] = -0.0000311;
+            distanceCoeffs[8 * i + 4] = 0.0434798;
+            distanceCoeffs[8 * i + 5] = 0;
+            distanceCoeffs[8 * i + 6] = 0;
+            distanceCoeffs[8 * i + 7] = 0;
+        }
+
         RpptDescPtr tableDescPtr;
         RpptDesc tableDesc;
 
@@ -1372,70 +1406,28 @@ int main(int argc, char **argv)
         tableDescPtr->strides.hStride = srcDescPtr->w;
         tableDescPtr->strides.wStride = tableDescPtr->strides.cStride = 1;
 
-        Rpp32f *cameraMatrix = (Rpp32f*) calloc(9 * images, sizeof(Rpp32f));
-        Rpp32f *distanceCoeffs = (Rpp32f*) calloc(14 * images, sizeof(Rpp32f));
-
-        // {{286.703, 0, 413.346}, {0, 286.781, 397.178}, {0, 0, 1}};
-        // double distCoeffs[8] = {-0.01078, 0.04842, -0.0454, 0.00873, 0, 0, 0, 0};
-
-        for (i = 0; i < images; i++)
-        {
-            cameraMatrix[9 * i] = 286.703;
-            cameraMatrix[9 * i + 1] = 0;
-            cameraMatrix[9 * i + 2] = 413.346;
-            cameraMatrix[9 * i + 3] = 0;
-            cameraMatrix[9 * i + 4] = 286.781;
-            cameraMatrix[9 * i + 5] = 397.178;
-            cameraMatrix[9 * i + 6] = 0;
-            cameraMatrix[9 * i + 7] = 0;
-            cameraMatrix[9 * i + 8] = 1;
-
-            distanceCoeffs[8 * i] = -0.01078;
-            distanceCoeffs[8 * i + 1] = 0.04842;
-            distanceCoeffs[8 * i + 2] = -0.0454;
-            distanceCoeffs[8 * i + 3] = 0.00873;
-            distanceCoeffs[8 * i + 4] = 0;
-            distanceCoeffs[8 * i + 5] = 0;
-            distanceCoeffs[8 * i + 6] = 0;
-            distanceCoeffs[8 * i + 7] = 0;
-        }
-
-        float *d_cameraMatrix, *d_distanceCoeffs;
-        hipMalloc(&d_cameraMatrix, images * 9 * sizeof(Rpp32f));
-        hipMalloc(&d_distanceCoeffs, images * 14 * sizeof(Rpp32f));
         hipMemcpy(d_cameraMatrix, cameraMatrix, images * 9 * sizeof(Rpp32f), hipMemcpyHostToDevice);
-        hipMemcpy(d_distanceCoeffs, distanceCoeffs, images * 14 * sizeof(Rpp32f), hipMemcpyHostToDevice);
-
-        void *d_rowRemapTable, *d_colRemapTable;
-        hipMalloc(&d_rowRemapTable, ioBufferSize * sizeof(Rpp32u));
-        hipMalloc(&d_colRemapTable, ioBufferSize * sizeof(Rpp32u));
+        hipMemcpy(d_distanceCoeffs, distanceCoeffs, images * 8 * sizeof(Rpp32f), hipMemcpyHostToDevice);
         hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
         start = clock();
 
         if (ip_bitDepth == 0)
-            rppt_lens_correction_gpu(d_input, srcDescPtr, d_output, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_cameraMatrix, d_distanceCoeffs, d_roiTensorPtrSrc, roiTypeSrc, handle);
-        // else if (ip_bitDepth == 1)
-        //     rppt_remap_gpu(d_inputf16, srcDescPtr, d_outputf16, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
-        // else if (ip_bitDepth == 2)
-        //     rppt_remap_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
-        // else if (ip_bitDepth == 3)
-        //     missingFuncFlag = 1;
-        // else if (ip_bitDepth == 4)
-        //     missingFuncFlag = 1;
-        // else if (ip_bitDepth == 5)
-        //     rppt_remap_gpu(d_inputi8, srcDescPtr, d_outputi8, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
-        // else if (ip_bitDepth == 6)
-        //     missingFuncFlag = 1;
+            rppt_lens_correction_gpu(d_input, srcDescPtr, d_output, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_cameraMatrix, d_distanceCoeffs, d_cameraMatrix, d_roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 1)
+            rppt_lens_correction_gpu(d_inputf16, srcDescPtr, d_outputf16, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_cameraMatrix, d_distanceCoeffs, d_cameraMatrix, d_roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 2)
+            rppt_lens_correction_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_cameraMatrix, d_distanceCoeffs, d_cameraMatrix, d_roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 3)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 4)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 5)
+            rppt_lens_correction_gpu(d_inputi8, srcDescPtr, d_outputi8, dstDescPtr, (Rpp32u *)d_rowRemapTable, (Rpp32u *)d_colRemapTable, tableDescPtr, d_cameraMatrix, d_distanceCoeffs, d_cameraMatrix, d_roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 6)
+            missingFuncFlag = 1;
         else
             missingFuncFlag = 1;
-
-        free(cameraMatrix);
-        free(distanceCoeffs);
-        hipFree(d_rowRemapTable);
-        hipFree(d_colRemapTable);
-        hipFree(d_cameraMatrix);
-        hipFree(d_distanceCoeffs);
 
         break;
     }
@@ -2597,6 +2589,11 @@ int main(int argc, char **argv)
         hipFree(d_input_second);
         hipFree(d_outputi8);
     }
+
+    hipFree(d_rowRemapTable);
+    hipFree(d_colRemapTable);
+    hipFree(d_cameraMatrix);
+    hipFree(d_distanceCoeffs);
 
     return 0;
 }

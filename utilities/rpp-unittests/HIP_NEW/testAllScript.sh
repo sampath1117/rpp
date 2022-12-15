@@ -29,8 +29,8 @@ cwd=$(pwd)
 # DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/two_images_mixed_src2"
 
 # Input Images - Six images (mixed size)
-DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/six_images_mixed_src1"
-DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/six_images_mixed_src1"
+DEFAULT_SRC_FOLDER_1="/media/sampath/audio/sampath_rpp/utilities/rpp-unittests/TEST_IMAGES/lens_distortion"
+DEFAULT_SRC_FOLDER_2="/media/sampath/audio/sampath_rpp/utilities/rpp-unittests/TEST_IMAGES/lens_distortion"
 
 # Output Images
 mkdir "$cwd/../OUTPUT_IMAGES_HIP_NEW"

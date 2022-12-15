@@ -3215,57 +3215,57 @@ inline void compute_lens_correction_remap_tables(RpptDescPtr srcDescPtr, Rpp32u 
             __m256 p_Y = _mm256_add_ps(_mm256_set1_ps(_y), p_YInit);
             __m256 p_W = _mm256_add_ps(_mm256_set1_ps(_w), p_WInit);
             int vectorLoopCount = 0;
-            for(; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement)
-            {
-                // double w = 1./_w, x = _x*w, y = _y*w;
-                __m256 pW = _mm256_div_ps(avx_p1, p_W);
-                __m256 pX = _mm256_mul_ps(p_X, pW);
-                __m256 pY = _mm256_mul_ps(p_Y, pW);
+            // for(; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement)
+            // {
+            //     // double w = 1./_w, x = _x*w, y = _y*w;
+            //     __m256 pW = _mm256_div_ps(avx_p1, p_W);
+            //     __m256 pX = _mm256_mul_ps(p_X, pW);
+            //     __m256 pY = _mm256_mul_ps(p_Y, pW);
 
-                // double x2 = x*x, y2 = y*y;
-                __m256 pX2 = _mm256_mul_ps(pX, pX);
-                __m256 pY2 = _mm256_mul_ps(pY, pY);
+            //     // double x2 = x*x, y2 = y*y;
+            //     __m256 pX2 = _mm256_mul_ps(pX, pX);
+            //     __m256 pY2 = _mm256_mul_ps(pY, pY);
 
-                // double r2 = x2 + y2;
-                __m256 pR2 = _mm256_add_ps(pX2, pY2);
+            //     // double r2 = x2 + y2;
+            //     __m256 pR2 = _mm256_add_ps(pX2, pY2);
 
-                //double _2xy = 2*x*y;
-                __m256 p2xy = _mm256_mul_ps(avx_p2, _mm256_mul_ps(pX, pY));
+            //     //double _2xy = 2*x*y;
+            //     __m256 p2xy = _mm256_mul_ps(avx_p2, _mm256_mul_ps(pX, pY));
 
-                // double kr = (1 + ((k3*r2 + k2)*r2 + k1)*r2)/(1 + ((k6*r2 + k5)*r2 + k4)*r2);
-                __m256 pNum = _mm256_fmadd_ps(_mm256_fmadd_ps(_mm256_fmadd_ps(pK3, pR2, pK2), pR2, pK1), pR2, avx_p1);
-                __m256 pDen = _mm256_fmadd_ps(_mm256_fmadd_ps(_mm256_fmadd_ps(pK6, pR2, pK5), pR2, pK4), pR2, avx_p1);
-                __m256 pKR = _mm256_div_ps(pNum, pDen);
+            //     // double kr = (1 + ((k3*r2 + k2)*r2 + k1)*r2)/(1 + ((k6*r2 + k5)*r2 + k4)*r2);
+            //     __m256 pNum = _mm256_fmadd_ps(_mm256_fmadd_ps(_mm256_fmadd_ps(pK3, pR2, pK2), pR2, pK1), pR2, avx_p1);
+            //     __m256 pDen = _mm256_fmadd_ps(_mm256_fmadd_ps(_mm256_fmadd_ps(pK6, pR2, pK5), pR2, pK4), pR2, avx_p1);
+            //     __m256 pKR = _mm256_div_ps(pNum, pDen);
 
-                // double u = fx*(x*kr + p1*_2xy + p2*(r2 + 2*x2)) + u0;
-                __m256 pFac1 = _mm256_mul_ps(pX, pKR);
-                __m256 pFac2 = _mm256_mul_ps(P1, p2xy);
-                __m256 pFac3 = _mm256_mul_ps(P2, _mm256_fmadd_ps(avx_p2, pX2, pR2));
-                __m256 pSrcCol = _mm256_fmadd_ps(pFx, _mm256_add_ps(pFac1, _mm256_add_ps(pFac2, pFac3)), pU0);
+            //     // double u = fx*(x*kr + p1*_2xy + p2*(r2 + 2*x2)) + u0;
+            //     __m256 pFac1 = _mm256_mul_ps(pX, pKR);
+            //     __m256 pFac2 = _mm256_mul_ps(P1, p2xy);
+            //     __m256 pFac3 = _mm256_mul_ps(P2, _mm256_fmadd_ps(avx_p2, pX2, pR2));
+            //     __m256 pSrcCol = _mm256_fmadd_ps(pFx, _mm256_add_ps(pFac1, _mm256_add_ps(pFac2, pFac3)), pU0);
 
-                // double v = fy*(y*kr + p1*(r2 + 2*y2) + p2*_2xy) + v0;
-                pFac1 = _mm256_mul_ps(pY, pKR);
-                pFac2 = _mm256_mul_ps(P2, p2xy);
-                pFac3 = _mm256_mul_ps(P1, _mm256_fmadd_ps(avx_p2, pY2, pR2));
-                __m256 pSrcRow = _mm256_fmadd_ps(pFy, _mm256_add_ps(pFac1, _mm256_add_ps(pFac2, pFac3)), pV0);
+            //     // double v = fy*(y*kr + p1*(r2 + 2*y2) + p2*_2xy) + v0;
+            //     pFac1 = _mm256_mul_ps(pY, pKR);
+            //     pFac2 = _mm256_mul_ps(P2, p2xy);
+            //     pFac3 = _mm256_mul_ps(P1, _mm256_fmadd_ps(avx_p2, pY2, pR2));
+            //     __m256 pSrcRow = _mm256_fmadd_ps(pFy, _mm256_add_ps(pFac1, _mm256_add_ps(pFac2, pFac3)), pV0);
 
-                __m256i pxSrcRow = _mm256_cvtps_epi32(pSrcRow);
-                __m256i pxSrcCol = _mm256_cvtps_epi32(pSrcCol);
+            //     __m256i pxSrcRow = _mm256_cvtps_epi32(pSrcRow);
+            //     __m256i pxSrcCol = _mm256_cvtps_epi32(pSrcCol);
 
-                // rowRemapTableRow++ = std::min(std::max(0, ui), height - 1);
-                // colRemapTableRow++ = std::min(std::max(0, vi), width - 1);
-                pxSrcCol = _mm256_min_epi32(_mm256_max_epi32(pxSrcCol, avx_px0), pxWidthLimit);
-                pxSrcRow = _mm256_min_epi32(_mm256_max_epi32(pxSrcRow, avx_px0), pxHeightLimit);
-                _mm256_storeu_si256((__m256i *)colRemapTableRow, pxSrcCol);
-                _mm256_storeu_si256((__m256i *)rowRemapTableRow, pxSrcRow);
-                rowRemapTableRow += vectorIncrement;
-                colRemapTableRow += vectorIncrement;
+            //     // rowRemapTableRow++ = std::min(std::max(0, ui), height - 1);
+            //     // colRemapTableRow++ = std::min(std::max(0, vi), width - 1);
+            //     pxSrcCol = _mm256_min_epi32(_mm256_max_epi32(pxSrcCol, avx_px0), pxWidthLimit);
+            //     pxSrcRow = _mm256_min_epi32(_mm256_max_epi32(pxSrcRow, avx_px0), pxHeightLimit);
+            //     _mm256_storeu_si256((__m256i *)colRemapTableRow, pxSrcCol);
+            //     _mm256_storeu_si256((__m256i *)rowRemapTableRow, pxSrcRow);
+            //     rowRemapTableRow += vectorIncrement;
+            //     colRemapTableRow += vectorIncrement;
 
-                // _x += ir[0], _y += ir[3], _w += ir[6]
-                p_X = _mm256_add_ps(p_X, p_XIncrement);
-                p_Y = _mm256_add_ps(p_Y, p_YIncrement);
-                p_W = _mm256_add_ps(p_W, p_WIncrement);
-            }
+            //     // _x += ir[0], _y += ir[3], _w += ir[6]
+            //     p_X = _mm256_add_ps(p_X, p_XIncrement);
+            //     p_Y = _mm256_add_ps(p_Y, p_YIncrement);
+            //     p_W = _mm256_add_ps(p_W, p_WIncrement);
+            // }
             for(; vectorLoopCount < width; vectorLoopCount++)
             {
                 Rpp32f w = 1./_w, x = _x * w, y = _y * w;
@@ -3275,10 +3275,10 @@ inline void compute_lens_correction_remap_tables(RpptDescPtr srcDescPtr, Rpp32u 
                 Rpp32f kr = (1 + ((k3 * r2 + k2) * r2 + k1) * r2) / (1 + ((k6 * r2 + k5) * r2 + k4) *r2);
                 Rpp32f u = fx * (x * kr + p1 *_2xy + p2 * (r2 + 2 * x2)) + u0;
                 Rpp32f v = fy * (y * kr + p1 * (r2 + 2 * y2 ) + p2 *_2xy) + v0;
-                Rpp32s ui = floor(u);
-                Rpp32s vi = floor(v);
-                *rowRemapTableRow++ = std::min(std::max(0, vi), width - 1);
-                *colRemapTableRow++ = std::min(std::max(0, ui), height - 1);
+                Rpp32s ui = u;
+                Rpp32s vi = v;
+                *rowRemapTableRow++ = std::min(std::max(0, vi), height - 1);
+                *colRemapTableRow++ = std::min(std::max(0, ui), width - 1);
 
                 _x += ir[0];
                 _y += ir[3];
