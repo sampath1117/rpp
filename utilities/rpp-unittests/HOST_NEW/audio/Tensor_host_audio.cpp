@@ -69,10 +69,6 @@ void verify_output(Rpp32f *dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dst
                 ref_file>>ref_val;
                 out_val = dstPtrTemp[j];
                 bool invalid_comparision = ((out_val == 0.0f) && (ref_val != 0.0f));
-                if(batchcount == 2)
-                {
-                    std::cerr<<"ref_val, out_val: "<<ref_val<<", "<<out_val<<std::endl;
-                }
                 if(!invalid_comparision && abs(out_val - ref_val) < CUTOFF)
                     matched_indices += 1;
             }
