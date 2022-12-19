@@ -12,7 +12,7 @@ using halfhpp = half_float::half;
 typedef halfhpp Rpp16f;
 #include "rpp_cpu_simd.hpp"
 
-#define PI                              3.14159265
+#define PI                              3.14159265358979323846
 #define PI_OVER_180                     0.0174532925
 #define ONE_OVER_255                    0.00392157f
 #define ONE_OVER_256                    0.00390625f
