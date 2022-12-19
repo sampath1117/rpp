@@ -15,7 +15,7 @@ inline Rpp32f reduce_add_ps1(__m256 src)
 
 inline void hann_window(Rpp32f *output, Rpp32s windowSize)
 {
-    Rpp32f a = (TPI / windowSize);
+    Rpp32f a = (PI / windowSize);
     for (Rpp32s t = 0; t < windowSize; t++)
     {
         Rpp32f phase = a * (t + 0.5);
@@ -81,7 +81,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
         memcpy(windowFn.data(), windowFunction, windowLength*sizeof(Rpp32f));
     }
 
-    const Rpp32f mulFactor = (TPI) / nfft;
+    const Rpp32f mulFactor = (PI) / nfft;
 
     Rpp32f cosf[numBins * nfft];
     Rpp32f sinf[numBins * nfft];
