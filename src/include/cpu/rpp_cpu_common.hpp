@@ -5838,4 +5838,18 @@ inline void compute_separable_horizontal_resample(Rpp32f *inputPtr, T *outputPtr
     }
 }
 
+inline void generate_pad_tensor_f32_host(Rpp32f *ptr, __m256 &pFillValue, Rpp32f fillValue, Rpp32s alignedLength, Rpp32s bufferLength, Rpp32s increment)
+{
+    int idx = 0;
+    for (; idx < alignedLength; idx += increment)
+    {
+        _mm256_storeu_ps(ptr, pFillValue);
+        ptr += increment;
+    }
+    for (; idx < bufferLength; idx++)
+    {
+        *ptr = fillValue;
+        ptr++;
+    }
+}
 #endif //RPP_CPU_COMMON_H
