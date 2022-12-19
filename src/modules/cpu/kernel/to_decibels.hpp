@@ -18,9 +18,7 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
     if(minRatio == 0.0f)
         minRatio = std::nextafter(0.0f, 1.0f);
 
-    Rpp32f log10Factor = 1 / std::log(10);
-    multiplier *= log10Factor;
-
+    multiplier *= ONE_OVER_LOG10BE;
     __m256 pMultiplier = _mm256_set1_ps(multiplier);
     __m256 pMinRatio = _mm256_set1_ps(minRatio);
 

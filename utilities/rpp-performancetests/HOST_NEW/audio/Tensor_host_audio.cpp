@@ -15,9 +15,6 @@
 // Include this header file to use functions from libsndfile
 #include <sndfile.h>
 
-// libsndfile can handle more than 6 channels but we'll restrict it to 6
-#define	MAX_CHANNELS 6
-
 #define CUTOFF 1e-2
 
 using namespace std;
@@ -216,7 +213,7 @@ int main(int argc, char **argv)
 
         //The SF_INFO struct must be initialized before using it
         memset (&sfinfo, 0, sizeof (sfinfo));
-        if (!(infile = sf_open (temp, SFM_READ, &sfinfo)) || sfinfo.channels > MAX_CHANNELS)
+        if (!(infile = sf_open (temp, SFM_READ, &sfinfo)))
         {
             sf_close (infile);
             continue;
@@ -305,7 +302,7 @@ int main(int argc, char **argv)
 
         // The SF_INFO struct must be initialized before using it
         memset (&sfinfo, 0, sizeof (sfinfo));
-        if (!(infile = sf_open (temp, SFM_READ, &sfinfo)) || sfinfo.channels > MAX_CHANNELS)
+        if (!(infile = sf_open (temp, SFM_READ, &sfinfo)))
         {
             sf_close (infile);
             continue;
