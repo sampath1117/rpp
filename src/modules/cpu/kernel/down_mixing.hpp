@@ -60,7 +60,7 @@ RppStatus down_mixing_host_tensor(Rpp32f *srcPtr,
                 for(; channelLoopCount < alignedChannels; channelLoopCount += channelIncrement)
                 {
                     __m128 pSrc, pWeights;
-                    pWeights = _mm_setr_ps(weights[channelLoopCount], weights[channelLoopCount + 1], weights[channelLoopCount + 2], weights[channelLoopCount + 3]);
+                    pWeights = _mm_loadu_ps(&weights[channelLoopCount]);
                     pSrc = _mm_loadu_ps(srcPtrTemp);
                     pSrc = _mm_mul_ps(pSrc, pWeights);
                     pDst = _mm_add_ps(pDst, pSrc);
