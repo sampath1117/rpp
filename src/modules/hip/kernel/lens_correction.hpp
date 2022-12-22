@@ -19,8 +19,8 @@ __device__ void get_inverse_hip(d_float9 *mat, d_float9 *invMat)
     }
 }
 
-__global__ void compute_remap_tables(uint *rowRemapTable,
-                                     uint *colRemapTable,
+__global__ void compute_remap_tables(float *rowRemapTable,
+                                     float *colRemapTable,
                                      d_float9 *cameraMatrixTensor,
                                      d_float9 *inverseMatrixTensor,
                                      d_float8 *distanceCoeffsTensor,
@@ -52,8 +52,8 @@ __global__ void compute_remap_tables(uint *rowRemapTable,
     float u0 = cameraMatrix.f1[2],  v0 = cameraMatrix.f1[5];
     float fx = cameraMatrix.f1[0],  fy = cameraMatrix.f1[4];
 
-    uint *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y + id_x;
-    uint *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y + id_x;
+    float *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y + id_x;
+    float *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y + id_x;
 
     float _x = id_y * ir.f1[1] + ir.f1[2] + id_x * ir.f1[0];
     float _y = id_y * ir.f1[4] + ir.f1[5] + id_x * ir.f1[3];
@@ -65,17 +65,15 @@ __global__ void compute_remap_tables(uint *rowRemapTable,
     float kr = (1 + ((k3 * r2 + k2) * r2 + k1) * r2) / (1 + ((k6 * r2 + k5) * r2 + k4) *r2);
     float u = fx * (x * kr + p1 *_2xy + p2 * (r2 + 2 * x2)) + u0;
     float v = fy * (y * kr + p1 * (r2 + 2 * y2 ) + p2 *_2xy) + v0;
-    int ui = floor(u);
-    int vi = floor(v);
-    *colRemapTableTemp = min(max(0, ui), width - 1);
-    *rowRemapTableTemp = min(max(0, vi), height - 1);
+    *colRemapTableTemp = u;
+    *rowRemapTableTemp = v;
 }
 
 // -------------------- Set 3 - Kernel Executors --------------------
 
 RppStatus hip_exec_lens_correction_tensor(RpptDescPtr dstDescPtr,
-                                          Rpp32u *rowRemapTable,
-                                          Rpp32u *colRemapTable,
+                                          Rpp32f *rowRemapTable,
+                                          Rpp32f *colRemapTable,
                                           RpptDescPtr remapTableDescPtr,
                                           Rpp32f *cameraMatrix,
                                           Rpp32f *distanceCoeffs,
@@ -95,7 +93,6 @@ RppStatus hip_exec_lens_correction_tensor(RpptDescPtr dstDescPtr,
     int globalThreads_z = handle.GetBatchSize();
 
     float *inverseMatrix = handle.GetInitHandle()->mem.mgpu.maskArr.floatmem;
-
     if (dstDescPtr->layout == RpptLayout::NHWC)
     {
         hipLaunchKernelGGL(compute_remap_tables,
@@ -112,6 +109,7 @@ RppStatus hip_exec_lens_correction_tensor(RpptDescPtr dstDescPtr,
                            make_uint2(remapTableDescPtr->strides.nStride, remapTableDescPtr->strides.hStride),
                            roiTensorPtrSrc);
     }
+    hipDeviceSynchronize();
 
     return RPP_SUCCESS;
 }

@@ -1,12 +1,12 @@
 #include <hip/hip_runtime.h>
 #include "rpp_hip_common.hpp"
 
-__device__ float4 rpp_hip_load4(uint *table, uint4 &tableValLoc)
+__device__ float4 rpp_hip_load4(float *table, uint4 &tableValLoc)
 {
     return make_float4(table[tableValLoc.x], table[tableValLoc.y], table[tableValLoc.z], table[tableValLoc.w]);
 }
 
-__device__ void remap_srclocs_hip_compute(int4 *srcRoiPtr_i4, uint *rowRemapTable, uint *colRemapTable, int id_x, int id_y, int id_z, d_float16 *locSrc_f16)
+__device__ void remap_srclocs_hip_compute(int4 *srcRoiPtr_i4, float *rowRemapTable, float *colRemapTable, int id_x, int id_y, int id_z, d_float16 *locSrc_f16)
 {
     d_uint8 increment_ui8, locSrc_ui8;
 
@@ -30,8 +30,8 @@ __global__ void remap_nearest_neighbor_pkd_tensor(T *srcPtr,
                                                   T *dstPtr,
                                                   uint2 dstStridesNH,
                                                   uint2 dstDimsWH,
-                                                  uint *rowRemapTable,
-                                                  uint *colRemapTable,
+                                                  float *rowRemapTable,
+                                                  float *colRemapTable,
                                                   uint2 remapTableStridesNH,
                                                   RpptROIPtr roiTensorPtrSrc)
 {
@@ -48,8 +48,8 @@ __global__ void remap_nearest_neighbor_pkd_tensor(T *srcPtr,
     uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + (id_x * 3);
 
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
-    uint *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
-    uint *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
+    float *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
+    float *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
 
     d_float16 locSrc_f16;
     remap_srclocs_hip_compute(&srcRoi_i4, rowRemapTableTemp, colRemapTableTemp, id_x, id_y, id_z, &locSrc_f16);
@@ -66,8 +66,8 @@ __global__ void remap_nearest_neighbor_pln_tensor(T *srcPtr,
                                                   uint3 dstStridesNCH,
                                                   uint2 dstDimsWH,
                                                   int channelsDst,
-                                                  uint *rowRemapTable,
-                                                  uint *colRemapTable,
+                                                  float *rowRemapTable,
+                                                  float *colRemapTable,
                                                   uint2 remapTableStridesNH,
                                                   RpptROIPtr roiTensorPtrSrc)
 {
@@ -84,8 +84,8 @@ __global__ void remap_nearest_neighbor_pln_tensor(T *srcPtr,
     uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + id_x;
 
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
-    uint *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
-    uint *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
+    float *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
+    float *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
 
     d_float16 locSrc_f16;
     remap_srclocs_hip_compute(&srcRoi_i4, rowRemapTableTemp, colRemapTableTemp, id_x, id_y, id_z, &locSrc_f16);
@@ -117,8 +117,8 @@ __global__ void remap_nearest_neighbor_pkd3_pln3_tensor(T *srcPtr,
                                                         uint3 dstStridesNCH,
                                                         uint2 dstDimsWH,
                                                         int channelsDst,
-                                                        uint *rowRemapTable,
-                                                        uint *colRemapTable,
+                                                        float *rowRemapTable,
+                                                        float *colRemapTable,
                                                         uint2 remapTableStridesNH,
                                                         RpptROIPtr roiTensorPtrSrc)
 {
@@ -135,8 +135,8 @@ __global__ void remap_nearest_neighbor_pkd3_pln3_tensor(T *srcPtr,
     uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + id_x;
 
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
-    uint *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
-    uint *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
+    float *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
+    float *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
 
     d_float16 locSrc_f16;
     remap_srclocs_hip_compute(&srcRoi_i4, rowRemapTableTemp, colRemapTableTemp, id_x, id_y, id_z, &locSrc_f16);
@@ -152,8 +152,8 @@ __global__ void remap_nearest_neighbor_pln3_pkd3_tensor(T *srcPtr,
                                                         T *dstPtr,
                                                         uint2 dstStridesNH,
                                                         uint2 dstDimsWH,
-                                                        uint *rowRemapTable,
-                                                        uint *colRemapTable,
+                                                        float *rowRemapTable,
+                                                        float *colRemapTable,
                                                         uint2 remapTableStridesNH,
                                                         RpptROIPtr roiTensorPtrSrc)
 {
@@ -170,8 +170,8 @@ __global__ void remap_nearest_neighbor_pln3_pkd3_tensor(T *srcPtr,
     uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + (id_x * 3);
 
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
-    uint *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
-    uint *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
+    float *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
+    float *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
 
     d_float16 locSrc_f16;
     remap_srclocs_hip_compute(&srcRoi_i4, rowRemapTableTemp, colRemapTableTemp, id_x, id_y, id_z, &locSrc_f16);
@@ -189,8 +189,8 @@ __global__ void remap_bilinear_pkd_tensor(T *srcPtr,
                                           T *dstPtr,
                                           uint2 dstStridesNH,
                                           uint2 dstDimsWH,
-                                          uint *rowRemapTable,
-                                          uint *colRemapTable,
+                                          float *rowRemapTable,
+                                          float *colRemapTable,
                                           uint2 remapTableStridesNH,
                                           RpptROIPtr roiTensorPtrSrc)
 {
@@ -207,8 +207,8 @@ __global__ void remap_bilinear_pkd_tensor(T *srcPtr,
     uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + (id_x * 3);
 
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
-    uint *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
-    uint *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
+    float *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
+    float *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
 
     d_float16 locSrc_f16;
     remap_srclocs_hip_compute(&srcRoi_i4, rowRemapTableTemp, colRemapTableTemp, id_x, id_y, id_z, &locSrc_f16);
@@ -225,8 +225,8 @@ __global__ void remap_bilinear_pln_tensor(T *srcPtr,
                                           uint3 dstStridesNCH,
                                           uint2 dstDimsWH,
                                           int channelsDst,
-                                          uint *rowRemapTable,
-                                          uint *colRemapTable,
+                                          float *rowRemapTable,
+                                          float *colRemapTable,
                                           uint2 remapTableStridesNH,
                                           RpptROIPtr roiTensorPtrSrc)
 {
@@ -243,8 +243,8 @@ __global__ void remap_bilinear_pln_tensor(T *srcPtr,
     uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + id_x;
 
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
-    uint *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
-    uint *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
+    float *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
+    float *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
 
     d_float16 locSrc_f16;
     remap_srclocs_hip_compute(&srcRoi_i4, rowRemapTableTemp, colRemapTableTemp, id_x, id_y, id_z, &locSrc_f16);
@@ -276,8 +276,8 @@ __global__ void remap_bilinear_pkd3_pln3_tensor(T *srcPtr,
                                                 uint3 dstStridesNCH,
                                                 uint2 dstDimsWH,
                                                 int channelsDst,
-                                                uint *rowRemapTable,
-                                                uint *colRemapTable,
+                                                float *rowRemapTable,
+                                                float *colRemapTable,
                                                 uint2 remapTableStridesNH,
                                                 RpptROIPtr roiTensorPtrSrc)
 {
@@ -294,8 +294,8 @@ __global__ void remap_bilinear_pkd3_pln3_tensor(T *srcPtr,
     uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + id_x;
 
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
-    uint *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
-    uint *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
+    float *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
+    float *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
 
     d_float16 locSrc_f16;
     remap_srclocs_hip_compute(&srcRoi_i4, rowRemapTableTemp, colRemapTableTemp, id_x, id_y, id_z, &locSrc_f16);
@@ -311,8 +311,8 @@ __global__ void remap_bilinear_pln3_pkd3_tensor(T *srcPtr,
                                                 T *dstPtr,
                                                 uint2 dstStridesNH,
                                                 uint2 dstDimsWH,
-                                                uint *rowRemapTable,
-                                                uint *colRemapTable,
+                                                float *rowRemapTable,
+                                                float *colRemapTable,
                                                 uint2 remapTableStridesNH,
                                                 RpptROIPtr roiTensorPtrSrc)
 {
@@ -329,8 +329,8 @@ __global__ void remap_bilinear_pln3_pkd3_tensor(T *srcPtr,
     uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + (id_x * 3);
 
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
-    uint *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
-    uint *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
+    float *rowRemapTableTemp = rowRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
+    float *colRemapTableTemp = colRemapTable + id_z * remapTableStridesNH.x + id_y * remapTableStridesNH.y;
 
     d_float16 locSrc_f16;
     remap_srclocs_hip_compute(&srcRoi_i4, rowRemapTableTemp, colRemapTableTemp, id_x, id_y, id_z, &locSrc_f16);
@@ -347,8 +347,8 @@ RppStatus hip_exec_remap_tensor(T *srcPtr,
                                 RpptDescPtr srcDescPtr,
                                 T *dstPtr,
                                 RpptDescPtr dstDescPtr,
-                                Rpp32u *rowRemapTable,
-                                Rpp32u *colRemapTable,
+                                Rpp32f *rowRemapTable,
+                                Rpp32f *colRemapTable,
                                 RpptDescPtr remapTableDescPtr,
                                 RpptInterpolationType interpolationType,
                                 RpptROIPtr roiTensorPtrSrc,
