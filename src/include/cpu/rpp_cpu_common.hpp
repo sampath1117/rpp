@@ -5838,12 +5838,20 @@ inline void compute_separable_horizontal_resample(Rpp32f *inputPtr, T *outputPtr
     }
 }
 
-inline void compute_remap_loc(Rpp32u *rowRemapTablePtr, Rpp32u *colRemapTablePtr, Rpp32s *locArray, __m128 &pStride, const __m128 &pChannel = xmm_p1)
+inline void compute_remap_src_loc_sse(Rpp32f *rowRemapTablePtr, Rpp32f *colRemapTablePtr, Rpp32s *locArray, __m128 &pStride, __m128 &pWidthLimit, __m128 &pHeightLimit, const __m128 &pChannel = xmm_p1)
 {
-    __m128 pRowRemapVal = _mm_cvtepi32_ps(_mm_loadu_si128((__m128i *)rowRemapTablePtr));
-    __m128 pColRemapVal = _mm_cvtepi32_ps(_mm_loadu_si128((__m128i *)colRemapTablePtr));
+    __m128 pRowRemapVal = _mm_loadu_ps(rowRemapTablePtr);
+    pRowRemapVal = _mm_max_ps(_mm_min_ps(pRowRemapVal, pHeightLimit), xmm_p0);
+    __m128 pColRemapVal = _mm_loadu_ps(colRemapTablePtr);
+    pColRemapVal = _mm_max_ps(_mm_min_ps(pColRemapVal, pWidthLimit), xmm_p0);
     __m128i pxRemappedSrcLoc = _mm_cvtps_epi32(_mm_fmadd_ps(pRowRemapVal, pStride, _mm_mul_ps(pColRemapVal, pChannel)));
     _mm_storeu_si128((__m128i*) locArray, pxRemappedSrcLoc);
 }
 
+inline void compute_remap_src_loc(Rpp32f rowLoc, Rpp32f colLoc, Rpp32s &srcLoc, Rpp32s stride, Rpp32f widthLimit, Rpp32f heightLimit, Rpp32s channels = 1)
+{
+    rowLoc = std::max(0.0f, std::min(rowLoc, heightLimit));
+    colLoc = std::max(0.0f, std::min(colLoc, widthLimit));
+    srcLoc = (rowLoc * stride) + colLoc * channels;
+}
 #endif //RPP_CPU_COMMON_H

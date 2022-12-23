@@ -190,18 +190,19 @@ RppStatus rppt_resize_crop_mirror_gpu(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, R
 // *param[in] dstDescPtr destination tensor descriptor
 // *param[in] rowRemapTable Array of Rpp32u row numbers for every pixel in the input batch of images
 // *param[in] colRemapTable Array of Rpp32u column numbers for every pixel in the input batch of images
+// *param[in] interpolationType remap interpolation type
 // *param[in] roiTensorSrc ROI data for each image in source tensor (2D tensor of size batchSize * 4, in either format - XYWH(xy.x, xy.y, roiWidth, roiHeight) or LTRB(lt.x, lt.y, rb.x, rb.y))
 // *param[in] roiType ROI type used (RpptRoiType::XYWH or RpptRoiType::LTRB)
 // *returns a  RppStatus enumeration.
 // *retval RPP_SUCCESS : No error, Succesful completion
 // *retval RPP_ERROR : Error
 
-RppStatus rppt_remap_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, Rpp32u *rowRemapTable, Rpp32u *colRemapTable, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle);
+RppStatus rppt_remap_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, Rpp32f *rowRemapTable, Rpp32f *colRemapTable, RpptDescPtr tableDescPtr, RpptInterpolationType interpolationType, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle);
 #ifdef GPU_SUPPORT
 RppStatus rppt_remap_gpu(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, Rpp32f *rowRemapTable, Rpp32f *colRemapTable, RpptDescPtr tableDescPtr, RpptInterpolationType interpolationType, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle);
 #endif // GPU_SUPPORT
 
-RppStatus rppt_lens_correction_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, Rpp32u *rowRemapTable, Rpp32u *colRemapTable, Rpp32f *cameraMatrix, Rpp32f *distanceCoeffs, Rpp32f *newCameraMatrix, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle);
+RppStatus rppt_lens_correction_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, Rpp32f *rowRemapTable, Rpp32f *colRemapTable, RpptDescPtr tableDescPtr, Rpp32f *cameraMatrix, Rpp32f *distanceCoeffs, Rpp32f *newCameraMatrix, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle);
 #ifdef GPU_SUPPORT
 RppStatus rppt_lens_correction_gpu(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, Rpp32f *rowRemapTable, Rpp32f *colRemapTable, RpptDescPtr tableDescPtr, Rpp32f *cameraMatrix, Rpp32f *distanceCoeffs, Rpp32f *newCameraMatrix, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle);
 #endif // GPU_SUPPORT

@@ -91,9 +91,9 @@ int main(int argc, char **argv)
     unsigned int outputFormatToggle = atoi(argv[4]);
     int test_case = atoi(argv[5]);
 
-    bool additionalParamCase = (test_case == 8 || test_case == 21 || test_case == 24);
+    bool additionalParamCase = (test_case == 8 || test_case == 21 || test_case == 24 || test_case == 79);
     bool kernelSizeCase = false;
-    bool interpolationTypeCase = (test_case == 21 || test_case == 24);
+    bool interpolationTypeCase = (test_case == 21 || test_case == 24 || test_case == 79);
     bool noiseTypeCase = (test_case == 8);
     bool pln1OutTypeCase = (test_case == 86);
 
@@ -452,8 +452,8 @@ int main(int argc, char **argv)
     Rpp8s *inputi8_second = (Rpp8s *)calloc(ioBufferSize, sizeof(Rpp8s));
     Rpp8s *outputi8 = (Rpp8s *)calloc(oBufferSize, sizeof(Rpp8s));
 
-    Rpp32u *rowRemapTable = (Rpp32u*) calloc(ioBufferSize, sizeof(Rpp32u));
-    Rpp32u *colRemapTable = (Rpp32u*) calloc(ioBufferSize, sizeof(Rpp32u));
+    Rpp32f *rowRemapTable = (Rpp32f *)calloc(ioBufferSize, sizeof(Rpp32f));
+    Rpp32f *colRemapTable = (Rpp32f *)calloc(ioBufferSize, sizeof(Rpp32f));
 
     // Set 8u host buffers for src/dst
 
@@ -1217,20 +1217,30 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
+            RpptDescPtr tableDescPtr;
+            RpptDesc tableDesc;
+
+            tableDescPtr = &tableDesc;
+            tableDesc = srcDesc;
+            tableDescPtr->c = 1;
+            tableDescPtr->strides.nStride = srcDescPtr->h * srcDescPtr->w;
+            tableDescPtr->strides.hStride = srcDescPtr->w;
+            tableDescPtr->strides.wStride = tableDescPtr->strides.cStride = 1;
+
             start_omp = omp_get_wtime();
             start = clock();
             if (ip_bitDepth == 0)
-                rppt_lens_correction_host(input, srcDescPtr, output, dstDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffs, cameraMatrix, roiTensorPtrSrc, roiTypeSrc, handle);
+                rppt_lens_correction_host(input, srcDescPtr, output, dstDescPtr, rowRemapTable, colRemapTable, tableDescPtr, cameraMatrix, distanceCoeffs, cameraMatrix, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
-                rppt_lens_correction_host(inputf16, srcDescPtr, outputf16, dstDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffs, cameraMatrix, roiTensorPtrSrc, roiTypeSrc, handle);
+                rppt_lens_correction_host(inputf16, srcDescPtr, outputf16, dstDescPtr, rowRemapTable, colRemapTable, tableDescPtr, cameraMatrix, distanceCoeffs, cameraMatrix, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 2)
-                rppt_lens_correction_host(inputf32, srcDescPtr, outputf32, dstDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffs, cameraMatrix, roiTensorPtrSrc, roiTypeSrc, handle);
+                rppt_lens_correction_host(inputf32, srcDescPtr, outputf32, dstDescPtr, rowRemapTable, colRemapTable, tableDescPtr, cameraMatrix, distanceCoeffs, cameraMatrix, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 3)
                 missingFuncFlag = 1;
             else if (ip_bitDepth == 4)
                 missingFuncFlag = 1;
             else if (ip_bitDepth == 5)
-                rppt_lens_correction_host(inputi8, srcDescPtr, outputi8, dstDescPtr, rowRemapTable, colRemapTable, cameraMatrix, distanceCoeffs, cameraMatrix, roiTensorPtrSrc, roiTypeSrc, handle);
+                rppt_lens_correction_host(inputi8, srcDescPtr, outputi8, dstDescPtr, rowRemapTable, colRemapTable, tableDescPtr, cameraMatrix, distanceCoeffs, cameraMatrix, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 6)
                 missingFuncFlag = 1;
             else
@@ -1550,6 +1560,12 @@ int main(int argc, char **argv)
         {
             test_case_name = "remap";
 
+            if (interpolationType != RpptInterpolationType::NEAREST_NEIGHBOR && interpolationType != RpptInterpolationType::BILINEAR)
+            {
+                missingFuncFlag = 1;
+                break;
+            }
+
             // Uncomment to run test case with an xywhROI override
             // for (i = 0; i < images; i++)
             // {
@@ -1572,31 +1588,43 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            Rpp32u *rowRemapTableTemp, *colRemapTableTemp;
-            rowRemapTableTemp = rowRemapTable;
-            colRemapTableTemp = colRemapTable;
+            RpptDescPtr tableDescPtr;
+            RpptDesc tableDesc;
+
+            tableDescPtr = &tableDesc;
+            tableDesc = srcDesc;
+            tableDescPtr->c = 1;
+            tableDescPtr->strides.nStride = srcDescPtr->h * srcDescPtr->w;
+            tableDescPtr->strides.hStride = srcDescPtr->w;
+            tableDescPtr->strides.wStride = tableDescPtr->strides.cStride = 1;
 
             for (Rpp32u count = 0; count < images; count++)
             {
+                Rpp32f *rowRemapTableTemp, *colRemapTableTemp;
+                rowRemapTableTemp = rowRemapTable + count * tableDescPtr->strides.nStride;
+                colRemapTableTemp = colRemapTable + count * tableDescPtr->strides.nStride;
                 Rpp32u halfWidth = roiTensorPtrSrc[count].xywhROI.roiWidth / 2;
                 for (Rpp32u i = 0; i < roiTensorPtrSrc[count].xywhROI.roiHeight; i++)
                 {
+                    Rpp32f *rowRemapTableTempRow, *colRemapTableTempRow;
+                    rowRemapTableTempRow = rowRemapTableTemp + i * tableDescPtr->strides.hStride;
+                    colRemapTableTempRow = colRemapTableTemp + i * tableDescPtr->strides.hStride;
                     Rpp32u j = 0;
                     for (; j < halfWidth; j++)
                     {
-                        *rowRemapTableTemp = i;
-                        *colRemapTableTemp = halfWidth - j;
+                        *rowRemapTableTempRow = i;
+                        *colRemapTableTempRow = halfWidth - j;
 
-                        rowRemapTableTemp++;
-                        colRemapTableTemp++;
+                        rowRemapTableTempRow++;
+                        colRemapTableTempRow++;
                     }
                     for (; j < roiTensorPtrSrc[count].xywhROI.roiWidth; j++)
                     {
-                        *rowRemapTableTemp = i;
-                        *colRemapTableTemp = j;
+                        *rowRemapTableTempRow = i;
+                        *colRemapTableTempRow = j;
 
-                        rowRemapTableTemp++;
-                        colRemapTableTemp++;
+                        rowRemapTableTempRow++;
+                        colRemapTableTempRow++;
                     }
                 }
             }
@@ -1604,17 +1632,17 @@ int main(int argc, char **argv)
             start_omp = omp_get_wtime();
             start = clock();
             if (ip_bitDepth == 0)
-                rppt_remap_host(input, srcDescPtr, output, dstDescPtr, rowRemapTable, colRemapTable, roiTensorPtrSrc, roiTypeSrc, handle);
+                rppt_remap_host(input, srcDescPtr, output, dstDescPtr, rowRemapTable, colRemapTable, tableDescPtr, interpolationType, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
-                rppt_remap_host(inputf16, srcDescPtr, outputf16, dstDescPtr, rowRemapTable, colRemapTable, roiTensorPtrSrc, roiTypeSrc, handle);
+                rppt_remap_host(inputf16, srcDescPtr, outputf16, dstDescPtr, rowRemapTable, colRemapTable, tableDescPtr, interpolationType, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 2)
-                rppt_remap_host(inputf32, srcDescPtr, outputf32, dstDescPtr, rowRemapTable, colRemapTable, roiTensorPtrSrc, roiTypeSrc, handle);
+                rppt_remap_host(inputf32, srcDescPtr, outputf32, dstDescPtr, rowRemapTable, colRemapTable, tableDescPtr, interpolationType, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 3)
                 missingFuncFlag = 1;
             else if (ip_bitDepth == 4)
                 missingFuncFlag = 1;
             else if (ip_bitDepth == 5)
-                rppt_remap_host(inputi8, srcDescPtr, outputi8, dstDescPtr, rowRemapTable, colRemapTable, roiTensorPtrSrc, roiTypeSrc, handle);
+                rppt_remap_host(inputi8, srcDescPtr, outputi8, dstDescPtr, rowRemapTable, colRemapTable, tableDescPtr, interpolationType, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 6)
                 missingFuncFlag = 1;
             else
