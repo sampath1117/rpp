@@ -193,6 +193,11 @@ RppStatus rppt_glitch_host(RppPtr_t srcPtr,
     return RPP_SUCCESS;
 }
 
+RppStatus rppt_glitch_gpu(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle)
+{
+    return RppStatus();
+}
+
 /******************** spatter ********************/
 
 RppStatus rppt_spatter_host(RppPtr_t srcPtr,
@@ -951,18 +956,19 @@ RppStatus rppt_glitch_gpu(RppPtr_t srcPtr,
                             rppHandle_t rppHandle)
 {
 #ifdef HIP_COMPILE
+Rpp32u paramIndex = 0;
+copy_param_uint(x_offset_r, rpp::deref(rppHandle), paramIndex++);
+copy_param_uint(y_offset_r, rpp::deref(rppHandle), paramIndex++);
+copy_param_uint(x_offset_g, rpp::deref(rppHandle), paramIndex++);
+copy_param_uint(y_offset_g, rpp::deref(rppHandle), paramIndex++);
+copy_param_uint(x_offset_b, rpp::deref(rppHandle), paramIndex++);
+copy_param_uint(y_offset_b, rpp::deref(rppHandle), paramIndex++);
     if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
     {
         hip_exec_glitch_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
                                  srcDescPtr,
                                  static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
                                  dstDescPtr,
-                                 x_offset_r,
-                                 y_offset_r,
-                                 x_offset_g,
-                                 y_offset_g,
-                                 x_offset_b,
-                                 y_offset_b,
                                  roiTensorPtrSrc,
                                  roiType,
                                  rpp::deref(rppHandle));
@@ -973,12 +979,6 @@ RppStatus rppt_glitch_gpu(RppPtr_t srcPtr,
                                  srcDescPtr,
                                  (half*) (static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes),
                                  dstDescPtr,
-                                 x_offset_r,
-                                 y_offset_r,
-                                 x_offset_g,
-                                 y_offset_g,
-                                 x_offset_b,
-                                 y_offset_b,
                                  roiTensorPtrSrc,
                                  roiType,
                                  rpp::deref(rppHandle));
@@ -989,12 +989,6 @@ RppStatus rppt_glitch_gpu(RppPtr_t srcPtr,
                                  srcDescPtr,
                                  (Rpp32f*) (static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes),
                                  dstDescPtr,
-                                 x_offset_r,
-                                 y_offset_r,
-                                 x_offset_g,
-                                 y_offset_g,
-                                 x_offset_b,
-                                 y_offset_b,
                                  roiTensorPtrSrc,
                                  roiType,
                                  rpp::deref(rppHandle));
@@ -1005,12 +999,6 @@ RppStatus rppt_glitch_gpu(RppPtr_t srcPtr,
                                  srcDescPtr,
                                  static_cast<Rpp8s*>(dstPtr) + dstDescPtr->offsetInBytes,
                                  dstDescPtr,
-                                 x_offset_r,
-                                 y_offset_r,
-                                 x_offset_g,
-                                 y_offset_g,
-                                 x_offset_b,
-                                 y_offset_b,
                                  roiTensorPtrSrc,
                                  roiType,
                                  rpp::deref(rppHandle));
