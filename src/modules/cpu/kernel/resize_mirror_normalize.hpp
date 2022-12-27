@@ -1192,7 +1192,7 @@ omp_set_dynamic(0);
         for(int c = 0; c < srcDescPtr->c; c++)
         {
             mean[c] = meanTensor[incrementPerImage + c];
-            invStdDev[c] = 1.0 / (255.0 * stdDevTensor[incrementPerImage + c]);
+            invStdDev[c] = 1.0 / stdDevTensor[incrementPerImage + c];
             pRMNParams[2 * c] = _mm256_set1_ps(mean[c]);
             pRMNParams[2 * c + 1] = _mm256_set1_ps(invStdDev[c]);
         }
@@ -1473,7 +1473,7 @@ omp_set_dynamic(0);
         for(int c = 0; c < srcDescPtr->c; c++)
         {
             mean[c] = meanTensor[incrementPerImage + c];
-            invStdDev[c] = 1.0 / (255.0 * stdDevTensor[incrementPerImage + c]);
+            invStdDev[c] = 1.0 / stdDevTensor[incrementPerImage + c];
             pRMNParams[2 * c] = _mm256_set1_ps(mean[c]);
             pRMNParams[2 * c + 1] = _mm256_set1_ps(invStdDev[c]);
         }
