@@ -49,7 +49,7 @@ __global__ void glitch_pkd_tensor(T *srcPtr,
         dst_f24.f4[1] = srcR_f24.f4[1];
     }
     
-    if((y_g >= 0) && (y_g <=  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_g >= 0) && (x_g <= roiTensorPtrSrc[id_z].xywhROI.roiWidth - 8))
+    if((y_g >= 0) && (y_g <=  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_g >= 0) && (x_g < roiTensorPtrSrc[id_z].xywhROI.roiWidth - 8))
     {
         uint srcIdx_g = (id_z * srcStridesNH.x) + ((y_g + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + ((x_g + roiTensorPtrSrc[id_z].xywhROI.xy.x) * 3) + 1;
         rpp_hip_load24_pkd3_and_unpack_to_float24_pln3(srcPtr + srcIdx_g, &srcG_f24);
@@ -57,7 +57,7 @@ __global__ void glitch_pkd_tensor(T *srcPtr,
         dst_f24.f4[3] = srcG_f24.f4[1];
     }
 
-    if((y_b >= 0) && (y_b <=  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_b >= 0) && (x_b <= roiTensorPtrSrc[id_z].xywhROI.roiWidth - 8))
+    if((y_b >= 0) && (y_b <=  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_b >= 0) && (x_b < roiTensorPtrSrc[id_z].xywhROI.roiWidth - 8))
     {
         uint srcIdx_b = (id_z * srcStridesNH.x) + ((y_b + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + ((x_b + roiTensorPtrSrc[id_z].xywhROI.xy.x) * 3) + 2;
         rpp_hip_load24_pkd3_and_unpack_to_float24_pln3(srcPtr + srcIdx_b, &srcB_f24);
@@ -85,7 +85,7 @@ __global__ void glitch_pln_tensor(T *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    if ((id_y >= roiTensorPtrSrc[id_z].xywhROI.roiHeight) || (id_x >= roiTensorPtrSrc[id_z].xywhROI.roiWidth))
+    if ((id_y >= roiTensorPtrSrc[id_z].xywhROI.roiHeight) || (id_x >= srcStridesNCH.z))
     {
         return;
     }
@@ -123,32 +123,38 @@ __global__ void glitch_pln_tensor(T *srcPtr,
         rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx_r, &srcR_f8);
         rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &srcR_f8);
     }
-    if((y_r >= 0) && (y_r <  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_r > alignedLengthR) && (x_r <= roiTensorPtrSrc[id_z].xywhROI.roiWidth))
+    if((y_r >= 0) && (y_r <  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_r < srcStridesNCH.z) && (x_r > roiTensorPtrSrc[id_z].xywhROI.roiWidth))
     {
-        srcIdx_r = (id_z * srcStridesNCH.x) + ((y_r + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (x_r + roiTensorPtrSrc[id_z].xywhROI.xy.x);
-        dstPtr[dstIdx] = srcPtr[srcIdx_r];
+        for(int i = alignedLengthR + x_offset_r[id_z]; i < roiTensorPtrSrc[id_z].xywhROI.roiWidth; i++)
+        {
+            dstPtr[i] = srcPtr[i];
+        }
     }
-    if((y_g >= 0) && (y_g <=  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_g >= 0) && (x_g <= roiTensorPtrSrc[id_z].xywhROI.roiWidth - 8))
+    if((y_g >= 0) && (y_g <=  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_g >= 0) && (x_g < roiTensorPtrSrc[id_z].xywhROI.roiWidth - 8))
     {
         srcIdx_g = (id_z * srcStridesNCH.x) + srcStridesNCH.y + ((y_g + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (x_g + roiTensorPtrSrc[id_z].xywhROI.xy.x);
         rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx_g, &srcG_f8);
         rpp_hip_pack_float8_and_store8(dstPtr + dstIdx_g , &srcG_f8);
     }
-    if((y_g >= 0) && (y_g <=  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_g > alignedLengthG) && (x_g <= roiTensorPtrSrc[id_z].xywhROI.roiWidth))
+    if((y_g >= 0) && (y_g <  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_g < srcStridesNCH.z) && (x_g > roiTensorPtrSrc[id_z].xywhROI.roiWidth))
     {
-        srcIdx_g = (id_z * srcStridesNCH.x) + srcStridesNCH.y + ((y_g + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (x_g + roiTensorPtrSrc[id_z].xywhROI.xy.x);
-        dstPtr[dstIdx_g] = srcPtr[srcIdx_g];
+        for(int i = alignedLengthG + x_offset_g[id_z]; i < roiTensorPtrSrc[id_z].xywhROI.roiWidth; i++)
+        {
+            dstPtr[i + dstStridesNCH.y] = srcPtr[i];
+        }
     }
-    if((y_b >= 0) && (y_b <=  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_b >= 0) && (x_b <= roiTensorPtrSrc[id_z].xywhROI.roiWidth - 8))
+    if((y_b >= 0) && (y_b <=  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_b >= 0) && (x_b < roiTensorPtrSrc[id_z].xywhROI.roiWidth - 8))
     {
         srcIdx_b = (id_z * srcStridesNCH.x) + (srcStridesNCH.y * 2) + ((y_b + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (x_b + roiTensorPtrSrc[id_z].xywhROI.xy.x);
         rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx_b, &srcB_f8);
         rpp_hip_pack_float8_and_store8(dstPtr + dstIdx_b, &srcB_f8);
     }
-    if((y_b >= 0) && (y_b <=  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_b > alignedLengthB) && (x_b <= roiTensorPtrSrc[id_z].xywhROI.roiWidth))
+    if((y_b >= 0) && (y_b <  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_b < srcStridesNCH.z) && (x_b > roiTensorPtrSrc[id_z].xywhROI.roiWidth))
     {
-        srcIdx_b = (id_z * srcStridesNCH.x) + (srcStridesNCH.y * 2) + ((y_b + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (x_b + roiTensorPtrSrc[id_z].xywhROI.xy.x);
-        dstPtr[dstIdx_b] = srcPtr[srcIdx_b];
+        for(int i = alignedLengthB + x_offset_b[id_z]; i < roiTensorPtrSrc[id_z].xywhROI.roiWidth; i++)
+        {
+            dstPtr[i + 2 * dstStridesNCH.y] = srcPtr[i];
+        }
     }
 }
 
@@ -208,7 +214,7 @@ __global__ void glitch_pkd3_pln3_tensor(T *srcPtr,
         rpp_hip_pack_float8_and_store8(dstPtr + dstIdx_r, &dstR_f8);
     }
     
-    if((y_g >= 0) && (y_g <=  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_g >= 0) && (x_g <= roiTensorPtrSrc[id_z].xywhROI.roiWidth - 8))
+    if((y_g >= 0) && (y_g <=  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_g >= 0) && (x_g < roiTensorPtrSrc[id_z].xywhROI.roiWidth - 8))
     {
         uint srcIdx_g = (id_z * srcStridesNH.x) + ((y_g + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + ((x_g + roiTensorPtrSrc[id_z].xywhROI.xy.x) * 3) + 1;
         rpp_hip_load24_pkd3_and_unpack_to_float24_pln3(srcPtr + srcIdx_g, &srcG_f24);
@@ -217,7 +223,7 @@ __global__ void glitch_pkd3_pln3_tensor(T *srcPtr,
         rpp_hip_pack_float8_and_store8(dstPtr + dstIdx_g , &dstG_f8);
     }
 
-    if((y_b >= 0) && (y_b <=  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_b >= 0) && (x_b <= roiTensorPtrSrc[id_z].xywhROI.roiWidth - 8))
+    if((y_b >= 0) && (y_b <=  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_b >= 0) && (x_b < roiTensorPtrSrc[id_z].xywhROI.roiWidth - 8))
     {
         uint srcIdx_b = (id_z * srcStridesNH.x) + ((y_b + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + ((x_b + roiTensorPtrSrc[id_z].xywhROI.xy.x) * 3) + 2;
         rpp_hip_load24_pkd3_and_unpack_to_float24_pln3(srcPtr + srcIdx_b, &srcB_f24);
@@ -245,7 +251,7 @@ __global__ void glitch_pln3_pkd3_tensor(T *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    if ((id_y >= roiTensorPtrSrc[id_z].xywhROI.roiHeight) || (id_x >= roiTensorPtrSrc[id_z].xywhROI.roiWidth))
+    if ((id_y >= roiTensorPtrSrc[id_z].xywhROI.roiHeight) || (id_x >= srcStridesNCH.z))
     {
         return;
     }
@@ -266,20 +272,48 @@ __global__ void glitch_pln3_pkd3_tensor(T *srcPtr,
     x_b = id_x + x_offset_b[id_z];
     y_b = id_y + y_offset_b[id_z];
 
+    int alignedLengthR =((roiTensorPtrSrc[id_z].xywhROI.roiWidth - x_offset_r[id_z])/8) * 8;
+    int alignedLengthG =((roiTensorPtrSrc[id_z].xywhROI.roiWidth - x_offset_g[id_z])/8) * 8;
+    int alignedLengthB =((roiTensorPtrSrc[id_z].xywhROI.roiWidth - x_offset_b[id_z])/8) * 8;
+
     if((y_r >= 0) && (y_r <  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_r >= 0) && (x_r < roiTensorPtrSrc[id_z].xywhROI.roiWidth - 8))
     {
         uint srcIdx_r = (id_z * srcStridesNCH.x) + ((y_r + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (x_r + roiTensorPtrSrc[id_z].xywhROI.xy.x);
         rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx_r, &pix_f24.f8[0]);
+    }
+    if((y_r >= 0) && (y_r <  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_r < srcStridesNCH.z) && (x_r > roiTensorPtrSrc[id_z].xywhROI.roiWidth))
+    {
+        for(int i = alignedLengthR + x_offset_r[id_z], j = 0; i < roiTensorPtrSrc[id_z].xywhROI.roiWidth; i++)
+        {
+            dstPtr[i+1+j*3] = srcPtr[i];
+            j++;
+        }
     }
     if((y_g >= 0) && (y_g <  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_g >= 0) && (x_g < roiTensorPtrSrc[id_z].xywhROI.roiWidth - 8))
     {
         uint srcIdx_g = (id_z * srcStridesNCH.x) + srcStridesNCH.y + ((y_g + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (x_g + roiTensorPtrSrc[id_z].xywhROI.xy.x);
         rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx_g, &pix_f24.f8[1]);
     }
+    if((y_g >= 0) && (y_g <  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_g < srcStridesNCH.z) && (x_g > roiTensorPtrSrc[id_z].xywhROI.roiWidth))
+    {
+        for(int i = alignedLengthG + x_offset_g[id_z], j = 0; i < roiTensorPtrSrc[id_z].xywhROI.roiWidth; i++)
+        {
+            dstPtr[i+ 1 + j*3] = srcPtr[i + srcStridesNCH.y];
+            j++;
+        }
+    }
     if((y_b >= 0) && (y_b <  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_b >= 0) && (x_b < roiTensorPtrSrc[id_z].xywhROI.roiWidth - 8))
     {
         uint srcIdx_b = (id_z * srcStridesNCH.x) + (srcStridesNCH.y * 2) + ((y_b + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (x_b + roiTensorPtrSrc[id_z].xywhROI.xy.x);
         rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx_b, &pix_f24.f8[2]);
+    }
+    if((y_b >= 0) && (y_b <  roiTensorPtrSrc[id_z].xywhROI.roiHeight) && (x_b < srcStridesNCH.z) && (x_b > roiTensorPtrSrc[id_z].xywhROI.roiWidth))
+    {
+        for(int i = alignedLengthB + x_offset_b[id_z], j = 0; i < roiTensorPtrSrc[id_z].xywhROI.roiWidth; i++)
+        {
+            dstPtr[i + 1 + j*3] = srcPtr[i + 2 * srcStridesNCH.y];
+            j++;
+        }
     }
     rpp_hip_pack_float24_pln3_and_store24_pkd3(dstPtr + dstIdx, &pix_f24);
 }
