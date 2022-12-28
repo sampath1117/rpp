@@ -135,6 +135,16 @@ typedef struct
 
 typedef struct
 {
+    Rpp32f data[8];
+} Rpp32f8;
+
+typedef struct
+{
+    Rpp32f data[9];
+} Rpp32f9;
+
+typedef struct
+{
     Rpp32s data[24];
 } Rpp32s24;
 

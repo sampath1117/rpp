@@ -3126,25 +3126,25 @@ inline void rpp_store12_f32pkd3_to_f32pkd3(Rpp32f* dstPtr, __m128 *p)
     _mm_storeu_ps(dstPtr + 9, p[3]); /* Store RGB set 4 */
 }
 
-inline void get_inverse(float *m, float *inv_m)
+inline void get_inverse(float *mat, float *invMat)
 {
-    float det = m[0] * (m[4] * m[8] - m[7] * m[5]) - m[1] * (m[3] * m[8] - m[5] * m[6]) + m[2] * (m[3] * m[7] - m[4] * m[6]);
+    float det = mat[0] * (mat[4] * mat[8] - mat[7] * mat[5]) - mat[1] * (mat[3] * mat[8] - mat[5] * mat[6]) + mat[2] * (mat[3] * mat[7] - mat[4] * mat[6]);
     if(det != 0)
     {
         float invDet = 1 / det;
-        inv_m[0] = (m[4] * m[8] - m[7] * m[5]) * invDet;
-        inv_m[1] = (m[2] * m[7] - m[1] * m[8]) * invDet;
-        inv_m[2] = (m[1] * m[5] - m[2] * m[4]) * invDet;
-        inv_m[3] = (m[5] * m[6] - m[3] * m[8]) * invDet;
-        inv_m[4] = (m[0] * m[8] - m[2] * m[6]) * invDet;
-        inv_m[5] = (m[3] * m[2] - m[0] * m[5]) * invDet;
-        inv_m[6] = (m[3] * m[7] - m[6] * m[4]) * invDet;
-        inv_m[7] = (m[6] * m[1] - m[0] * m[7]) * invDet;
-        inv_m[8] = (m[0] * m[4] - m[3] * m[1]) * invDet;
+        invMat[0] = (mat[4] * mat[8] - mat[7] * mat[5]) * invDet;
+        invMat[1] = (mat[2] * mat[7] - mat[1] * mat[8]) * invDet;
+        invMat[2] = (mat[1] * mat[5] - mat[2] * mat[4]) * invDet;
+        invMat[3] = (mat[5] * mat[6] - mat[3] * mat[8]) * invDet;
+        invMat[4] = (mat[0] * mat[8] - mat[2] * mat[6]) * invDet;
+        invMat[5] = (mat[3] * mat[2] - mat[0] * mat[5]) * invDet;
+        invMat[6] = (mat[3] * mat[7] - mat[6] * mat[4]) * invDet;
+        invMat[7] = (mat[6] * mat[1] - mat[0] * mat[7]) * invDet;
+        invMat[8] = (mat[0] * mat[4] - mat[3] * mat[1]) * invDet;
     }
 }
 
-inline void compute_lens_correction_remap_tables(RpptDescPtr srcDescPtr, Rpp32f *rowRemapTable, Rpp32f *colRemapTable, RpptDescPtr tableDescPtr, Rpp32f *cameraMatrixTensor, Rpp32f *distanceCoeffsTensor, Rpp32f *newCameraMatrixTensor, RpptROIPtr roiTensorPtrSrc)
+inline void compute_lens_correction_remap_tables(RpptDescPtr srcDescPtr, Rpp32f *rowRemapTable, Rpp32f *colRemapTable, RpptDescPtr tableDescPtr, Rpp32f *cameraMatrixTensor, Rpp32f *distortionCoeffsTensor, Rpp32f *newCameraMatrixTensor, RpptROIPtr roiTensorPtrSrc)
 {
     omp_set_dynamic(0);
 #pragma omp parallel for num_threads(srcDescPtr->n)
@@ -3154,123 +3154,120 @@ inline void compute_lens_correction_remap_tables(RpptDescPtr srcDescPtr, Rpp32f 
         rowRemapTableTemp = rowRemapTable + batchcount * tableDescPtr->strides.nStride;
         colRemapTableTemp = colRemapTable + batchcount * tableDescPtr->strides.nStride;
 
+        Rpp32f *cameraMatrix = cameraMatrixTensor + batchcount * 9;
+        Rpp32f *distortionCoeffs = distortionCoeffsTensor + batchcount * 8;
+        Rpp32f *newCameraMatrix = newCameraMatrixTensor + batchcount * 9;
         Rpp32s height = roiTensorPtrSrc[batchcount].xywhROI.roiHeight;
         Rpp32s width = roiTensorPtrSrc[batchcount].xywhROI.roiWidth;
-        Rpp32f *cameraMatrix = cameraMatrixTensor + batchcount * 9;
-        Rpp32f *distCoeffs = distanceCoeffsTensor + batchcount * 8;
-        Rpp32f *newCameraMatrix = newCameraMatrixTensor + batchcount * 9;
         Rpp32s alignedLength = (width / 8) * 8;
         Rpp32s vectorIncrement = 8;
 
-        Rpp32f k1 = distCoeffs[0], k2 = distCoeffs[1];
-        Rpp32f p1 = distCoeffs[2], p2 = distCoeffs[3];
-        Rpp32f k3 = distCoeffs[4], k4 = distCoeffs[5], k5 = distCoeffs[6], k6 = distCoeffs[7];
-        Rpp32f u0 = cameraMatrix[2],  v0 = cameraMatrix[5];
-        Rpp32f fx = cameraMatrix[0],  fy = cameraMatrix[4];
-
         Rpp32f invNewCameraMatrix[9];
         get_inverse(newCameraMatrix, invNewCameraMatrix);
-        Rpp32f* ir = &invNewCameraMatrix[0];
+        Rpp32f *invMat = &invNewCameraMatrix[0];
 
-        __m256 pK1 = _mm256_set1_ps(k1);
-        __m256 pK2 = _mm256_set1_ps(k2);
-        __m256 pK3 = _mm256_set1_ps(k3);
-        __m256 pK4 = _mm256_set1_ps(k4);
-        __m256 pK5 = _mm256_set1_ps(k5);
-        __m256 pK6 = _mm256_set1_ps(k6);
+        // Get radial and tangential distortion coefficients
+        Rpp32f rCoeff[6] = { distortionCoeffs[0], distortionCoeffs[1], distortionCoeffs[4], distortionCoeffs[5], distortionCoeffs[6], distortionCoeffs[7] };
+        Rpp32f tCoeff[2] = { distortionCoeffs[2], distortionCoeffs[3] };
 
-        __m256 P1 = _mm256_set1_ps(p1);
-        __m256 P2 = _mm256_set1_ps(p2);
-        __m256 pFx = _mm256_set1_ps(fx);
-        __m256 pFy = _mm256_set1_ps(fy);
-        __m256 pU0 = _mm256_set1_ps(u0);
-        __m256 pV0 = _mm256_set1_ps(v0);
+        __m256 pRCoeff[6], pTCoeff[2];
+        pRCoeff[0] = _mm256_set1_ps(rCoeff[0]);
+        pRCoeff[1] = _mm256_set1_ps(rCoeff[1]);
+        pRCoeff[2] = _mm256_set1_ps(rCoeff[2]);
+        pRCoeff[3] = _mm256_set1_ps(rCoeff[3]);
+        pRCoeff[4] = _mm256_set1_ps(rCoeff[4]);
+        pRCoeff[5] = _mm256_set1_ps(rCoeff[5]);
+        pTCoeff[0] = _mm256_set1_ps(tCoeff[0]);
+        pTCoeff[1] = _mm256_set1_ps(tCoeff[1]);
 
-        __m256 pIr0 = _mm256_set1_ps(ir[0]);
-        __m256 pIr3 = _mm256_set1_ps(ir[3]);
-        __m256 pIr6 = _mm256_set1_ps(ir[6]);
+        Rpp32f u0 = cameraMatrix[2],  v0 = cameraMatrix[5];
+        Rpp32f fx = cameraMatrix[0],  fy = cameraMatrix[4];
+        __m256 pFx, pFy, pU0, pV0;
+        pFx = _mm256_set1_ps(fx);
+        pFy = _mm256_set1_ps(fy);
+        pU0 = _mm256_set1_ps(u0);
+        pV0 = _mm256_set1_ps(v0);
 
-        __m256i pxHeightLimit = _mm256_set1_epi32(height - 1);
-        __m256i pxWidthLimit = _mm256_set1_epi32(width - 1);
+        __m256 pInvMat0, pInvMat3, pInvMat6;
+        pInvMat0 = _mm256_set1_ps(invMat[0]);
+        pInvMat3 = _mm256_set1_ps(invMat[3]);
+        pInvMat6 = _mm256_set1_ps(invMat[6]);
 
-        __m256 p_XInit = _mm256_mul_ps(avx_pDstLocInit, pIr0);
-        __m256 p_YInit = _mm256_mul_ps(avx_pDstLocInit, pIr3);
-        __m256 p_WInit = _mm256_mul_ps(avx_pDstLocInit, pIr6);
-
-        __m256 p_XIncrement = _mm256_mul_ps(avx_p8, pIr0);
-        __m256 p_YIncrement = _mm256_mul_ps(avx_p8, pIr3);
-        __m256 p_WIncrement = _mm256_mul_ps(avx_p8, pIr6);
-
+        __m256 pXCameraInit, pYCameraInit, pZCameraInit;
+        __m256 pXCameraIncrement, pYCameraIncrement, pZCameraIncrement;
+        pXCameraInit = _mm256_mul_ps(avx_pDstLocInit, pInvMat0);
+        pYCameraInit = _mm256_mul_ps(avx_pDstLocInit, pInvMat3);
+        pZCameraInit = _mm256_mul_ps(avx_pDstLocInit, pInvMat6);
+        pXCameraIncrement = _mm256_mul_ps(pInvMat0, avx_p8);
+        pYCameraIncrement = _mm256_mul_ps(pInvMat3, avx_p8);
+        pZCameraIncrement = _mm256_mul_ps(pInvMat6, avx_p8);
         for(int i = 0; i < height; i++ )
         {
             Rpp32f *rowRemapTableRow = rowRemapTableTemp + i * tableDescPtr->strides.hStride;
             Rpp32f *colRemapTableRow = colRemapTableTemp + i * tableDescPtr->strides.hStride;
-            Rpp32f _x = i * ir[1] + ir[2];
-            Rpp32f _y = i * ir[4] + ir[5];
-            Rpp32f _w = i * ir[7] + ir[8];
-            __m256 p_X = _mm256_add_ps(_mm256_set1_ps(_x), p_XInit);
-            __m256 p_Y = _mm256_add_ps(_mm256_set1_ps(_y), p_YInit);
-            __m256 p_W = _mm256_add_ps(_mm256_set1_ps(_w), p_WInit);
+            Rpp32f xCamera = i * invMat[1] + invMat[2];
+            Rpp32f yCamera = i * invMat[4] + invMat[5];
+            Rpp32f zCamera = i * invMat[7] + invMat[8];
+            __m256 pXCamera = _mm256_add_ps(_mm256_set1_ps(xCamera), pXCameraInit);
+            __m256 pYCamera = _mm256_add_ps(_mm256_set1_ps(yCamera), pYCameraInit);
+            __m256 pZCamera = _mm256_add_ps(_mm256_set1_ps(zCamera), pZCameraInit);
             int vectorLoopCount = 0;
             for(; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement)
             {
-                // double w = 1./_w, x = _x*w, y = _y*w;
-                __m256 pW = _mm256_div_ps(avx_p1, p_W);
-                __m256 pX = _mm256_mul_ps(p_X, pW);
-                __m256 pY = _mm256_mul_ps(p_Y, pW);
+                // float z = 1./zCamera, x = xCamera*z, y = yCamera*z;
+                __m256 pZ = _mm256_div_ps(avx_p1, pZCamera);
+                __m256 pX = _mm256_mul_ps(pXCamera, pZ);
+                __m256 pY = _mm256_mul_ps(pYCamera, pZ);
 
-                // double x2 = x*x, y2 = y*y;
+                // float x2 = x*x, y2 = y*y, r2 = x2 + y2;
                 __m256 pX2 = _mm256_mul_ps(pX, pX);
                 __m256 pY2 = _mm256_mul_ps(pY, pY);
-
-                // double r2 = x2 + y2;
                 __m256 pR2 = _mm256_add_ps(pX2, pY2);
 
-                //double _2xy = 2*x*y;
+                // float _2xy = 2*x*y;
                 __m256 p2xy = _mm256_mul_ps(avx_p2, _mm256_mul_ps(pX, pY));
 
-                // double kr = (1 + ((k3*r2 + k2)*r2 + k1)*r2)/(1 + ((k6*r2 + k5)*r2 + k4)*r2);
-                __m256 pNum = _mm256_fmadd_ps(_mm256_fmadd_ps(_mm256_fmadd_ps(pK3, pR2, pK2), pR2, pK1), pR2, avx_p1);
-                __m256 pDen = _mm256_fmadd_ps(_mm256_fmadd_ps(_mm256_fmadd_ps(pK6, pR2, pK5), pR2, pK4), pR2, avx_p1);
+                // float kr = (1 + ((rCoeff[2]*r2 + rCoeff[1])*r2 + rCoeff[0])*r2)/(1 + ((rCoeff[5]*r2 + rCoeff[4])*r2 + rCoeff[3])*r2);
+                __m256 pNum = _mm256_fmadd_ps(_mm256_fmadd_ps(_mm256_fmadd_ps(pRCoeff[2], pR2, pRCoeff[1]), pR2, pRCoeff[0]), pR2, avx_p1);
+                __m256 pDen = _mm256_fmadd_ps(_mm256_fmadd_ps(_mm256_fmadd_ps(pRCoeff[5], pR2, pRCoeff[4]), pR2, pRCoeff[3]), pR2, avx_p1);
                 __m256 pKR = _mm256_div_ps(pNum, pDen);
 
-                // double u = fx*(x*kr + p1*_2xy + p2*(r2 + 2*x2)) + u0;
+                // float u = fx * (x * kr + tCoeff[0] * _2xy + tCoeff[1] * ( r2 + 2 * x2)) + u0;
                 __m256 pFac1 = _mm256_mul_ps(pX, pKR);
-                __m256 pFac2 = _mm256_mul_ps(P1, p2xy);
-                __m256 pFac3 = _mm256_mul_ps(P2, _mm256_fmadd_ps(avx_p2, pX2, pR2));
+                __m256 pFac2 = _mm256_mul_ps(pTCoeff[0], p2xy);
+                __m256 pFac3 = _mm256_mul_ps(pTCoeff[1], _mm256_fmadd_ps(avx_p2, pX2, pR2));
                 __m256 pSrcCol = _mm256_fmadd_ps(pFx, _mm256_add_ps(pFac1, _mm256_add_ps(pFac2, pFac3)), pU0);
 
-                // double v = fy*(y*kr + p1*(r2 + 2*y2) + p2*_2xy) + v0;
+                // float v = fy * (y * kr + tCoeff[0] * (r2 + 2 * y2) + tCoeff[1] * _2xy) + v0;
                 pFac1 = _mm256_mul_ps(pY, pKR);
-                pFac2 = _mm256_mul_ps(P2, p2xy);
-                pFac3 = _mm256_mul_ps(P1, _mm256_fmadd_ps(avx_p2, pY2, pR2));
+                pFac2 = _mm256_mul_ps(pTCoeff[1], p2xy);
+                pFac3 = _mm256_mul_ps(pTCoeff[0], _mm256_fmadd_ps(avx_p2, pY2, pR2));
                 __m256 pSrcRow = _mm256_fmadd_ps(pFy, _mm256_add_ps(pFac1, _mm256_add_ps(pFac2, pFac3)), pV0);
 
-                _mm256_storeu_ps(colRemapTableRow, pSrcCol);
                 _mm256_storeu_ps(rowRemapTableRow, pSrcRow);
+                _mm256_storeu_ps(colRemapTableRow, pSrcCol);
                 rowRemapTableRow += vectorIncrement;
                 colRemapTableRow += vectorIncrement;
 
-                // _x += ir[0], _y += ir[3], _w += ir[6]
-                p_X = _mm256_add_ps(p_X, p_XIncrement);
-                p_Y = _mm256_add_ps(p_Y, p_YIncrement);
-                p_W = _mm256_add_ps(p_W, p_WIncrement);
+                // xCamera += invMat[0], yCamera += invMat[3], zCamera += invMat[6]
+                pXCamera = _mm256_add_ps(pXCamera, pXCameraIncrement);
+                pYCamera = _mm256_add_ps(pYCamera, pYCameraIncrement);
+                pZCamera = _mm256_add_ps(pZCamera, pZCameraIncrement);
             }
             for(; vectorLoopCount < width; vectorLoopCount++)
             {
-                Rpp32f w = 1./_w, x = _x * w, y = _y * w;
-                Rpp32f x2 = x * x, y2 = y * y;
-                Rpp32f r2 = x2 + y2, _2xy = 2 * x * y;
+                Rpp32f z = 1./zCamera, x = xCamera * z, y = yCamera * z;
+                Rpp32f x2 = x * x, y2 = y * y, r2 = x2 + y2;
+                Rpp32f _2xy = 2 * x * y;
                 Rpp32f r4 = r2 * r2;
-                Rpp32f kr = (1 + ((k3 * r2 + k2) * r2 + k1) * r2) / (1 + ((k6 * r2 + k5) * r2 + k4) *r2);
-                Rpp32f u = fx * (x * kr + p1 *_2xy + p2 * (r2 + 2 * x2)) + u0;
-                Rpp32f v = fy * (y * kr + p1 * (r2 + 2 * y2 ) + p2 *_2xy) + v0;
+                Rpp32f kr = (1 + ((rCoeff[2] * r2 + rCoeff[1]) * r2 + rCoeff[0]) * r2) / (1 + ((rCoeff[5] * r2 + rCoeff[4]) * r2 + rCoeff[3]) *r2);
+                Rpp32f u = fx * (x * kr + tCoeff[0] *_2xy + tCoeff[1] * (r2 + 2 * x2)) + u0;
+                Rpp32f v = fy * (y * kr + tCoeff[0] * (r2 + 2 * y2 ) + tCoeff[1] *_2xy) + v0;
                 *rowRemapTableRow++ = v;
                 *colRemapTableRow++ = u;
-
-                _x += ir[0];
-                _y += ir[3];
-                _w += ir[6];
+                xCamera += invMat[0];
+                yCamera += invMat[3];
+                zCamera += invMat[6];
             }
         }
     }
