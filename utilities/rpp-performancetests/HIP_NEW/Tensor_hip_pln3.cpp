@@ -143,6 +143,9 @@ int main(int argc, char **argv)
     case 24:
         strcpy(funcName, "warp_affine");
         break;
+    case 26:
+        strcpy(funcName, "lens_correction");
+        break;
     case 31:
         strcpy(funcName, "color_cast");
         break;
@@ -741,6 +744,17 @@ int main(int argc, char **argv)
     hipStream_t stream;
     hipStreamCreate(&stream);
     rppCreateWithStreamAndBatchSize(&handle, stream, noOfImages);
+
+    float *d_cameraMatrix, *d_distanceCoeffs;
+    hipMalloc(&d_cameraMatrix, images * 9 * sizeof(Rpp32f));
+    hipMalloc(&d_distanceCoeffs, images * 8 * sizeof(Rpp32f));
+
+    Rpp32f *rowRemapTable = (Rpp32f*) calloc(ioBufferSize, sizeof(Rpp32f));
+    Rpp32f *colRemapTable = (Rpp32f*) calloc(ioBufferSize, sizeof(Rpp32f));
+
+    void *d_rowRemapTable, *d_colRemapTable;
+    hipMalloc(&d_rowRemapTable, ioBufferSize * sizeof(Rpp32u));
+    hipMalloc(&d_colRemapTable, ioBufferSize * sizeof(Rpp32u));
 
     clock_t start, end;
     double max_time_used = 0, min_time_used = 500, avg_time_used = 0;
@@ -1382,6 +1396,93 @@ int main(int argc, char **argv)
                 missingFuncFlag = 1;
             else if (ip_bitDepth == 5)
                 rppt_warp_affine_gpu(d_inputi8, srcDescPtr, d_outputi8, dstDescPtr, affineTensor, interpolationType, d_roiTensorPtrSrc, roiTypeSrc, handle);
+            else if (ip_bitDepth == 6)
+                missingFuncFlag = 1;
+            else
+                missingFuncFlag = 1;
+
+            break;
+        }
+        case 26:
+        {
+            test_case_name = "lens_correction";
+
+            // Uncomment to run test case with an xywhROI override
+            // for (i = 0; i < images; i++)
+            // {
+            //     roiTensorPtrSrc[i].xywhROI.xy.x = 0;
+            //     roiTensorPtrSrc[i].xywhROI.xy.y = 0;
+            //     dstImgSizes[i].width = roiTensorPtrSrc[i].xywhROI.roiWidth = 100;
+            //     dstImgSizes[i].height = roiTensorPtrSrc[i].xywhROI.roiHeight = 180;
+            // }
+
+            // Uncomment to run test case with an ltrbROI override
+            /*for (i = 0; i < images; i++)
+            {
+                roiTensorPtrSrc[i].ltrbROI.lt.x = 50;
+                roiTensorPtrSrc[i].ltrbROI.lt.y = 30;
+                roiTensorPtrSrc[i].ltrbROI.rb.x = 210;
+                roiTensorPtrSrc[i].ltrbROI.rb.y = 210;
+                dstImgSizes[i].width = roiTensorPtrSrc[i].ltrbROI.rb.x - roiTensorPtrSrc[i].ltrbROI.lt.x + 1;
+                dstImgSizes[i].height = roiTensorPtrSrc[i].ltrbROI.rb.y - roiTensorPtrSrc[i].ltrbROI.lt.y + 1;
+            }
+            roiTypeSrc = RpptRoiType::LTRB;
+            roiTypeDst = RpptRoiType::LTRB;*/
+
+            Rpp32f cameraMatrix[9 * images];
+            Rpp32f newCameraMatrix[9 * images];
+            Rpp32f distanceCoeffs[8 * images];
+
+            for (i = 0; i < images; i++)
+            {
+                cameraMatrix[9 * i] = newCameraMatrix[9 * i] = 534.07088364;
+                cameraMatrix[9 * i + 1] =  newCameraMatrix[9 * i + 1] = 0;
+                cameraMatrix[9 * i + 2] =  newCameraMatrix[9 * i + 2] = 341.53407554;
+                cameraMatrix[9 * i + 3] = newCameraMatrix[9 * i + 3] = 0;
+                cameraMatrix[9 * i + 4] = newCameraMatrix[9 * i + 4] = 534.11914595;
+                cameraMatrix[9 * i + 5] = newCameraMatrix[9 * i + 5] = 232.94565259;
+                cameraMatrix[9 * i + 6] = newCameraMatrix[9 * i + 6] = 0;
+                cameraMatrix[9 * i + 7] = newCameraMatrix[9 * i + 7] = 0;
+                cameraMatrix[9 * i + 8] = newCameraMatrix[9 * i + 8] = 1;
+
+                distanceCoeffs[8 * i] = -0.29297164;
+                distanceCoeffs[8 * i + 1] = 0.10770696;
+                distanceCoeffs[8 * i + 2] = 0.00131038;
+                distanceCoeffs[8 * i + 3] = -0.0000311;
+                distanceCoeffs[8 * i + 4] = 0.0434798;
+                distanceCoeffs[8 * i + 5] = 0;
+                distanceCoeffs[8 * i + 6] = 0;
+                distanceCoeffs[8 * i + 7] = 0;
+            }
+
+            RpptDescPtr tableDescPtr;
+            RpptDesc tableDesc;
+
+            tableDescPtr = &tableDesc;
+            tableDesc = srcDesc;
+            tableDescPtr->c = 1;
+            tableDescPtr->strides.nStride = srcDescPtr->h * srcDescPtr->w;
+            tableDescPtr->strides.hStride = srcDescPtr->w;
+            tableDescPtr->strides.wStride = tableDescPtr->strides.cStride = 1;
+
+            hipMemcpy(d_cameraMatrix, cameraMatrix, images * 9 * sizeof(Rpp32f), hipMemcpyHostToDevice);
+            hipMemcpy(d_distanceCoeffs, distanceCoeffs, images * 8 * sizeof(Rpp32f), hipMemcpyHostToDevice);
+            hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
+
+            start = clock();
+
+            if (ip_bitDepth == 0)
+                rppt_lens_correction_gpu(d_input, srcDescPtr, d_output, dstDescPtr, (Rpp32f *)d_rowRemapTable, (Rpp32f *)d_colRemapTable, tableDescPtr, d_cameraMatrix, d_distanceCoeffs, d_cameraMatrix, d_roiTensorPtrSrc, roiTypeSrc, handle);
+            else if (ip_bitDepth == 1)
+                rppt_lens_correction_gpu(d_inputf16, srcDescPtr, d_outputf16, dstDescPtr, (Rpp32f *)d_rowRemapTable, (Rpp32f *)d_colRemapTable, tableDescPtr, d_cameraMatrix, d_distanceCoeffs, d_cameraMatrix, d_roiTensorPtrSrc, roiTypeSrc, handle);
+            else if (ip_bitDepth == 2)
+                rppt_lens_correction_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, (Rpp32f *)d_rowRemapTable, (Rpp32f *)d_colRemapTable, tableDescPtr, d_cameraMatrix, d_distanceCoeffs, d_cameraMatrix, d_roiTensorPtrSrc, roiTypeSrc, handle);
+            else if (ip_bitDepth == 3)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 4)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 5)
+                rppt_lens_correction_gpu(d_inputi8, srcDescPtr, d_outputi8, dstDescPtr, (Rpp32f *)d_rowRemapTable, (Rpp32f *)d_colRemapTable, tableDescPtr, d_cameraMatrix, d_distanceCoeffs, d_cameraMatrix, d_roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 6)
                 missingFuncFlag = 1;
             else
@@ -2312,6 +2413,13 @@ int main(int argc, char **argv)
         hipFree(d_input_second);
         hipFree(d_outputi8);
     }
+
+    free(rowRemapTable);
+    free(colRemapTable);
+    hipFree(d_rowRemapTable);
+    hipFree(d_colRemapTable);
+    hipFree(d_cameraMatrix);
+    hipFree(d_distanceCoeffs);
 
     return 0;
 }

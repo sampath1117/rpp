@@ -1161,25 +1161,26 @@ int main(int argc, char **argv)
             test_case_name = "lens_correction";
 
             Rpp32f cameraMatrix[9 * images];
+            Rpp32f newCameraMatrix[9 * images];
             Rpp32f distanceCoeffs[8 * images];
 
             for (i = 0; i < images; i++)
             {
-                cameraMatrix[9 * i] = 286.703;
-                cameraMatrix[9 * i + 1] = 0;
-                cameraMatrix[9 * i + 2] = 413.346;
-                cameraMatrix[9 * i + 3] = 0;
-                cameraMatrix[9 * i + 4] = 286.781;
-                cameraMatrix[9 * i + 5] = 397.178;
-                cameraMatrix[9 * i + 6] = 0;
-                cameraMatrix[9 * i + 7] = 0;
-                cameraMatrix[9 * i + 8] = 1;
+                cameraMatrix[9 * i] = newCameraMatrix[9 * i] = 534.07088364;
+                cameraMatrix[9 * i + 1] =  newCameraMatrix[9 * i + 1] = 0;
+                cameraMatrix[9 * i + 2] =  newCameraMatrix[9 * i + 2] = 341.53407554;
+                cameraMatrix[9 * i + 3] = newCameraMatrix[9 * i + 3] = 0;
+                cameraMatrix[9 * i + 4] = newCameraMatrix[9 * i + 4] = 534.11914595;
+                cameraMatrix[9 * i + 5] = newCameraMatrix[9 * i + 5] = 232.94565259;
+                cameraMatrix[9 * i + 6] = newCameraMatrix[9 * i + 6] = 0;
+                cameraMatrix[9 * i + 7] = newCameraMatrix[9 * i + 7] = 0;
+                cameraMatrix[9 * i + 8] = newCameraMatrix[9 * i + 8] = 1;
 
-                distanceCoeffs[8 * i] = -0.01078;
-                distanceCoeffs[8 * i + 1] = 0.04842;
-                distanceCoeffs[8 * i + 2] = -0.0454;
-                distanceCoeffs[8 * i + 3] = 0.00873;
-                distanceCoeffs[8 * i + 4] = 0;
+                distanceCoeffs[8 * i] = -0.29297164;
+                distanceCoeffs[8 * i + 1] = 0.10770696;
+                distanceCoeffs[8 * i + 2] = 0.00131038;
+                distanceCoeffs[8 * i + 3] = -0.0000311;
+                distanceCoeffs[8 * i + 4] = 0.0434798;
                 distanceCoeffs[8 * i + 5] = 0;
                 distanceCoeffs[8 * i + 6] = 0;
                 distanceCoeffs[8 * i + 7] = 0;
