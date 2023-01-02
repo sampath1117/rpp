@@ -68,14 +68,36 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
         nfft = windowLength;
     Rpp32s numBins = nfft / 2 + 1;
     const Rpp32f mulFactor = (2.0f * PI) / nfft;
+    Rpp32u hStride = dstDescPtr->strides.hStride;
+    Rpp32s alignedNfftLength = nfft & ~7;
+    Rpp32s alignedNbinsLength = numBins & ~7;
+    Rpp32s alignedWindowLength = windowLength & ~7;
     Rpp32f cosf[numBins * nfft];
     Rpp32f sinf[numBins * nfft];
+    omp_set_dynamic(0);
+#pragma omp parallel for num_threads(8)
     for (Rpp32s k = 0; k < numBins; k++)
     {
-        for (Rpp32s i = 0; i < nfft; i++)
-        {
-            cosf[k * nfft + i] = std::cos(k * i * mulFactor);
-            sinf[k * nfft + i] = -std::sin(k * i * mulFactor);
+        Rpp32f* cosfTemp = cosf + (k * nfft);
+        Rpp32f* sinfTemp = sinf + (k * nfft);
+        __m256 jN = _mm256_set_ps(7,6,5,4,3,2,1,0);
+        __m256 mulFactorN = _mm256_set1_ps(k*mulFactor);
+        __m256 addFactorN = _mm256_set1_ps(8);
+        Rpp32s i = 0;
+        for (; i < alignedNfftLength; i += 8) {
+            __m256 pSrc = _mm256_mul_ps(jN,mulFactorN);
+            __m256 pSin, pCos;
+            sincos_ps(pSrc, &pSin, &pCos);
+            pSin = _mm256_mul_ps(avx_pm1, pSin);
+            jN = _mm256_add_ps(jN,addFactorN);
+            _mm256_storeu_ps(cosfTemp, pCos);
+            _mm256_storeu_ps(sinfTemp, pSin);
+            cosfTemp += 8;
+            sinfTemp += 8;
+        }
+        for (; i < nfft; i++) {
+            *cosfTemp++ = std::cos(k * i * mulFactor);
+            *sinfTemp++ = -std::sin(k * i * mulFactor);
         }
     }
     std::vector<Rpp32f> windowFn;
@@ -84,11 +106,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
     if (windowFunction == NULL)
         hann_window(windowFn.data(), windowLength);
     else
-        memcpy(windowFn.data(), windowFunction, windowLength*sizeof(Rpp32f));
-    Rpp32u hStride = dstDescPtr->strides.hStride;
-    Rpp32s alignedNfftLength = nfft & ~7;
-    Rpp32s alignedNbinsLength = numBins & ~7;
-    Rpp32s alignedWindowLength = windowLength & ~7;
+        memcpy(windowFn.data(), windowFunction, windowLength * sizeof(Rpp32f));
     // Get windows output
     omp_set_dynamic(0);
 #pragma omp parallel for num_threads(8)
