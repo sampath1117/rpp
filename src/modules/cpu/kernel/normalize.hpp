@@ -2,36 +2,36 @@
 #include "rpp_cpu_simd.hpp"
 #include "rpp_cpu_common.hpp"
 
-inline Rpp32f accumalate_ps(__m256 src) {
-    __m256 srcAdd = _mm256_add_ps(src, _mm256_permute2f128_ps(src, src, 1));
-    srcAdd = _mm256_add_ps(srcAdd, _mm256_shuffle_ps(srcAdd, srcAdd, _MM_SHUFFLE(1, 0, 3, 2)));
-    srcAdd = _mm256_add_ps(srcAdd, _mm256_shuffle_ps(srcAdd, srcAdd, _MM_SHUFFLE(2, 3, 0, 1)));
-    Rpp32f* addResult = (Rpp32f*)&srcAdd;
+inline Rpp32f accumalate_ps(__m256 pSrc) {
+    __m256 pSrcAdd = _mm256_add_ps(pSrc, _mm256_permute2f128_ps(pSrc, pSrc, 1));
+    pSrcAdd = _mm256_add_ps(pSrcAdd, _mm256_shuffle_ps(pSrcAdd, pSrcAdd, _MM_SHUFFLE(1, 0, 3, 2)));
+    pSrcAdd = _mm256_add_ps(pSrcAdd, _mm256_shuffle_ps(pSrcAdd, pSrcAdd, _MM_SHUFFLE(2, 3, 0, 1)));
+    Rpp32f* addResult = (Rpp32f*)&pSrcAdd;
     return addResult[0];
 }
 
 void compute_2D_mean_axis1(Rpp32f *srcPtr, Rpp32f *meanPtr, Rpp32u *dims, Rpp32u *stride) {
     Rpp32f *srcPtrTemp = srcPtr;
     Rpp32u vectorLoopCount = dims[1]/8;
-    __m256 addFactorN = _mm256_set1_ps(8);
-    __m256 strideN = _mm256_set1_ps(stride[0]);
+    __m256 pAddFactorN = _mm256_set1_ps(8);
+    __m256 pStrideN = _mm256_set1_ps(stride[0]);
     // Outer loop with channels
     for(Rpp32u i = 0; i < dims[0]; i++) {
         meanPtr[i] = 0;
-        __m256 jN = _mm256_set_ps(7,6,5,4,3,2,1,0);
-        __m256 meanPtrN = _mm256_setzero_ps();
+        __m256 pJN = _mm256_set_ps(7,6,5,4,3,2,1,0);
+        __m256 pMeanPtrN = _mm256_setzero_ps();
         Rpp32u j = 0;
         // Inner loop with length
         for( ; j < vectorLoopCount; j++) {
-            __m256 strideJN = _mm256_mul_ps(jN, strideN);
-            __m256 srcPtrTempN = _mm256_i32gather_ps(srcPtrTemp, _mm256_cvtps_epi32(strideJN), 4);
-            meanPtrN = _mm256_add_ps(srcPtrTempN, meanPtrN);
-            jN = _mm256_add_ps(jN, addFactorN);
+            __m256 pStrideJN = _mm256_mul_ps(pJN, pStrideN);
+            __m256 pSrcPtrTempN = _mm256_i32gather_ps(srcPtrTemp, _mm256_cvtps_epi32(pStrideJN), 4);
+            pMeanPtrN = _mm256_add_ps(pSrcPtrTempN, pMeanPtrN);
+            pJN = _mm256_add_ps(pJN, pAddFactorN);
         }
         j = j * 8;
         for (; j < dims[1]; j++)
             meanPtr[i] += srcPtrTemp[stride[0]*j];
-        meanPtr[i] += accumalate_ps(meanPtrN);
+        meanPtr[i] += accumalate_ps(pMeanPtrN);
         meanPtr[i] = meanPtr[i] / dims[1];
         srcPtrTemp += stride[1];
     }
@@ -43,19 +43,19 @@ void compute_2D_mean_axis2(Rpp32f *srcPtr, Rpp32f *meanPtr, Rpp32u *dims, Rpp32u
     for(Rpp32u i = 0; i < dims[0]; i++) {
         Rpp32f *srcPtrTemp = srcPtr + (i * stride[1]);
         meanPtr[i] = 0;
-        __m256 meanPtrN  = _mm256_setzero_ps();
+        __m256 pMeanPtrN  = _mm256_setzero_ps();
         Rpp32u j = 0;
         // Inner loop channel
         for(; j < vectorLoopCount; j++) {
             //meanPtr[i] += (*(srcPtrTemp + j * stride[0]));
-            __m256 srcPtrTempN = _mm256_loadu_ps(srcPtrTemp);
-            meanPtrN = _mm256_add_ps(srcPtrTempN, meanPtrN);
+            __m256 pSrcPtrTempN = _mm256_loadu_ps(srcPtrTemp);
+            pMeanPtrN = _mm256_add_ps(pSrcPtrTempN, pMeanPtrN);
             srcPtrTemp+=8;
         }
         j = j * 8;
         for(; j < dims[1]; j++)
             meanPtr[i] += *srcPtrTemp++;
-        meanPtr[i] += accumalate_ps(meanPtrN);
+        meanPtr[i] += accumalate_ps(pMeanPtrN);
         meanPtr[i] = meanPtr[i] / dims[1];
     }
 }
@@ -67,18 +67,18 @@ void compute_2D_mean_axis3(Rpp32f *srcPtr, Rpp32f *meanPtr,  Rpp32u *dims, Rpp32
     // Outer loop source length
     for(Rpp32u i = 0; i < dims[0]; i++) {
         Rpp32f *srcPtrTemp = srcPtr + (i * stride[1]);
-        __m256 meanPtrN  = _mm256_setzero_ps();
+        __m256 pMeanPtrN  = _mm256_setzero_ps();
         Rpp32u j = 0;
         // Inner loop channel
         for(; j < vectorLoopCount; j++) {
-            __m256 srcPtrTempN = _mm256_loadu_ps(srcPtrTemp);
-            meanPtrN = _mm256_add_ps(srcPtrTempN, meanPtrN);
+            __m256 pSrcPtrTempN = _mm256_loadu_ps(srcPtrTemp);
+            pMeanPtrN = _mm256_add_ps(pSrcPtrTempN, pMeanPtrN);
             srcPtrTemp+=8;
         }
         j = j * 8;
         for(; j < dims[1]; j++)
             meanPtr[0] += *srcPtrTemp++;
-        meanPtr[0] += accumalate_ps(meanPtrN);
+        meanPtr[0] += accumalate_ps(pMeanPtrN);
     }
     meanPtr[0] = meanPtr[0] / (dims[0] * dims[1]);
 }
@@ -86,28 +86,28 @@ void compute_2D_mean_axis3(Rpp32f *srcPtr, Rpp32f *meanPtr,  Rpp32u *dims, Rpp32
 void compute_2D_inv_std_dev_axis1(Rpp32f *srcPtr, Rpp32f *meanPtr, Rpp32f *stdDevPtr, Rpp32u *dims, Rpp32u *stride) {
     Rpp32f *srcPtrTemp = srcPtr;
     Rpp32u vectorLoopCount = dims[1]/8;
-    __m256 addFactorN = _mm256_set1_ps(8);
-    __m256 strideN = _mm256_set1_ps(stride[0]);
+    __m256 pAddFactorN = _mm256_set1_ps(8);
+    __m256 pStrideN = _mm256_set1_ps(stride[0]);
     // Outer loop channels
     for(Rpp32u i = 0; i < dims[0]; i++) {
         stdDevPtr[i] = 0;
-        __m256 jN = _mm256_set_ps(7,6,5,4,3,2,1,0);
-        __m256 meanPtrN = _mm256_set1_ps(meanPtr[i]);
-        __m256 stdDevPtrN = _mm256_setzero_ps();
+        __m256 pJN = _mm256_set_ps(7,6,5,4,3,2,1,0);
+        __m256 pMeanPtrN = _mm256_set1_ps(meanPtr[i]);
+        __m256 pStdDevPtrN = _mm256_setzero_ps();
         Rpp32u j = 0;
         // Inner loop length
         for(; j < vectorLoopCount; j++) {
-            __m256 strideJN = _mm256_mul_ps(jN, strideN);
-            __m256 diffN = _mm256_sub_ps(_mm256_i32gather_ps(srcPtrTemp, _mm256_cvtps_epi32(strideJN), 4), meanPtrN);
-            stdDevPtrN = _mm256_add_ps(stdDevPtrN, _mm256_mul_ps(diffN, diffN));
-            jN = _mm256_add_ps(jN, addFactorN);
+            __m256 pStrideJN = _mm256_mul_ps(pJN, pStrideN);
+            __m256 pDiffN = _mm256_sub_ps(_mm256_i32gather_ps(srcPtrTemp, _mm256_cvtps_epi32(pStrideJN), 4), pMeanPtrN);
+            pStdDevPtrN = _mm256_add_ps(pStdDevPtrN, _mm256_mul_ps(pDiffN, pDiffN));
+            pJN = _mm256_add_ps(pJN, pAddFactorN);
         }
         j  = j * 8;
         for(; j < dims[1]; j++) {
             Rpp32f diff = (*(srcPtrTemp + j * stride[0]) - meanPtr[i]);
             stdDevPtr[i] += (diff * diff);
         }
-        stdDevPtr[i] += accumalate_ps(stdDevPtrN);
+        stdDevPtr[i] += accumalate_ps(pStdDevPtrN);
         stdDevPtr[i] = stdDevPtr[i] / dims[1];
         stdDevPtr[i] = (!stdDevPtr[i]) ? 0.0f : 1.0f / sqrt(stdDevPtr[i]);
         srcPtrTemp += stride[1];
@@ -120,13 +120,13 @@ void compute_2D_inv_std_dev_axis2(Rpp32f *srcPtr, Rpp32f *meanPtr, Rpp32f *stdDe
     for(Rpp32u i = 0; i < dims[0]; i++) {
         Rpp32f *srcPtrTemp = srcPtr + (i * stride[1]);
         stdDevPtr[i] = 0;
-        __m256 meanptrN = _mm256_set1_ps(meanPtr[i]);
-        __m256 stdDevPtrN = _mm256_setzero_ps();
+        __m256 pMeanPtrN = _mm256_set1_ps(meanPtr[i]);
+        __m256 pStdDevPtrN = _mm256_setzero_ps();
         Rpp32u j = 0;
         // Inner loop channels
         for(; j < vectorLoopCount; j++) {
-            __m256 diffN = _mm256_sub_ps(_mm256_loadu_ps(srcPtrTemp), meanptrN);
-            stdDevPtrN = _mm256_add_ps(stdDevPtrN, _mm256_mul_ps(diffN, diffN));
+            __m256 pDiffN = _mm256_sub_ps(_mm256_loadu_ps(srcPtrTemp), pMeanPtrN);
+            pStdDevPtrN = _mm256_add_ps(pStdDevPtrN, _mm256_mul_ps(pDiffN, pDiffN));
             srcPtrTemp += 8;
         }
         j = j * 8;
@@ -134,7 +134,7 @@ void compute_2D_inv_std_dev_axis2(Rpp32f *srcPtr, Rpp32f *meanPtr, Rpp32f *stdDe
             Rpp32f diff = (*srcPtrTemp++ - meanPtr[i]);
             stdDevPtr[i] += (diff * diff);
         }
-        stdDevPtr[i] += accumalate_ps(stdDevPtrN);
+        stdDevPtr[i] += accumalate_ps(pStdDevPtrN);
         stdDevPtr[i] = stdDevPtr[i] / dims[1];
         stdDevPtr[i] = (!stdDevPtr[i]) ? 0.0f : 1.0f / sqrt(stdDevPtr[i]);
     }
@@ -146,13 +146,13 @@ void compute_2D_inv_std_dev_axis3(Rpp32f *srcPtr, Rpp32f *meanPtr, Rpp32f *stdDe
     // Outer loop source length
     for(Rpp32u i = 0; i < dims[0]; i++) {
         Rpp32f *srcPtrTemp = srcPtr + (i * stride[1]);
-        __m256 meanptrN = _mm256_set1_ps(meanPtr[0]);
-        __m256 stdDevPtrN = _mm256_setzero_ps();
+        __m256 pMeanPtrN = _mm256_set1_ps(meanPtr[0]);
+        __m256 pStdDevPtrN = _mm256_setzero_ps();
         Rpp32u j = 0;
         // Inner loop channels
         for(; j < vectorLoopCount; j++) {
-            __m256 diffN = _mm256_sub_ps(_mm256_loadu_ps(srcPtrTemp), meanptrN);
-            stdDevPtrN = _mm256_add_ps(stdDevPtrN, _mm256_mul_ps(diffN, diffN));
+            __m256 pDiffN = _mm256_sub_ps(_mm256_loadu_ps(srcPtrTemp), pMeanPtrN);
+            pStdDevPtrN = _mm256_add_ps(pStdDevPtrN, _mm256_mul_ps(pDiffN, pDiffN));
             srcPtrTemp += 8;
         }
         j = j * 8;
@@ -160,7 +160,7 @@ void compute_2D_inv_std_dev_axis3(Rpp32f *srcPtr, Rpp32f *meanPtr, Rpp32f *stdDe
             Rpp32f diff = (*srcPtrTemp++ - meanPtr[0]);
             stdDevPtr[0] += (diff * diff);
         }
-        stdDevPtr[0] += accumalate_ps(stdDevPtrN);
+        stdDevPtr[0] += accumalate_ps(pStdDevPtrN);
     }
     stdDevPtr[0] = stdDevPtr[0] / (dims[0] * dims[1]);
     stdDevPtr[0] = (!stdDevPtr[0]) ? 0.0f : 1.0f / sqrt(stdDevPtr[0]);

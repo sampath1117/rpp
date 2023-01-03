@@ -4,12 +4,12 @@
 #include <chrono>
 #include <complex>
 
-inline Rpp32f reduce_add_ps1(__m256 src)
+inline Rpp32f reduce_add_ps1(__m256 pSrc)
 {
-    __m256 srcAdd = _mm256_add_ps(src, _mm256_permute2f128_ps(src, src, 1));
-    srcAdd = _mm256_add_ps(srcAdd, _mm256_shuffle_ps(srcAdd, srcAdd, _MM_SHUFFLE(1, 0, 3, 2)));
-    srcAdd = _mm256_add_ps(srcAdd, _mm256_shuffle_ps(srcAdd, srcAdd, _MM_SHUFFLE(2, 3, 0, 1)));
-    Rpp32f *addResult = (Rpp32f *)&srcAdd;
+    __m256 pSrcAdd = _mm256_add_ps(pSrc, _mm256_permute2f128_ps(pSrc, pSrc, 1));
+    pSrcAdd = _mm256_add_ps(pSrcAdd, _mm256_shuffle_ps(pSrcAdd, pSrcAdd, _MM_SHUFFLE(1, 0, 3, 2)));
+    pSrcAdd = _mm256_add_ps(pSrcAdd, _mm256_shuffle_ps(pSrcAdd, pSrcAdd, _MM_SHUFFLE(2, 3, 0, 1)));
+    Rpp32f *addResult = (Rpp32f *)&pSrcAdd;
     return addResult[0];
 }
 
@@ -80,16 +80,16 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
     {
         Rpp32f* cosfTemp = cosf + (k * nfft);
         Rpp32f* sinfTemp = sinf + (k * nfft);
-        __m256 jN = _mm256_set_ps(7,6,5,4,3,2,1,0);
-        __m256 mulFactorN = _mm256_set1_ps(k*mulFactor);
-        __m256 addFactorN = _mm256_set1_ps(8);
+        __m256 pJN = _mm256_set_ps(7,6,5,4,3,2,1,0);
+        __m256 pMulFactorN = _mm256_set1_ps(k*mulFactor);
+        __m256 pAddFactorN = _mm256_set1_ps(8);
         Rpp32s i = 0;
         for (; i < alignedNfftLength; i += 8) {
-            __m256 pSrc = _mm256_mul_ps(jN,mulFactorN);
+            __m256 pSrc = _mm256_mul_ps(pJN,pMulFactorN);
             __m256 pSin, pCos;
             sincos_ps(pSrc, &pSin, &pCos);
             pSin = _mm256_mul_ps(avx_pm1, pSin);
-            jN = _mm256_add_ps(jN,addFactorN);
+            pJN = _mm256_add_ps(pJN,pAddFactorN);
             _mm256_storeu_ps(cosfTemp, pCos);
             _mm256_storeu_ps(sinfTemp, pSin);
             cosfTemp += 8;
