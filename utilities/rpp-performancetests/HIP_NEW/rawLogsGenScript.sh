@@ -185,7 +185,7 @@ do
     echo "--------------------------------"
     printf "Running a New Functionality...\n"
     echo "--------------------------------"
-    for ((bitDepth=0;bitDepth<7;bitDepth++))
+    for ((bitDepth=0;bitDepth<1;bitDepth++))
     do
         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
         for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
@@ -290,7 +290,7 @@ do
     echo "--------------------------------"
     printf "Running a New Functionality...\n"
     echo "--------------------------------"
-    for ((bitDepth=0;bitDepth<7;bitDepth++))
+    for ((bitDepth=0;bitDepth<1;bitDepth++))
     do
         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
         for ((outputFormatToggle=0;outputFormatToggle<1;outputFormatToggle++))
@@ -395,7 +395,7 @@ do
     echo "--------------------------------"
     printf "Running a New Functionality...\n"
     echo "--------------------------------"
-    for ((bitDepth=0;bitDepth<7;bitDepth++))
+    for ((bitDepth=0;bitDepth<1;bitDepth++))
     do
         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
         for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))

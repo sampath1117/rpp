@@ -143,6 +143,9 @@ int main(int argc, char **argv)
     case 24:
         strcpy(funcName, "warp_affine");
         break;
+    case 29:
+        strcpy(funcName, "water");
+        break;
     case 30:
         strcpy(funcName, "non_linear_blend");
         break;
@@ -1314,6 +1317,48 @@ int main(int argc, char **argv)
                 missingFuncFlag = 1;
             else if (ip_bitDepth == 5)
                 rppt_warp_affine_gpu(d_inputi8, srcDescPtr, d_outputi8, dstDescPtr, affineTensor, interpolationType, d_roiTensorPtrSrc, roiTypeSrc, handle);
+            else if (ip_bitDepth == 6)
+                missingFuncFlag = 1;
+            else
+                missingFuncFlag = 1;
+
+            break;
+        }
+        case 29:
+        {
+            test_case_name = "water";
+
+            Rpp32f amplX[images];
+            Rpp32f amplY[images];
+            Rpp32f freqX[images];
+            Rpp32f freqY[images];
+            Rpp32f phaseX[images];
+            Rpp32f phaseY[images];
+
+            for (i = 0; i < images; i++)
+            {
+                amplX[i] = 2.0;
+                amplY[i] = 5.0;
+                freqX[i] = 5.8;
+                freqY[i] = 1.2;
+                phaseX[i] = 10.0;
+                phaseY[i] = 15;
+            }
+
+            start = clock();
+
+            if (ip_bitDepth == 0)
+                rppt_water_gpu(d_input, srcDescPtr, d_output, dstDescPtr, amplX, amplY, freqX, freqY, phaseX, phaseY, d_roiTensorPtrSrc, roiTypeSrc, handle);
+            else if (ip_bitDepth == 1)
+                rppt_water_gpu(d_inputf16, srcDescPtr, d_outputf16, dstDescPtr, amplX, amplY, freqX, freqY, phaseX, phaseY, d_roiTensorPtrSrc, roiTypeSrc, handle);
+            else if (ip_bitDepth == 2)
+                rppt_water_gpu(d_inputf32, srcDescPtr, d_outputf32, dstDescPtr, amplX, amplY, freqX, freqY, phaseX, phaseY, d_roiTensorPtrSrc, roiTypeSrc, handle);
+            else if (ip_bitDepth == 3)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 4)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 5)
+                rppt_water_gpu(d_inputi8, srcDescPtr, d_outputi8, dstDescPtr, amplX, amplY, freqX, freqY, phaseX, phaseY, d_roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 6)
                 missingFuncFlag = 1;
             else
