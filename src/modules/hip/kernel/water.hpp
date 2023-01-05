@@ -69,7 +69,7 @@ __global__ void water_pkd_tensor(T *srcPtr,
 
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
     d_float16 locSrc_f16;
-    water_roi_and_srclocs_hip_compute(&srcRoi_i4, id_x, id_y, &amplX_f4, &amplY_f4, freqX, freqY, phaseX, phaseY, &locSrc_f16);
+    water_roi_and_srclocs_hip_compute(id_x, id_y, &amplX_f4, &amplY_f4, freqX, freqY, phaseX, phaseY, &locSrc_f16);
 
     d_float24 dst_f24;
     rpp_hip_interpolate24_nearest_neighbor_pkd3(srcPtr + srcIdx, srcStridesNH.y, &locSrc_f16, &srcRoi_i4, &dst_f24);
@@ -111,7 +111,7 @@ __global__ void water_pln_tensor(T *srcPtr,
 
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
     d_float16 locSrc_f16;
-    water_roi_and_srclocs_hip_compute(&srcRoi_i4, id_x, id_y, &amplX_f4, &amplY_f4, freqX, freqY, phaseX, phaseY, &locSrc_f16);
+    water_roi_and_srclocs_hip_compute(id_x, id_y, &amplX_f4, &amplY_f4, freqX, freqY, phaseX, phaseY, &locSrc_f16);
 
     d_float8 dst_f8;
     rpp_hip_interpolate8_nearest_neighbor_pln1(srcPtr + srcIdx, srcStridesNCH.z, &locSrc_f16, &srcRoi_i4, &dst_f8);
@@ -167,7 +167,7 @@ __global__ void water_pkd3_pln3_tensor(T *srcPtr,
 
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
     d_float16 locSrc_f16;
-    water_roi_and_srclocs_hip_compute(&srcRoi_i4, id_x, id_y, &amplX_f4, &amplY_f4, freqX, freqY, phaseX, phaseY, &locSrc_f16);
+    water_roi_and_srclocs_hip_compute(id_x, id_y, &amplX_f4, &amplY_f4, freqX, freqY, phaseX, phaseY, &locSrc_f16);
 
     d_float24 dst_f24;
     rpp_hip_interpolate24_nearest_neighbor_pkd3(srcPtr + srcIdx, srcStridesNH.y, &locSrc_f16, &srcRoi_i4, &dst_f24);
@@ -208,7 +208,7 @@ __global__ void water_pln3_pkd3_tensor(T *srcPtr,
 
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
     d_float16 locSrc_f16;
-    water_roi_and_srclocs_hip_compute(&srcRoi_i4, id_x, id_y, &amplX_f4, &amplY_f4, freqX, freqY, phaseX, phaseY, &locSrc_f16);
+    water_roi_and_srclocs_hip_compute(id_x, id_y, &amplX_f4, &amplY_f4, freqX, freqY, phaseX, phaseY, &locSrc_f16);
 
     d_float24 dst_f24;
     rpp_hip_interpolate24_nearest_neighbor_pln3(srcPtr + srcIdx, &srcStridesNCH, &locSrc_f16, &srcRoi_i4, &dst_f24);
