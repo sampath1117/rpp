@@ -1096,7 +1096,7 @@ RppStatus rppt_water_gpu(RppPtr_t srcPtr,
     copy_param_float(frequencyXTensor, rpp::deref(rppHandle), paramIndex++);
     copy_param_float(frequencyYTensor, rpp::deref(rppHandle), paramIndex++);
     copy_param_float(phaseXTensor, rpp::deref(rppHandle), paramIndex++);
-    copy_param_float(phaseYTensor, rpp::deref(rppHandle), paramIndex++);
+    copy_param_float(phaseYTensor, rpp::deref(rppHandle), paramIndex);
 
     if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
     {

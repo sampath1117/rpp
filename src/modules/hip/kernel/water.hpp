@@ -1,8 +1,6 @@
 #include <hip/hip_runtime.h>
 #include "rpp_hip_common.hpp"
 
-// -------------------- Set 0 - water device helpers --------------------
-
 __device__ void water_roi_and_srclocs_hip_compute(int id_x, int id_y, float4 *amplX_f4, float4 *amplY_f4,
                                                   float freqX, float freqY, float phaseX, float phaseY, d_float16 *locSrc_f16)
 {
@@ -17,23 +15,22 @@ __device__ void water_roi_and_srclocs_hip_compute(int id_x, int id_y, float4 *am
     // srcY = dstY + amplY * cosFactor;
     // srcX = dstX + amplX * sinFactor;
     d_float8 sinFactor_f8, cosFactor_f8;
-    sinFactor_f8.f4[0] = (float4)(sinf(freqX * (float)id_y + phaseX));
+    sinFactor_f8.f4[0] = (float4)(sinf(fmaf(freqX, (float)id_y, phaseX)));
     sinFactor_f8.f4[1] = sinFactor_f8.f4[0];
-    cosFactor_f8.f1[0] = cosf(freqY * locDst_f8x.f1[0] + phaseY);
-    cosFactor_f8.f1[1] = cosf(freqY * locDst_f8x.f1[1] + phaseY);
-    cosFactor_f8.f1[2] = cosf(freqY * locDst_f8x.f1[2] + phaseY);
-    cosFactor_f8.f1[3] = cosf(freqY * locDst_f8x.f1[3] + phaseY);
-    cosFactor_f8.f1[4] = cosf(freqY * locDst_f8x.f1[4] + phaseY);
-    cosFactor_f8.f1[5] = cosf(freqY * locDst_f8x.f1[5] + phaseY);
-    cosFactor_f8.f1[6] = cosf(freqY * locDst_f8x.f1[6] + phaseY);
-    cosFactor_f8.f1[7] = cosf(freqY * locDst_f8x.f1[7] + phaseY);
+    cosFactor_f8.f1[0] = cosf(fmaf(freqY, locDst_f8x.f1[0], phaseY));
+    cosFactor_f8.f1[1] = cosf(fmaf(freqY, locDst_f8x.f1[1], phaseY));
+    cosFactor_f8.f1[2] = cosf(fmaf(freqY, locDst_f8x.f1[2], phaseY));
+    cosFactor_f8.f1[3] = cosf(fmaf(freqY, locDst_f8x.f1[3], phaseY));
+    cosFactor_f8.f1[4] = cosf(fmaf(freqY, locDst_f8x.f1[4], phaseY));
+    cosFactor_f8.f1[5] = cosf(fmaf(freqY, locDst_f8x.f1[5], phaseY));
+    cosFactor_f8.f1[6] = cosf(fmaf(freqY, locDst_f8x.f1[6], phaseY));
+    cosFactor_f8.f1[7] = cosf(fmaf(freqY, locDst_f8x.f1[7], phaseY));
 
-    locSrc_f16->f8[0].f4[0] =  locDst_f8x.f4[0] + (*amplX_f4 * sinFactor_f8.f4[0]);  // Compute src x locations in float for dst x locations [0-3]
-    locSrc_f16->f8[0].f4[1] =  locDst_f8x.f4[1] + (*amplX_f4 * sinFactor_f8.f4[1]);  // Compute src x locations in float for dst x locations [4-7]
-    locSrc_f16->f8[1].f4[0] =  locDst_f8y.f4[0] + (*amplY_f4 * cosFactor_f8.f4[0]);  // Compute src y locations in float for dst y locations [0-3]
-    locSrc_f16->f8[1].f4[1] =  locDst_f8y.f4[1] + (*amplY_f4 * cosFactor_f8.f4[1]);  // Compute src y locations in float for dst y locations [4-7]
+    locSrc_f16->f4[0] =  locDst_f8x.f4[0] + (*amplX_f4 * sinFactor_f8.f4[0]);  // Compute src x locations in float for dst x locations [0-3]
+    locSrc_f16->f4[1] =  locDst_f8x.f4[1] + (*amplX_f4 * sinFactor_f8.f4[1]);  // Compute src x locations in float for dst x locations [4-7]
+    locSrc_f16->f4[2] =  locDst_f8y.f4[0] + (*amplY_f4 * cosFactor_f8.f4[0]);  // Compute src y locations in float for dst y locations [0-3]
+    locSrc_f16->f4[3] =  locDst_f8y.f4[1] + (*amplY_f4 * cosFactor_f8.f4[1]);  // Compute src y locations in float for dst y locations [4-7]
 }
-
 
 template <typename T>
 __global__ void water_pkd_tensor(T *srcPtr,
@@ -214,8 +211,6 @@ __global__ void water_pln3_pkd3_tensor(T *srcPtr,
     rpp_hip_interpolate24_nearest_neighbor_pln3(srcPtr + srcIdx, &srcStridesNCH, &locSrc_f16, &srcRoi_i4, &dst_f24);
     rpp_hip_pack_float24_pln3_and_store24_pkd3(dstPtr + dstIdx, &dst_f24);
 }
-
-// -------------------- Set 3 - Kernel Executors --------------------
 
 template <typename T>
 RppStatus hip_exec_water_tensor(T *srcPtr,
