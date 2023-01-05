@@ -2341,34 +2341,4 @@ __device__ __forceinline__ void rpp_hip_compute_loc(d_float16 *locPtrSrc_f16, d_
     srcIdx->ui1[7] = (uint)((locPtrSrc_f16->f1[15] * (float)srcStrideH) + locPtrSrc_f16->f1[7] * (float)3);
 }
 
-template <typename T>
-__device__ __forceinline__ void rpp_hip_load24_from_loc_pkd3(T *srcPtr, uint srcStrideH, d_float16 *locPtrSrc_f16, d_float24 *dst_f24)
-{
-    d_uint8 srcIdx;
-    rpp_hip_compute_loc(locPtrSrc_f16, &srcIdx, srcStrideH, 3);
-    rpp_hip_interpolate3_nearest_neighbor_load_pkd3(srcPtr + srcIdx.ui1[0], &dst_f24->f3[0]);
-    rpp_hip_interpolate3_nearest_neighbor_load_pkd3(srcPtr + srcIdx.ui1[1], &dst_f24->f3[1]);
-    rpp_hip_interpolate3_nearest_neighbor_load_pkd3(srcPtr + srcIdx.ui1[2], &dst_f24->f3[2]);
-    rpp_hip_interpolate3_nearest_neighbor_load_pkd3(srcPtr + srcIdx.ui1[3], &dst_f24->f3[3]);
-    rpp_hip_interpolate3_nearest_neighbor_load_pkd3(srcPtr + srcIdx.ui1[4], &dst_f24->f3[4]);
-    rpp_hip_interpolate3_nearest_neighbor_load_pkd3(srcPtr + srcIdx.ui1[5], &dst_f24->f3[5]);
-    rpp_hip_interpolate3_nearest_neighbor_load_pkd3(srcPtr + srcIdx.ui1[6], &dst_f24->f3[6]);
-    rpp_hip_interpolate3_nearest_neighbor_load_pkd3(srcPtr + srcIdx.ui1[7], &dst_f24->f3[7]);
-}
-
-// template <typename T>
-// __device__ __forceinline__ void rpp_hip_load8_from_loc_pln1(T *srcPtr, uint srcStrideH, d_float16 *locPtrSrc_f16, d_float24 *dst_f24)
-// {
-//     d_uint8 srcIdx;
-//     rpp_hip_compute_loc(locPtrSrc_f16, &srcIdx, srcStrideH, 1);
-//     rpp_hip_interpolate1_nearest_neighbor_load_pln1(srcPtr + srcIdx.ui1[0], &dst_f24->f3[0]);
-//     rpp_hip_interpolate1_nearest_neighbor_load_pln1(srcPtr + srcIdx.ui1[1], &dst_f24->f3[1]);
-//     rpp_hip_interpolate1_nearest_neighbor_load_pln1(srcPtr + srcIdx.ui1[2], &dst_f24->f3[2]);
-//     rpp_hip_interpolate1_nearest_neighbor_load_pln1(srcPtr + srcIdx.ui1[3], &dst_f24->f3[3]);
-//     rpp_hip_interpolate1_nearest_neighbor_load_pln1(srcPtr + srcIdx.ui1[4], &dst_f24->f3[4]);
-//     rpp_hip_interpolate1_nearest_neighbor_load_pln1(srcPtr + srcIdx.ui1[5], &dst_f24->f3[5]);
-//     rpp_hip_interpolate1_nearest_neighbor_load_pln1(srcPtr + srcIdx.ui1[6], &dst_f24->f3[6]);
-//     rpp_hip_interpolate1_nearest_neighbor_load_pln1(srcPtr + srcIdx.ui1[7], &dst_f24->f3[7]);
-// }
-
 #endif // RPP_HIP_COMMON_H
