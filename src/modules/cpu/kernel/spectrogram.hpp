@@ -1,17 +1,6 @@
 #include "rppdefs.h"
 #include "rpp_cpu_simd.hpp"
 #include "rpp_cpu_common.hpp"
-#include <chrono>
-#include <complex>
-
-inline Rpp32f reduce_add_ps1(__m256 pSrc)
-{
-    __m256 pSrcAdd = _mm256_add_ps(pSrc, _mm256_permute2f128_ps(pSrc, pSrc, 1));
-    pSrcAdd = _mm256_add_ps(pSrcAdd, _mm256_shuffle_ps(pSrcAdd, pSrcAdd, _MM_SHUFFLE(1, 0, 3, 2)));
-    pSrcAdd = _mm256_add_ps(pSrcAdd, _mm256_shuffle_ps(pSrcAdd, pSrcAdd, _MM_SHUFFLE(2, 3, 0, 1)));
-    Rpp32f *addResult = (Rpp32f *)&pSrcAdd;
-    return addResult[0];
-}
 
 inline void hann_window(Rpp32f *output, Rpp32s windowSize)
 {
@@ -72,6 +61,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
     Rpp32s alignedNfftLength = nfft & ~7;
     Rpp32s alignedNbinsLength = numBins & ~7;
     Rpp32s alignedWindowLength = windowLength & ~7;
+
     Rpp32f cosf[numBins * nfft];
     Rpp32f sinf[numBins * nfft];
     omp_set_dynamic(0);
@@ -80,26 +70,29 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
     {
         Rpp32f* cosfTemp = cosf + (k * nfft);
         Rpp32f* sinfTemp = sinf + (k * nfft);
-        __m256 pJN = _mm256_set_ps(7,6,5,4,3,2,1,0);
+        __m256 PNfftN = _mm256_set_ps(7, 6, 5, 4, 3, 2, 1, 0);
         __m256 pMulFactorN = _mm256_set1_ps(k*mulFactor);
-        __m256 pAddFactorN = _mm256_set1_ps(8);
+        __m256 pAddFactorN = avx_p8;
         Rpp32s i = 0;
-        for (; i < alignedNfftLength; i += 8) {
-            __m256 pSrc = _mm256_mul_ps(pJN,pMulFactorN);
+        for (; i < alignedNfftLength; i += 8)
+        {
+            __m256 pSrc = _mm256_mul_ps(PNfftN, pMulFactorN);
             __m256 pSin, pCos;
             sincos_ps(pSrc, &pSin, &pCos);
             pSin = _mm256_mul_ps(avx_pm1, pSin);
-            pJN = _mm256_add_ps(pJN,pAddFactorN);
+            PNfftN = _mm256_add_ps(PNfftN, pAddFactorN);
             _mm256_storeu_ps(cosfTemp, pCos);
             _mm256_storeu_ps(sinfTemp, pSin);
             cosfTemp += 8;
             sinfTemp += 8;
         }
-        for (; i < nfft; i++) {
+        for (; i < nfft; i++)
+        {
             *cosfTemp++ = std::cos(k * i * mulFactor);
             *sinfTemp++ = -std::sin(k * i * mulFactor);
         }
     }
+
     std::vector<Rpp32f> windowFn;
     windowFn.resize(windowLength);
     // Generate hanning window
@@ -107,6 +100,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
         hann_window(windowFn.data(), windowLength);
     else
         memcpy(windowFn.data(), windowFunction, windowLength * sizeof(Rpp32f));
+
     // Get windows output
     omp_set_dynamic(0);
 #pragma omp parallel for num_threads(8)
@@ -118,15 +112,15 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
         Rpp32s numWindows = get_num_windows(bufferLength, windowLength, windowStep, centerWindows);
         Rpp32f windowOutput[numWindows * nfft];
         std::fill_n (windowOutput, numWindows * nfft, 0);
-        for (int64_t w = 0; w < numWindows; w++)
+        for (Rpp64s w = 0; w < numWindows; w++)
         {
-            int64_t windowStart = w * windowStep - windowCenterOffset;
+            Rpp64s windowStart = w * windowStep - windowCenterOffset;
             Rpp32f *windowOutputTemp = windowOutput + (w * nfft);
             if (windowStart < 0 || (windowStart + windowLength) > bufferLength)
             {
                 for (Rpp32s t = 0; t < windowLength; t++)
                 {
-                    int64_t inIdx = windowStart + t;
+                    Rpp64s inIdx = windowStart + t;
                     if (reflectPadding)
                     {
                         inIdx = get_idx_reflect(inIdx, 0, bufferLength);
@@ -161,8 +155,9 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
                     *windowOutputTemp++ = (*windowFnTemp++) * (*srcPtrWindowTemp++);
             }
         }
+
         // Generate specgram output
-        for (int64_t w = 0; w < numWindows; w++)
+        for (Rpp64s w = 0; w < numWindows; w++)
         {
             Rpp32f fftReal[numBins];
             Rpp32f fftImag[numBins];
@@ -192,8 +187,8 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
                     cosfTemp += 8;
                     sinfTemp += 8;
                 }
-                real = reduce_add_ps1(pReal);
-                imag = reduce_add_ps1(pImag);
+                real = rpp_horizontal_add_avx(pReal);
+                imag = rpp_horizontal_add_avx(pImag);
                 for (; i < nfft; i++)
                 {
                     Rpp32f x = *windowOutputTemp++;
@@ -217,7 +212,8 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
                 pTotal = _mm256_add_ps(pReal, pImag);
                 if (power == 1)
                     pTotal = _mm256_sqrt_ps(pTotal);
-                if (vertical) {
+                if (vertical)
+                {
                     Rpp32f *pTotalPtr = (Rpp32f *)&pTotal;
                     for (Rpp32s j = i; j < (i + 8); j++)
                         dstPtrTemp[j * hStride + w] = pTotalPtr[j - i];
@@ -235,8 +231,9 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
                 Rpp32f total = (real * real) + (imag * imag);
                 if (power == 1)
                     total = std::sqrt(total);
-                if (vertical) {
-                    int64_t outIdx = (i * hStride + w);
+                if (vertical)
+                {
+                    Rpp64s outIdx = (i * hStride + w);
                     dstPtrTemp[outIdx] = total;
                 }
                 else

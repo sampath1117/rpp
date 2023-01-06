@@ -2226,6 +2226,15 @@ inline void rpp_generic_bilinear_load_mask_avx(__m256 &pSrcY, __m256 &pSrcX, __m
     )));
 }
 
+inline Rpp32f rpp_horizontal_add_avx(__m256 pSrc)
+{
+    __m256 pSrcAdd = _mm256_add_ps(pSrc, _mm256_permute2f128_ps(pSrc, pSrc, 1));
+    pSrcAdd = _mm256_add_ps(pSrcAdd, _mm256_shuffle_ps(pSrcAdd, pSrcAdd, _MM_SHUFFLE(1, 0, 3, 2)));
+    pSrcAdd = _mm256_add_ps(pSrcAdd, _mm256_shuffle_ps(pSrcAdd, pSrcAdd, _MM_SHUFFLE(2, 3, 0, 1)));
+    Rpp32f *addResult = (Rpp32f *)&pSrcAdd;
+    return addResult[0];
+}
+
 template <typename T>
 inline void rpp_generic_bilinear_load_1c_avx(T *srcPtrChannel, RpptDescPtr srcDescPtr, RpptBilinearNbhoodLocsVecLen8 &srcLocs, __m256 &pSrcY, __m256 &pSrcX, __m256 *pRoiLTRB, __m256 *pSrc)
 {
