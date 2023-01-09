@@ -1354,9 +1354,10 @@ int main(int argc, char **argv)
             freqX[i] = 5.8;
             freqY[i] = 1.2;
             phaseX[i] = 10.0;
-            phaseY[i] = 15;
+            phaseY[i] = 15.0;
         }
 
+        hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
         start = clock();
 
         if (ip_bitDepth == 0)

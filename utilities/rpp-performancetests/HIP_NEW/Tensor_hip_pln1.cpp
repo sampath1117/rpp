@@ -1363,6 +1363,7 @@ int main(int argc, char **argv)
                 phaseY[i] = 15;
             }
 
+            hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
             start = clock();
 
             if (ip_bitDepth == 0)
