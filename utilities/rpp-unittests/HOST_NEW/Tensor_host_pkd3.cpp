@@ -417,8 +417,8 @@ int main(int argc, char **argv)
 
     // Optionally set w stride as a multiple of 8 for src/dst
 
-    srcDescPtr->w = ((srcDescPtr->w / 8) * 8) + 8;
-    dstDescPtr->w = ((dstDescPtr->w / 8) * 8) + 8;
+    srcDescPtr->w = ((srcDescPtr->w / 16) * 16) + 16;
+    dstDescPtr->w = ((dstDescPtr->w / 16) * 16) + 16;
 
     // Set n/c/h/w strides for src/dst
 
@@ -1192,12 +1192,12 @@ int main(int argc, char **argv)
 
         for (i = 0; i < images; i++)
         {
-            amplX[i] = 2.0;
-            amplY[i] = 5.0;
-            freqX[i] = 5.8;
-            freqY[i] = 1.2;
-            phaseX[i] = 10.0;
-            phaseY[i] = 15;
+            amplX[i] = 2.0f;
+            amplY[i] = 5.0f;
+            freqX[i] = 5.8f;
+            freqY[i] = 1.2f;
+            phaseX[i] = 10.0f;
+            phaseY[i] = 15.0f;
         }
 
         start_omp = omp_get_wtime();

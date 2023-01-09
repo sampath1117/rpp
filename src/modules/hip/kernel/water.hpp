@@ -12,8 +12,6 @@ __device__ void water_roi_and_srclocs_hip_compute(int id_x, int id_y, float4 *am
     locDst_f8y.f4[0] = (float4)id_y;
     locDst_f8y.f4[1] = (float4)id_y;
 
-    // srcY = dstY + amplY * cosFactor;
-    // srcX = dstX + amplX * sinFactor;
     d_float8 sinFactor_f8, cosFactor_f8;
     sinFactor_f8.f4[0] = (float4)(sinf(fmaf(freqX, (float)id_y, phaseX)));
     sinFactor_f8.f4[1] = sinFactor_f8.f4[0];

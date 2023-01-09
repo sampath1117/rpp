@@ -1349,12 +1349,12 @@ int main(int argc, char **argv)
 
         for (i = 0; i < images; i++)
         {
-            amplX[i] = 2.0;
-            amplY[i] = 5.0;
-            freqX[i] = 5.8;
-            freqY[i] = 1.2;
-            phaseX[i] = 10.0;
-            phaseY[i] = 15.0;
+            amplX[i] = 2.0f;
+            amplY[i] = 5.0f;
+            freqX[i] = 5.8f;
+            freqY[i] = 1.2f;
+            phaseX[i] = 10.0f;
+            phaseY[i] = 15.0f;
         }
 
         hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
