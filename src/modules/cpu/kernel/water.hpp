@@ -255,7 +255,7 @@ RppStatus water_u8_u8_host_tensor(Rpp8u *srcPtr,
                     {
                         __m128i pRow;
                         rpp_simd_load(rpp_generic_nn_load_u8pln1, srcPtrTempChn, srcLocArray, invalidLoad, pRow);
-                        rpp_simd_store(rpp_store4_u8_to_u8, dstPtrTempChn, pRow);
+                        rpp_simd_store(rpp_store4_u8pln1_to_u8pln1, dstPtrTempChn, pRow);
                         srcPtrTempChn += srcDescPtr->strides.cStride;
                         dstPtrTempChn += dstDescPtr->strides.cStride;
                     }
@@ -940,7 +940,7 @@ RppStatus water_i8_i8_host_tensor(Rpp8s *srcPtr,
                     {
                         __m128i pRow;
                         rpp_simd_load(rpp_generic_nn_load_i8pln1, srcPtrTempChn, srcLocArray, invalidLoad, pRow);
-                        rpp_simd_store(rpp_store4_i8_to_i8, dstPtrTempChn, pRow);
+                        rpp_simd_store(rpp_store4_i8pln1_to_i8pln1, dstPtrTempChn, pRow);
                         srcPtrTempChn += srcDescPtr->strides.cStride;
                         dstPtrTempChn += dstDescPtr->strides.cStride;
                     }
