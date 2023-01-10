@@ -469,7 +469,7 @@ RppStatus water_f32_f32_host_tensor(Rpp32f *srcPtr,
                     rpp_simd_store(rpp_store12_f32pkd3_to_f32pkd3, dstPtrTemp, pRow);
                     dstPtrTemp += vectorIncrementPkd;
                 }
-                for (int vectorLoopCount = 0; vectorLoopCount < bufferLength; vectorLoopCount++)
+                for (; vectorLoopCount < bufferLength; vectorLoopCount++)
                 {
                     Rpp32f srcX, srcY, cosFactor;
                     dstX = vectorLoopCount;
