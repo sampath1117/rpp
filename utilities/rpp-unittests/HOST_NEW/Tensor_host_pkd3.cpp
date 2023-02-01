@@ -187,6 +187,9 @@ int main(int argc, char **argv)
     case 86:
         strcpy(funcName, "color_to_greyscale");
         break;
+    case 87:
+        strcpy(funcName, "normalize");
+        break;
     default:
         strcpy(funcName, "test_case");
         break;
@@ -513,7 +516,7 @@ int main(int argc, char **argv)
     // Factors to convert U8 data to F32, F16 data to 0-1 range and reconvert them back to 0 -255 range
 
     Rpp32f conversionFactor = 1.0f / 255.0;
-    if(test_case == 38)
+    if(test_case == 38 || test_case == 87)
         conversionFactor = 1.0;
     Rpp32f invConversionFactor = 1.0f / conversionFactor;
 
@@ -1842,6 +1845,62 @@ int main(int argc, char **argv)
             missingFuncFlag = 1;
         else if (ip_bitDepth == 5)
             rppt_color_to_greyscale_host(inputi8, srcDescPtr, outputi8, dstDescPtr, srcSubpixelLayout, handle);
+        else if (ip_bitDepth == 6)
+            missingFuncFlag = 1;
+        else
+            missingFuncFlag = 1;
+
+        break;
+    }
+    case 87:
+    {
+        test_case_name = "normalize";
+        Rpp32f multiplier[images * 3];
+        Rpp32f offset[images * 3];
+        Rpp32f meanParam[3] = { 60.0f, 80.0f, 100.0f };
+        Rpp32f stdDevParam[3] = { 0.9f, 0.9f, 0.9f };
+        Rpp32f offsetParam[3] = { - meanParam[0] / stdDevParam[0], - meanParam[1] / stdDevParam[1], - meanParam[2] / stdDevParam[2] };
+        Rpp32f multiplierParam[3] = {  1.0f / stdDevParam[0], 1.0f / stdDevParam[1], 1.0f / stdDevParam[2] };
+
+        for (i = 0, j = 0; i < images; i++, j += 3)
+        {
+            multiplier[j] = multiplierParam[0];
+            offset[j] = offsetParam[0];
+
+            multiplier[j + 1] = multiplierParam[1];
+            offset[j + 1] = offsetParam[1];
+
+            multiplier[j + 2] = multiplierParam[2];
+            offset[j + 2] = offsetParam[2];
+        }
+
+        // Uncomment to run test case with an ltrbROI override
+        /*for (i = 0; i < images; i++)
+        {
+            roiTensorPtrSrc[i].ltrbROI.lt.x = 50;
+            roiTensorPtrSrc[i].ltrbROI.lt.y = 30;
+            roiTensorPtrSrc[i].ltrbROI.rb.x = 210;
+            roiTensorPtrSrc[i].ltrbROI.rb.y = 210;
+            dstImgSizes[i].width = roiTensorPtrSrc[i].ltrbROI.rb.x - roiTensorPtrSrc[i].ltrbROI.lt.x + 1;
+            dstImgSizes[i].height = roiTensorPtrSrc[i].ltrbROI.rb.y - roiTensorPtrSrc[i].ltrbROI.lt.y + 1;
+        }
+        roiTypeSrc = RpptRoiType::LTRB;
+        roiTypeDst = RpptRoiType::LTRB;*/
+
+        start_omp = omp_get_wtime();
+        start = clock();
+        if (ip_bitDepth == 0)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 1)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 2)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 3)
+            rppt_normalize_host(input, srcDescPtr, outputf16, dstDescPtr, offset, multiplier, roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 4)
+            rppt_normalize_host(input, srcDescPtr, outputf32, dstDescPtr, offset, multiplier, roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 5)
+            missingFuncFlag = 1;
         else if (ip_bitDepth == 6)
             missingFuncFlag = 1;
         else
