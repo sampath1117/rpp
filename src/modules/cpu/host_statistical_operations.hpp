@@ -14,7 +14,7 @@ RppStatus min_host_batch(T* srcPtr1, T* srcPtr2, RppiSize *batch_srcSize, RppiSi
     if(chnFormat == RPPI_CHN_PLANAR)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDimMax = batch_srcSizeMax[batchCount].height * batch_srcSizeMax[batchCount].width;
@@ -93,7 +93,7 @@ RppStatus min_host_batch(T* srcPtr1, T* srcPtr2, RppiSize *batch_srcSize, RppiSi
     else if (chnFormat == RPPI_CHN_PACKED)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDimMax = batch_srcSizeMax[batchCount].height * batch_srcSizeMax[batchCount].width;
@@ -191,7 +191,7 @@ RppStatus max_host_batch(T* srcPtr1, T* srcPtr2, RppiSize *batch_srcSize, RppiSi
     if(chnFormat == RPPI_CHN_PLANAR)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDimMax = batch_srcSizeMax[batchCount].height * batch_srcSizeMax[batchCount].width;
@@ -270,7 +270,7 @@ RppStatus max_host_batch(T* srcPtr1, T* srcPtr2, RppiSize *batch_srcSize, RppiSi
     else if (chnFormat == RPPI_CHN_PACKED)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDimMax = batch_srcSizeMax[batchCount].height * batch_srcSizeMax[batchCount].width;
@@ -369,7 +369,7 @@ RppStatus thresholding_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *
     if(chnFormat == RPPI_CHN_PLANAR)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDimMax = batch_srcSizeMax[batchCount].height * batch_srcSizeMax[batchCount].width;
@@ -456,7 +456,7 @@ RppStatus thresholding_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *
     else if (chnFormat == RPPI_CHN_PACKED)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDimMax = batch_srcSizeMax[batchCount].height * batch_srcSizeMax[batchCount].width;
@@ -565,7 +565,7 @@ RppStatus histogram_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *bat
     if (chnFormat == RPPI_CHN_PLANAR)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDimMax = batch_srcSizeMax[batchCount].height * batch_srcSizeMax[batchCount].width;
@@ -619,7 +619,7 @@ RppStatus histogram_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *bat
     else if (chnFormat == RPPI_CHN_PACKED)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDim = batch_srcSize[batchCount].height * batch_srcSize[batchCount].width;
@@ -692,7 +692,7 @@ RppStatus histogram_equalization_host_batch(T* srcPtr, RppiSize *batch_srcSize, 
     if (chnFormat == RPPI_CHN_PLANAR)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDimMax = batch_srcSizeMax[batchCount].height * batch_srcSizeMax[batchCount].width;
@@ -810,7 +810,7 @@ RppStatus histogram_equalization_host_batch(T* srcPtr, RppiSize *batch_srcSize, 
     else if (chnFormat == RPPI_CHN_PACKED)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDimMax = batch_srcSizeMax[batchCount].height * batch_srcSizeMax[batchCount].width;
@@ -979,7 +979,7 @@ RppStatus min_max_loc_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *b
     if(chnFormat == RPPI_CHN_PLANAR)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDimMax = batch_srcSizeMax[batchCount].height * batch_srcSizeMax[batchCount].width;
@@ -1034,7 +1034,7 @@ RppStatus min_max_loc_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *b
     else if (chnFormat == RPPI_CHN_PACKED)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp8u *min = batch_min + batchCount;
@@ -1130,7 +1130,7 @@ RppStatus mean_stddev_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *b
     if(chnFormat == RPPI_CHN_PLANAR)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDimMax = batch_srcSizeMax[batchCount].height * batch_srcSizeMax[batchCount].width;
@@ -1194,7 +1194,7 @@ RppStatus mean_stddev_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *b
     else if (chnFormat == RPPI_CHN_PACKED)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDim = batch_srcSize[batchCount].height * batch_srcSize[batchCount].width;
@@ -1267,7 +1267,7 @@ RppStatus mean_stddev_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *b
     if(chnFormat == RPPI_CHN_PLANAR)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDimMax = batch_srcSizeMax[batchCount].height * batch_srcSizeMax[batchCount].width;
@@ -1304,7 +1304,7 @@ RppStatus mean_stddev_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *b
 
 
                 omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
                 for(int i = 0; i < batch_srcSize[batchCount].height; i++)
                 {
                     T *srcPtrTemp;
@@ -1343,7 +1343,7 @@ RppStatus mean_stddev_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *b
 
 
                 omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
                 for(int i = 0; i < batch_srcSize[batchCount].height; i++)
                 {
                     T *srcPtrTemp;
@@ -1380,7 +1380,7 @@ RppStatus mean_stddev_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *b
     else if (chnFormat == RPPI_CHN_PACKED)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDimMax = batch_srcSizeMax[batchCount].height * batch_srcSizeMax[batchCount].width;
@@ -1415,7 +1415,7 @@ RppStatus mean_stddev_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *b
 
 
                 omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
             for(int i = 0; i < batch_srcSize[batchCount].height; i++)
             {
                 T *srcPtrTemp;
@@ -1451,7 +1451,7 @@ RppStatus mean_stddev_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *b
 
 
                 omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
             for(int i = 0; i < batch_srcSize[batchCount].height; i++)
             {
                 T *srcPtrTemp;
@@ -1528,7 +1528,7 @@ RppStatus integral_host_batch(T* batch_srcPtr, RppiSize *batch_srcSize, RppiSize
                               RppiChnFormat chnFormat, Rpp32u channel)
 {
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
     for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
     {
         Rpp32u loc = 0;

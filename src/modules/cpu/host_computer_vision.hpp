@@ -13,7 +13,7 @@ RppStatus data_object_copy_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSi
     if(chnFormat == RPPI_CHN_PLANAR)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDimMax = batch_srcSizeMax[batchCount].height * batch_srcSizeMax[batchCount].width;
@@ -45,7 +45,7 @@ RppStatus data_object_copy_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSi
     else if (chnFormat == RPPI_CHN_PACKED)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDimMax = batch_srcSizeMax[batchCount].height * batch_srcSizeMax[batchCount].width;
@@ -93,7 +93,7 @@ RppStatus local_binary_pattern_host_batch(T* srcPtr, RppiSize *batch_srcSize, Rp
     if(chnFormat == RPPI_CHN_PLANAR)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDimMax = batch_srcSizeMax[batchCount].height * batch_srcSizeMax[batchCount].width;
@@ -233,7 +233,7 @@ RppStatus local_binary_pattern_host_batch(T* srcPtr, RppiSize *batch_srcSize, Rp
     else if (chnFormat == RPPI_CHN_PACKED)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDimMax = batch_srcSizeMax[batchCount].height * batch_srcSizeMax[batchCount].width;
@@ -544,7 +544,7 @@ RppStatus remap_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_s
     if(chnFormat == RPPI_CHN_PLANAR)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDimMax = batch_srcSizeMax[batchCount].height * batch_srcSizeMax[batchCount].width;
@@ -599,7 +599,7 @@ RppStatus remap_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_s
     else if (chnFormat == RPPI_CHN_PACKED)
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
         for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
         {
             Rpp32u imageDim = batch_srcSize[batchCount].height * batch_srcSize[batchCount].width;
@@ -713,7 +713,7 @@ RppStatus gaussian_image_pyramid_host_batch(T* srcPtr, RppiSize *batch_srcSize, 
                                             RppiChnFormat chnFormat, Rpp32u channel)
 {
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
     for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
     {
         Rpp32f stdDev = batch_stdDev[batchCount];
@@ -819,7 +819,7 @@ RppStatus canny_edge_detector_host_batch(T* batch_srcPtr, RppiSize *batch_srcSiz
                                          RppiChnFormat chnFormat, Rpp32u channel)
 {
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
     for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
     {
         T maxThreshold = batch_maxThreshold[batchCount];
@@ -1344,7 +1344,7 @@ RppStatus laplacian_image_pyramid_host_batch(T* batch_srcPtr, RppiSize *batch_sr
                                              RppiChnFormat chnFormat, Rpp32u channel)
 {
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
     for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
     {
         Rpp32f stdDev = batch_stdDev[batchCount];
@@ -1482,7 +1482,7 @@ RppStatus harris_corner_detector_host_batch(T* batch_srcPtr, RppiSize *batch_src
                                             RppiChnFormat chnFormat, Rpp32u channel)
 {
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
     for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
     {
         Rpp32u gaussianKernelSize = batch_gaussianKernelSize[batchCount];
@@ -2038,7 +2038,7 @@ RppStatus reconstruction_laplacian_image_pyramid_host_batch(T* batch_srcPtr1, Rp
                                                             RppiChnFormat chnFormat, Rpp32u channel)
 {
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
     for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
     {
         Rpp32f stdDev = batch_stdDev[batchCount];
@@ -2151,7 +2151,7 @@ RppStatus hough_lines_host_batch(T* batch_srcPtr, RppiSize *batch_srcSize, RppiS
                                  RppiChnFormat chnFormat, Rpp32u channel)
 {
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
     for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
     {
         Rpp32f rho = batch_rho[batchCount];
@@ -2685,7 +2685,7 @@ RppStatus fast_corner_detector_host_batch(T* batch_srcPtr, RppiSize *batch_srcSi
                                           RppiChnFormat chnFormat, Rpp32u channel)
 {
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
     for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
     {
         Rpp32u numOfPixels = batch_numOfPixels[batchCount];
@@ -3351,7 +3351,7 @@ RppStatus hog_host_batch(T* batch_srcPtr, RppiSize *batch_srcSize, RppiSize *bat
                          RppiChnFormat chnFormat, Rpp32u channel)
 {
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(nbatchSize)
+#pragma omp parallel for num_threads(8)
     for(int batchCount = 0; batchCount < nbatchSize; batchCount ++)
     {
         Rpp32u binsTensorLength = batch_binsTensorLength[batchCount];
