@@ -9,12 +9,12 @@ RppStatus crop_u8_u8_host_tensor(Rpp8u *srcPtr,
                                  RpptROIPtr roiTensorPtrSrc,
                                  RpptRoiType roiType,
                                  RppLayoutParams layoutParams,
-                                 size_t internal_batch_size)
+                                 size_t internalBatchsize)
 {
     RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
 
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         RpptROI roi;
@@ -159,12 +159,12 @@ RppStatus crop_f32_f32_host_tensor(Rpp32f *srcPtr,
                                    RpptROIPtr roiTensorPtrSrc,
                                    RpptRoiType roiType,
                                    RppLayoutParams layoutParams,
-                                   size_t internal_batch_size)
+                                   size_t internalBatchsize)
 {
     RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
 
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         RpptROI roi;
@@ -311,12 +311,12 @@ RppStatus crop_f16_f16_host_tensor(Rpp16f *srcPtr,
                                    RpptROIPtr roiTensorPtrSrc,
                                    RpptRoiType roiType,
                                    RppLayoutParams layoutParams,
-                                   size_t internal_batch_size)
+                                   size_t internalBatchsize)
 {
     RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
 
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         RpptROI roi;
@@ -495,12 +495,12 @@ RppStatus crop_i8_i8_host_tensor(Rpp8s *srcPtr,
                                  RpptROIPtr roiTensorPtrSrc,
                                  RpptRoiType roiType,
                                  RppLayoutParams layoutParams,
-                                 size_t internal_batch_size)
+                                 size_t internalBatchsize)
 {
     RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
 
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         RpptROI roi;

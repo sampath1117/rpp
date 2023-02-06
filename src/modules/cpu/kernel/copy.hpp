@@ -7,13 +7,13 @@ RppStatus copy_u8_u8_host_tensor(Rpp8u *srcPtr,
                                  Rpp8u *dstPtr,
                                  RpptDescPtr dstDescPtr,
                                  RppLayoutParams layoutParams,
-                                 size_t internal_batch_size)
+                                 size_t internalBatchsize)
 {
     // Copy without fused output-layout toggle (NHWC -> NHWC or NCHW -> NCHW)
     if ((srcDescPtr->c == 1) || (srcDescPtr->layout == dstDescPtr->layout))
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
         for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
         {
             Rpp8u *srcPtrImage, *dstPtrImage;
@@ -27,7 +27,7 @@ RppStatus copy_u8_u8_host_tensor(Rpp8u *srcPtr,
     else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NCHW))
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
         for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
         {
             Rpp8u *srcPtrImage, *dstPtrImage;
@@ -82,7 +82,7 @@ RppStatus copy_u8_u8_host_tensor(Rpp8u *srcPtr,
     else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NHWC))
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
         for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
         {
             Rpp8u *srcPtrImage, *dstPtrImage;
@@ -141,13 +141,13 @@ RppStatus copy_f32_f32_host_tensor(Rpp32f *srcPtr,
                                    Rpp32f *dstPtr,
                                    RpptDescPtr dstDescPtr,
                                    RppLayoutParams layoutParams,
-                                   size_t internal_batch_size)
+                                   size_t internalBatchsize)
 {
     // Copy without fused output-layout toggle (NHWC -> NHWC or NCHW -> NCHW)
     if ((srcDescPtr->c == 1) || (srcDescPtr->layout == dstDescPtr->layout))
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
         for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
         {
             Rpp32f *srcPtrImage, *dstPtrImage;
@@ -161,7 +161,7 @@ RppStatus copy_f32_f32_host_tensor(Rpp32f *srcPtr,
     else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NCHW))
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
         for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
         {
             Rpp32f *srcPtrImage, *dstPtrImage;
@@ -217,7 +217,7 @@ RppStatus copy_f32_f32_host_tensor(Rpp32f *srcPtr,
     else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NHWC))
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
         for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
         {
             Rpp32f *srcPtrImage, *dstPtrImage;
@@ -277,13 +277,13 @@ RppStatus copy_f16_f16_host_tensor(Rpp16f *srcPtr,
                                    Rpp16f *dstPtr,
                                    RpptDescPtr dstDescPtr,
                                    RppLayoutParams layoutParams,
-                                   size_t internal_batch_size)
+                                   size_t internalBatchsize)
 {
     // Copy without fused output-layout toggle (NHWC -> NHWC or NCHW -> NCHW)
     if ((srcDescPtr->c == 1) || (srcDescPtr->layout == dstDescPtr->layout))
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
         for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
         {
             Rpp16f *srcPtrImage, *dstPtrImage;
@@ -297,7 +297,7 @@ RppStatus copy_f16_f16_host_tensor(Rpp16f *srcPtr,
     else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NCHW))
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
         for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
         {
             Rpp16f *srcPtrImage, *dstPtrImage;
@@ -369,7 +369,7 @@ RppStatus copy_f16_f16_host_tensor(Rpp16f *srcPtr,
     else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NHWC))
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
         for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
         {
             Rpp16f *srcPtrImage, *dstPtrImage;
@@ -445,13 +445,13 @@ RppStatus copy_i8_i8_host_tensor(Rpp8s *srcPtr,
                                  Rpp8s *dstPtr,
                                  RpptDescPtr dstDescPtr,
                                  RppLayoutParams layoutParams,
-                                 size_t internal_batch_size)
+                                 size_t internalBatchsize)
 {
     // Copy without fused output-layout toggle (NHWC -> NHWC or NCHW -> NCHW)
     if ((srcDescPtr->c == 1) || (srcDescPtr->layout == dstDescPtr->layout))
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
         for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
         {
             Rpp8s *srcPtrImage, *dstPtrImage;
@@ -465,7 +465,7 @@ RppStatus copy_i8_i8_host_tensor(Rpp8s *srcPtr,
     else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NCHW))
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
         for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
         {
             Rpp8s *srcPtrImage, *dstPtrImage;
@@ -520,7 +520,7 @@ RppStatus copy_i8_i8_host_tensor(Rpp8s *srcPtr,
     else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NHWC))
     {
         omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
         for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
         {
             Rpp8s *srcPtrImage, *dstPtrImage;

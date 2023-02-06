@@ -8,10 +8,10 @@ RppStatus color_to_greyscale_u8_u8_host_tensor(Rpp8u *srcPtr,
                                                RpptDescPtr dstDescPtr,
                                                Rpp32f *channelWeights,
                                                RppLayoutParams layoutParams,
-                                               size_t internal_batch_size)
+                                               size_t internalBatchsize)
 {
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         Rpp8u *srcPtrImage, *dstPtrImage;
@@ -140,10 +140,10 @@ RppStatus color_to_greyscale_f32_f32_host_tensor(Rpp32f *srcPtr,
                                                  RpptDescPtr dstDescPtr,
                                                  Rpp32f *channelWeights,
                                                  RppLayoutParams layoutParams,
-                                                 size_t internal_batch_size)
+                                                 size_t internalBatchsize)
 {
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         Rpp32f *srcPtrImage, *dstPtrImage;
@@ -276,10 +276,10 @@ RppStatus color_to_greyscale_f16_f16_host_tensor(Rpp16f *srcPtr,
                                                  RpptDescPtr dstDescPtr,
                                                  Rpp32f *channelWeights,
                                                  RppLayoutParams layoutParams,
-                                                 size_t internal_batch_size)
+                                                 size_t internalBatchsize)
 {
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         Rpp16f *srcPtrImage, *dstPtrImage;
@@ -427,10 +427,10 @@ RppStatus color_to_greyscale_i8_i8_host_tensor(Rpp8s *srcPtr,
                                                RpptDescPtr dstDescPtr,
                                                Rpp32f *channelWeights,
                                                RppLayoutParams layoutParams,
-                                               size_t internal_batch_size)
+                                               size_t internalBatchsize)
 {
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(internal_batch_size)
+#pragma omp parallel for num_threads(internalBatchsize)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         Rpp8s *srcPtrImage, *dstPtrImage;
