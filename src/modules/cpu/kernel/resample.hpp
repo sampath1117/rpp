@@ -6,21 +6,26 @@ inline Rpp64f hann(Rpp32f x)
 {
     return 0.5 * (1 + std::cos(x * PI));
 }
+
 struct ResamplingWindow
 {
     inline std::pair<Rpp32s, Rpp32s> input_range(Rpp32f x)
     {
-        Rpp32s loc0 = std::ceil(x) - lobes;
-        Rpp32s loc1 = std::floor(x) + lobes;
+        Rpp32s xc = ceilf(x);
+        Rpp32s loc0 = xc - lobes;
+        Rpp32s loc1 = xc + lobes;
         return {loc0, loc1};
     }
 
     inline Rpp32f operator()(Rpp32f x)
     {
         Rpp32f locRaw = x * scale + center;
-        Rpp32s locFloor = std::floor(locRaw);
+        Rpp32s locFloor = floorf(locRaw);
         Rpp32f weight = locRaw - locFloor;
-        return lookup[locFloor] + weight * (lookup[locFloor + 1] - lookup[locFloor]);
+        locFloor = std::max(std::min(locFloor, lookupSize - 2), 0);
+        Rpp32f curr = lookup[locFloor];
+        Rpp32f next = lookup[locFloor + 1];
+       return curr + weight * (next - curr);
     }
 
     inline __m128 operator()(__m128 x)
@@ -28,6 +33,7 @@ struct ResamplingWindow
         __m128 pLocRaw = _mm_add_ps(x * _mm_set1_ps(scale), _mm_set1_ps(center));
         __m128i pxLocFloor = _mm_cvtps_epi32(pLocRaw);
         __m128 pWeight = _mm_sub_ps(pLocRaw, _mm_cvtepi32_ps(pxLocFloor));
+        pxLocFloor = _mm_max_epi32(_mm_min_epi32(pxLocFloor, pxLookupMax), xmm_px0);
         Rpp32s idx[4];
         _mm_storeu_si128((__m128i*)idx, pxLocFloor);
         __m128 pCurrent = _mm_setr_ps(lookup[idx[0]], lookup[idx[1]], lookup[idx[2]], lookup[idx[3]]);
@@ -37,6 +43,8 @@ struct ResamplingWindow
 
     Rpp32f scale = 1, center = 1;
     Rpp32s lobes = 0, coeffs = 0;
+    Rpp32s lookupSize = 0;
+    __m128i pxLookupMax;
     std::vector<Rpp32f> lookup;
 };
 
@@ -46,7 +54,10 @@ inline void windowed_sinc(ResamplingWindow &window, Rpp32s coeffs, Rpp32s lobes)
     Rpp32f scaleEnvelope = 2.0f / coeffs;
     window.coeffs = coeffs;
     window.lobes = lobes;
-    window.lookup.resize(coeffs + 2);
+    window.lookup.resize(coeffs + 5);
+    window.lookupSize = window.lookup.size();
+    window.pxLookupMax = _mm_set1_epi32(window.lookupSize - 2);
+
     window.center = ((coeffs - 1) * 0.5f) + 1;
     window.scale = 1 / scale;
     for (int i = 1, iMinusCenter = (1 - window.center); i <= coeffs; i++, iMinusCenter++)
@@ -110,14 +121,14 @@ RppStatus resample_host_tensor(Rpp32f *srcPtr,
                         if (loc0 + inBlockFloor < 0)
                             loc0 = -inBlockFloor;
                         if (loc1 + inBlockFloor >= srcLength)
-                            loc1 = srcLength - 1 - inBlockFloor;
+                            loc1 = srcLength - inBlockFloor;
                         Rpp32f accum = 0;
                         Rpp32s i = loc0;
 
                         __m128 pAccum = xmm_p0;
                         Rpp32f locInWindow = i - inPos;
                         __m128 pLocInWindow = _mm_setr_ps(locInWindow, locInWindow + 1, locInWindow + 2, locInWindow + 3);
-                        for (; i + 3 <= loc1; i += 4)
+                        for (; i + 3 < loc1; i += 4)
                         {
                             __m128 pW = window(pLocInWindow);
                             pAccum = _mm_add_ps(pAccum, _mm_mul_ps(_mm_loadu_ps(inBlockPtr + i), pW));
@@ -128,7 +139,7 @@ RppStatus resample_host_tensor(Rpp32f *srcPtr,
                         accum = _mm_cvtss_f32(pAccum);
 
                         locInWindow = i - inPos;
-                        for (; i <= loc1; i++, locInWindow++)
+                        for (; i < loc1; i++, locInWindow++)
                         {
                             Rpp32f w = window(locInWindow);
                             accum += inBlockPtr[i] * w;
@@ -157,14 +168,14 @@ RppStatus resample_host_tensor(Rpp32f *srcPtr,
                         if (loc0 + inBlockFloor < 0)
                             loc0 = -inBlockFloor;
                         if (loc1 + inBlockFloor >= srcLength)
-                            loc1 = srcLength - 1 - inBlockFloor;
+                            loc1 = srcLength - inBlockFloor;
 
                         std::fill(channelAccum.begin() , channelAccum.end() , 0.0f);
                         Rpp32f locInWindow = loc0 - inPos;
                         Rpp32s ofs0 = loc0 * numChannels;
                         Rpp32s ofs1 = loc1 * numChannels;
 
-                        for (Rpp32s inOfs = ofs0; inOfs <= ofs1; inOfs += numChannels, locInWindow++)
+                        for (Rpp32s inOfs = ofs0; inOfs < ofs1; inOfs += numChannels, locInWindow++)
                         {
                             Rpp32f w = window(locInWindow);
                             for (Rpp32s c = 0; c < numChannels; c++)
