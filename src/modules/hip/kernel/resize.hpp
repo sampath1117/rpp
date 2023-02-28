@@ -401,9 +401,9 @@ __global__ void resize_generic_pkd_tensor(T *srcPtr,
     colCoeffSum = (colCoeffSum == 0.0f) ? 1.0f : colCoeffSum;
     outPixel_f3 *= (float3)(1 / (rowCoeffSum * colCoeffSum));
     uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + id_x * 3;
-    rpp_hip_pixel_check_and_store(outPixel_f3.x, &dstPtr[dstIdx]);
-    rpp_hip_pixel_check_and_store(outPixel_f3.y, &dstPtr[dstIdx + 1]);
-    rpp_hip_pixel_check_and_store(outPixel_f3.z, &dstPtr[dstIdx + 2]);
+    rpp_hip_pixel_check_and_store(nearbyintf(outPixel_f3.x), &dstPtr[dstIdx]);
+    rpp_hip_pixel_check_and_store(nearbyintf(outPixel_f3.y), &dstPtr[dstIdx + 1]);
+    rpp_hip_pixel_check_and_store(nearbyintf(outPixel_f3.z), &dstPtr[dstIdx + 2]);
 }
 
 template <typename T>
@@ -481,9 +481,9 @@ __global__ void resize_generic_pln3_tensor(T *srcPtr,
     colCoeffSum = (colCoeffSum == 0.0f) ? 1.0f : colCoeffSum;
     outPixel_f3 *= (float3)(1 / (rowCoeffSum * colCoeffSum));
     uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + id_x;
-    rpp_hip_pixel_check_and_store(outPixel_f3.x, &dstPtr[dstIdx]);
-    rpp_hip_pixel_check_and_store(outPixel_f3.y, &dstPtr[dstIdx + dstStridesNCH.y]);
-    rpp_hip_pixel_check_and_store(outPixel_f3.z, &dstPtr[dstIdx + 2 * dstStridesNCH.y]);
+    rpp_hip_pixel_check_and_store(nearbyintf(outPixel_f3.x), &dstPtr[dstIdx]);
+    rpp_hip_pixel_check_and_store(nearbyintf(outPixel_f3.y), &dstPtr[dstIdx + dstStridesNCH.y]);
+    rpp_hip_pixel_check_and_store(nearbyintf(outPixel_f3.z), &dstPtr[dstIdx + 2 * dstStridesNCH.y]);
 }
 
 template <typename T>
@@ -555,7 +555,7 @@ __global__ void resize_generic_pln1_tensor(T *srcPtr,
     invCoeffSum = 1 / (rowCoeffSum * colCoeffSum);
     outPixel *= invCoeffSum;
     uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + id_x;
-    rpp_hip_pixel_check_and_store(outPixel, &dstPtr[dstIdx]);
+    rpp_hip_pixel_check_and_store(nearbyintf(outPixel), &dstPtr[dstIdx]);
 }
 
 template <typename T>
@@ -626,9 +626,9 @@ __global__ void resize_generic_pkd3_pln3_tensor(T *srcPtr,
     colCoeffSum = (colCoeffSum == 0.0f) ? 1.0f : colCoeffSum;
     outPixel_f3 *= 1 / (rowCoeffSum * colCoeffSum);
     uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + id_x;
-    rpp_hip_pixel_check_and_store(outPixel_f3.x, &dstPtr[dstIdx]);
-    rpp_hip_pixel_check_and_store(outPixel_f3.y, &dstPtr[dstIdx + dstStridesNCH.y]);
-    rpp_hip_pixel_check_and_store(outPixel_f3.z, &dstPtr[dstIdx + 2 * dstStridesNCH.y]);
+    rpp_hip_pixel_check_and_store(nearbyintf(outPixel_f3.x), &dstPtr[dstIdx]);
+    rpp_hip_pixel_check_and_store(nearbyintf(outPixel_f3.y), &dstPtr[dstIdx + dstStridesNCH.y]);
+    rpp_hip_pixel_check_and_store(nearbyintf(outPixel_f3.z), &dstPtr[dstIdx + 2 * dstStridesNCH.y]);
 }
 
 template <typename T>
@@ -706,9 +706,9 @@ __global__ void resize_generic_pln3_pkd3_tensor(T *srcPtr,
     colCoeffSum = (colCoeffSum == 0.0f) ? 1.0f : colCoeffSum;
     outPixel_f3 *= (float3)(1 / (rowCoeffSum * colCoeffSum));
     uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + id_x * 3;
-    rpp_hip_pixel_check_and_store(outPixel_f3.x, &dstPtr[dstIdx]);
-    rpp_hip_pixel_check_and_store(outPixel_f3.y, &dstPtr[dstIdx + 1]);
-    rpp_hip_pixel_check_and_store(outPixel_f3.z, &dstPtr[dstIdx + 2]);
+    rpp_hip_pixel_check_and_store(nearbyintf(outPixel_f3.x), &dstPtr[dstIdx]);
+    rpp_hip_pixel_check_and_store(nearbyintf(outPixel_f3.y), &dstPtr[dstIdx + 1]);
+    rpp_hip_pixel_check_and_store(nearbyintf(outPixel_f3.z), &dstPtr[dstIdx + 2]);
 }
 
 // -------------------- Set 3 - Kernel Executors --------------------
