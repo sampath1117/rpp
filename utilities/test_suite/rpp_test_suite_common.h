@@ -38,6 +38,39 @@ inline T validate_pixel_range(T pixel)
     return pixel;
 }
 
+void search_jpg_files(const string& path, vector<string>& imageNames, int &noOfImages)
+{
+    DIR *dir = opendir(path.c_str());
+    if (dir != nullptr)
+    {
+        struct dirent *entry;
+        while ((entry = readdir(dir)) != nullptr)
+        {
+            if (entry->d_type == DT_DIR && strcmp(entry->d_name, ".") == 0 && strcmp(entry->d_name, "..") == 0)
+            {
+                // Recursively search subdirectories
+                search_jpg_files(path + "/" + entry->d_name, imageNames, noOfImages);
+            }
+            else if (entry->d_type == DT_REG)
+            {
+                string fileName = string(entry->d_name);
+                if (fileName.size() > 4 && fileName.substr(fileName.size() - 4) == ".jpg")
+                {
+                    // Add file name to the vector of imageNames
+                    imageNames.push_back(fileName);
+                    noOfImages++;
+                }
+            }
+        }
+    }
+    closedir(dir);
+    if(imageNames.size() == 0)
+    {
+        std::cerr<<"Not able to find any images in the folder specified. Please check the input path";
+        exit(1);
+    }
+}
+
 inline std::string get_interpolation_type(unsigned int val, RpptInterpolationType &interpolationType)
 {
     switch(val)

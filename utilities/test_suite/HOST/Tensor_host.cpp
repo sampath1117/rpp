@@ -173,24 +173,9 @@ int main(int argc, char **argv)
     dst += func;
 
     // Get number of images and image Names
-    struct dirent *de;
-    DIR *dr = opendir(src);
     vector<string> imageNames;
-    while ((de = readdir(dr)) != NULL)
-    {
-        if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
-            continue;
-        noOfImages += 1;
-        imageNames.push_back(de->d_name);
-    }
-    closedir(dr);
+    search_jpg_files(src, imageNames, noOfImages);
     sort(imageNames.begin(), imageNames.end());
-
-    if(!noOfImages)
-    {
-        std::cerr<<"Not able to find any images in the folder specified. Please check the input path";
-        exit(0);
-    }
 
     // Initialize ROI tensors for src/dst
     RpptROI *roiTensorPtrSrc = (RpptROI *)calloc(noOfImages, sizeof(RpptROI));
