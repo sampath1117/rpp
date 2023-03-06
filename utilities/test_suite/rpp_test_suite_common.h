@@ -17,6 +17,7 @@
 
 using namespace cv;
 using namespace std;
+namespace fs = std::experimental::filesystem;
 
 #define CUTOFF 1
 
@@ -38,36 +39,66 @@ inline T validate_pixel_range(T pixel)
     return pixel;
 }
 
-void search_jpg_files(const string& path, vector<string>& imageNames, int &noOfImages)
+void replicate_last_image_to_fill_batch(const string& folder_path, vector<string>& imageNames, const string& last_file_name, int in_batch_read_count, int batch_count)
 {
-    DIR *dir = opendir(path.c_str());
-    if (dir != nullptr)
+    if (in_batch_read_count > 0 && in_batch_read_count < batch_count)
     {
-        struct dirent *entry;
-        while ((entry = readdir(dir)) != nullptr)
-        {
-            if (entry->d_type == DT_DIR && strcmp(entry->d_name, ".") == 0 && strcmp(entry->d_name, "..") == 0)
-            {
-                // Recursively search subdirectories
-                search_jpg_files(path + "/" + entry->d_name, imageNames, noOfImages);
-            }
-            else if (entry->d_type == DT_REG)
-            {
-                string fileName = string(entry->d_name);
-                if (fileName.size() > 4 && fileName.substr(fileName.size() - 4) == ".jpg")
-                {
-                    // Add file name to the vector of imageNames
-                    imageNames.push_back(fileName);
-                    noOfImages++;
-                }
-            }
+        string last_file_path = folder_path + "/" + last_file_name;
+        for (int i = in_batch_read_count; i < batch_count; i++) {
+            imageNames.push_back(last_file_name);
+            std::cout << "Replicated " << last_file_path << " " << batch_count - in_batch_read_count << " times to fill the last batch\n";
         }
     }
-    closedir(dir);
-    if(imageNames.size() == 0)
+}
+
+void search_jpg_files(const string& folder_path, vector<string>& imageNames, vector<string>& imageNamesPath)
+{
+    vector<string> entry_list;
+    string full_path = folder_path;
+    auto sub_dir = opendir(folder_path.c_str());
+    if (!sub_dir)
     {
-        std::cerr<<"Not able to find any images in the folder specified. Please check the input path";
-        exit(1);
+        std::cerr << "ERROR: Failed opening the directory at "<< folder_path << std::endl;
+        exit(0);
+    }
+
+    struct dirent* entity;
+    while ((entity = readdir(sub_dir)) != nullptr)
+    {
+        string entry_name(entity->d_name);
+        if (entry_name == "." || entry_name == "..")
+            continue;
+        entry_list.push_back(entry_name);
+    }
+    closedir(sub_dir);
+    std::sort(entry_list.begin(), entry_list.end());
+
+    for (unsigned dir_count = 0; dir_count < entry_list.size(); ++dir_count)
+    {
+        string subfolder_path = full_path + "/" + entry_list[dir_count];
+        fs::path pathObj(subfolder_path);
+        if (fs::exists(pathObj) && fs::is_regular_file(pathObj))
+        {
+            // ignore files with extensions .tar, .zip, .7z
+            auto file_extension_idx = subfolder_path.find_last_of(".");
+            if (file_extension_idx != std::string::npos)
+            {
+                std::string file_extension = subfolder_path.substr(file_extension_idx+1);
+                if ((file_extension == "tar") || (file_extension == "zip") || (file_extension == "7z") || (file_extension == "rar"))
+                    continue;
+            }
+            if (entry_list[dir_count].size() > 4 && entry_list[dir_count].substr(entry_list[dir_count].size() - 4) == ".jpg")
+            {
+                // Add file name to the vector of imageNames
+                imageNames.push_back(entry_list[dir_count]);
+                imageNamesPath.push_back(subfolder_path);
+            }
+        }
+        else if (fs::exists(pathObj) && fs::is_directory(pathObj))
+        {
+            full_path = subfolder_path;
+            search_jpg_files(full_path, imageNames, imageNamesPath);
+        }
     }
 }
 
@@ -406,7 +437,7 @@ inline void convert_pkd3_to_pln3(Rpp8u *input, RpptDescPtr descPtr)
     free(inputCopy);
 }
 
-inline void read_image_batch_opencv(Rpp8u *input, RpptDescPtr descPtr, string imageNames[])
+inline void read_image_batch_opencv(Rpp8u *input, RpptDescPtr descPtr, vector<string> imageNames)
 {
     for(int i = 0; i < descPtr->n; i++)
     {
@@ -431,7 +462,7 @@ inline void read_image_batch_opencv(Rpp8u *input, RpptDescPtr descPtr, string im
     }
 }
 
-inline void read_image_batch_turbojpeg(Rpp8u *input, RpptDescPtr descPtr, string imageNames[])
+inline void read_image_batch_turbojpeg(Rpp8u *input, RpptDescPtr descPtr, vector<string> imageNames)
 {
     tjhandle tjInstance = tjInitDecompress();
 

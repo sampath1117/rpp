@@ -173,9 +173,11 @@ int main(int argc, char **argv)
     dst += func;
 
     // Get number of images and image Names
-    vector<string> imageNames;
-    search_jpg_files(src, imageNames, noOfImages);
+    vector<string> imageNames, imageNamesSecond, imageNamesPath, imageNamesPathSecond;
+    search_jpg_files(src, imageNames, imageNamesPath);
+    search_jpg_files(src, imageNamesSecond, imageNamesPathSecond);
     sort(imageNames.begin(), imageNames.end());
+    noOfImages = imageNames.size();
 
     // Initialize ROI tensors for src/dst
     RpptROI *roiTensorPtrSrc, *roiTensorPtrDst;
@@ -197,12 +199,10 @@ int main(int argc, char **argv)
 
     for(int i = 0; i < imageNames.size(); i++)
     {
-        string temp = src1;
-        temp += imageNames[i];
         if (layoutType == 0 || layoutType == 1)
-            image = imread(temp, 1);
+            image = imread(imageNamesPath[i], 1);
         else
-            image = imread(temp, 0);
+            image = imread(imageNamesPath[i], 0);
 
         roiTensorPtrSrc[i].xywhROI = {0, 0, image.cols, image.rows};
         roiTensorPtrDst[i].xywhROI = {0, 0, image.cols, image.rows};
@@ -261,13 +261,6 @@ int main(int argc, char **argv)
     Rpp8u *offsettedInput, *offsettedInputSecond;
     offsettedInput = inputu8 + srcDescPtr->offsetInBytes;
     offsettedInputSecond = inputu8Second + srcDescPtr->offsetInBytes;
-    string imageNamesPath[images];
-    string imageNamesPathSecond[images];
-    for(int i = 0; i < images; i++)
-    {
-        imageNamesPath[i] = src1 + "/" + imageNames[i];
-        imageNamesPathSecond[i] = src1Second + "/" + imageNames[i];
-    }
 
    // Read images
     if(decoderType == 0)
