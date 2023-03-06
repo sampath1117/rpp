@@ -304,19 +304,36 @@ __global__ void box_filter_9x9_pkd_tensor(T *srcPtr,
     }
 }
 
-__global__ void set_filter_values(float *filterTensor, int numValues, int batchSize)
+__device__ float gaussian(int x, int y, float mulFactor)
+{
+    float expFactor = - ((x * x) + (y * y)) * mulFactor;
+    expFactor = expf(expFactor);
+    float res  = (expFactor * mulFactor) / PI;
+    return res;
+}
+
+__global__ void set_filter_values(float *filterTensor, int kernelSize, int N, int batchSize)
 {
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x);
     if(id_x >= batchSize)
         return;
 
-    id_x *= numValues;
+    id_x *= N;
     float *filter = &filterTensor[id_x];
-    for(int i = 0; i < numValues; i++)
-        filter[i] = 1.0f / numValues;
+    float stdDev = 5.0f; // Hardcoded for now - change it later
+    int cnt = 0;
+    float mulFactor = 1 / (2 * stdDev * stdDev);
+    for(int i = 0; i < kernelSize; i++)
+    {
+        for(int j = 0; j < kernelSize; j++)
+        {
+            filter[cnt] = gaussian(i, j, mulFactor) / ((float)N * gaussian(0.0f, 0.0f, mulFactor));
+            cnt++;
+        }
+    }
 }
 
-static RppStatus hip_exec_fill_kernel_values(float *filterTensor, int numValues, rpp::Handle &handle)
+static RppStatus hip_exec_fill_kernel_values(float *filterTensor, int kernelSize, rpp::Handle &handle)
 {
     int localThreads_x = 256;
     int localThreads_y = 1;
@@ -324,6 +341,7 @@ static RppStatus hip_exec_fill_kernel_values(float *filterTensor, int numValues,
     int globalThreads_x = handle.GetBatchSize();
     int globalThreads_y = 1;
     int globalThreads_z = 1;
+    int numValues = kernelSize * kernelSize;
 
     hipLaunchKernelGGL(set_filter_values,
                        dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
@@ -331,8 +349,9 @@ static RppStatus hip_exec_fill_kernel_values(float *filterTensor, int numValues,
                        0,
                        handle.GetStream(),
                        filterTensor,
+                       kernelSize,
                        numValues,
-                       globalThreads_x);
+                       handle.GetBatchSize());
 
     hipDeviceSynchronize();
     return RPP_SUCCESS;
@@ -370,11 +389,11 @@ RppStatus hip_exec_box_filter_tensor(T *srcPtr,
     {
         globalThreads_x = (dstDescPtr->strides.hStride / 3 + 7) >> 3;
 
-        // Create a filter of size kernel size x kernel size
-        float *filterTensor;
+        // Create a filter of size (kernel size x kernel size)
+        void *filterTensor;
         int numValues = kernelSize * kernelSize;
         hipMalloc(&filterTensor,  numValues * dstDescPtr->n * sizeof(float));
-        hip_exec_fill_kernel_values(filterTensor, numValues, handle);
+        hip_exec_fill_kernel_values((float *)filterTensor, kernelSize, handle);
 
         if (kernelSize == 3)
         {
