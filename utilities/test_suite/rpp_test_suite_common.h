@@ -39,14 +39,16 @@ inline T validate_pixel_range(T pixel)
     return pixel;
 }
 
-void replicate_last_image_to_fill_batch(const string& folder_path, vector<string>& imageNames, const string& last_file_name, int in_batch_read_count, int batch_count)
+void replicate_last_image_to_fill_batch(const string& lastFilePath, vector<string>& imageNamesPath, vector<string>& imageNames, const string& last_file_name, int noOfImages, int batch_count)
 {
-    if (in_batch_read_count > 0 && in_batch_read_count < batch_count)
+    if (noOfImages > 0 && noOfImages < batch_count)
     {
-        string last_file_path = folder_path + "/" + last_file_name;
-        for (int i = in_batch_read_count; i < batch_count; i++) {
-            imageNames.push_back(last_file_name);
-            std::cout << "Replicated " << last_file_path << " " << batch_count - in_batch_read_count << " times to fill the last batch\n";
+        fs::path pathObj(lastFilePath);
+        string fileName = pathObj.filename().string();
+        for (int i = noOfImages; i < batch_count; i++)
+        {
+            imageNamesPath.push_back(lastFilePath);
+            imageNames.push_back(fileName);
         }
     }
 }
@@ -437,7 +439,7 @@ inline void convert_pkd3_to_pln3(Rpp8u *input, RpptDescPtr descPtr)
     free(inputCopy);
 }
 
-inline void read_image_batch_opencv(Rpp8u *input, RpptDescPtr descPtr, vector<string> imageNames)
+inline void read_image_batch_opencv(Rpp8u *input, RpptDescPtr descPtr, vector<string> imageNames, RpptROI *roiTensorPtrSrc, RpptROI *roiTensorPtrDst)
 {
     for(int i = 0; i < descPtr->n; i++)
     {
@@ -451,6 +453,8 @@ inline void read_image_batch_opencv(Rpp8u *input, RpptDescPtr descPtr, vector<st
 
         int width = image.cols;
         int height = image.rows;
+        roiTensorPtrSrc[i].xywhROI = {0, 0, width, height};
+        roiTensorPtrDst[i].xywhROI = {0, 0, width, height};
         Rpp32u elementsInRow = width * descPtr->c;
         Rpp8u *inputImage = image.data;
         for (int j = 0; j < height; j++)
@@ -462,7 +466,7 @@ inline void read_image_batch_opencv(Rpp8u *input, RpptDescPtr descPtr, vector<st
     }
 }
 
-inline void read_image_batch_turbojpeg(Rpp8u *input, RpptDescPtr descPtr, vector<string> imageNames)
+inline void read_image_batch_turbojpeg(Rpp8u *input, RpptDescPtr descPtr, vector<string> imageNames, RpptROI *roiTensorPtrSrc, RpptROI *roiTensorPtrDst)
 {
     tjhandle tjInstance = tjInitDecompress();
 
@@ -496,6 +500,10 @@ inline void read_image_batch_turbojpeg(Rpp8u *input, RpptDescPtr descPtr, vector
             rgbBuf= (Rpp8u*)malloc(width * height);
             tjDecompress2(tjInstance, jpegBuf, jpegSize, rgbBuf, width, 0, height, TJPF_GRAY, 0);
         }
+
+        roiTensorPtrSrc[i].xywhROI = {0, 0, width, height};
+        roiTensorPtrDst[i].xywhROI = {0, 0, width, height};
+
         // Copy the decompressed image buffer to the RPP input buffer
         Rpp8u *inputTemp = input + (i * descPtr->strides.nStride);
         for (int j = 0; j < height; j++)
@@ -596,7 +604,7 @@ inline void compare_output(T* output, string funcName, RpptDescPtr srcDescPtr, R
 
     ifstream file(refFile);
     Rpp8u *refOutput;
-    refOutput = (Rpp8u *)malloc(noOfImages * dstDescPtr->strides.nStride * sizeof(Rpp8u));
+    refOutput = (Rpp8u *)malloc(dstDescPtr->n * dstDescPtr->strides.nStride * sizeof(Rpp8u));
     string line,word;
     int index = 0;
 
@@ -621,7 +629,7 @@ inline void compare_output(T* output, string funcName, RpptDescPtr srcDescPtr, R
 
     int fileMatch = 0;
     Rpp8u *rowTemp, *rowTempRef, *outVal, *outRefVal, *outputTemp, *outputTempRef;
-    for(int c = 0; c < noOfImages; c++)
+    for(int c = 0; c < dstDescPtr->n; c++)
     {
         outputTemp = output + c * dstDescPtr->strides.nStride;
         outputTempRef = refOutput + c * dstDescPtr->strides.nStride;
@@ -679,4 +687,5 @@ inline void compare_output(T* output, string funcName, RpptDescPtr srcDescPtr, R
         qaResults << status << std::endl;
         qaResults.close();
     }
+    free(refOutput);
 }

@@ -22,6 +22,7 @@ def rpp_test_suite_parser_and_validator():
     parser.add_argument('--case_list', nargs = "+", help = "List of case numbers to list", required = False)
     parser.add_argument('--qa_mode', type = int, default = 0, help = "Run with qa_mode? Outputs images from tests will be compared with golden outputs - (0 / 1)", required = False)
     parser.add_argument('--decoder_type', type = int, default = 0, help = "Type of Decoder to decode the input data - (0 = TurboJPEG / 1 = OpenCV)")
+    parser.add_argument('--batch_size', type = int, default = 3, help = "Specifies the batch size to use for running tests. Default is 1.")
     args = parser.parse_args()
 
     # check if the folder exists
@@ -40,6 +41,9 @@ def rpp_test_suite_parser_and_validator():
         exit(0)
     elif args.qa_mode < 0 or args.qa_mode > 1:
         print("QA mode must be in the 0 / 1. Aborting!")
+        exit(0)
+    elif args.batch_size < 1:
+        print("Batch size must be greater than 1. Aborting!")
         exit(0)
     elif args.decoder_type < 0 or args.decoder_type > 1:
         print("Decoder Type must be in the 0/1 (0 = OpenCV / 1 = TurboJPEG). Aborting")
@@ -67,7 +71,11 @@ caseEnd = args.case_end
 testType = args.test_type
 caseList = args.case_list
 qaMode = args.qa_mode
+batchSize = args.batch_size
 decoderType = args.decoder_type
+
+if(batchSize != 3):
+    qaMode = 0
 
 # set the output folders and number of runs based on type of test (unit test / performance test)
 if(testType == 0):
@@ -78,8 +86,29 @@ else:
     numIterations = 100
 dstPath = outFilePath
 
+maxHeight = 0
+maxWidth = 0
+# Recursively search for all .jpg files in the directory
+for root, dirs, files in os.walk(srcPath1):
+    for file in files:
+        if file.endswith(".jpg"):
+            # Run the identify command to get the width and height of the image
+            imagePath = os.path.join(root, file)
+            imageSize = os.popen('identify -format "%wx%h" "' + imagePath + '"').read().strip()
+
+            # Split the width and height values into separate variables, if possible
+            sizeParts = imageSize.split('x')
+            if len(sizeParts) == 2:
+                width, height = sizeParts
+                if int(width) > maxWidth:
+                    maxWidth = int(width)
+                if int(height) > maxHeight:
+                    maxHeight = int(height)
+            else:
+                print("Could not get size for image: " + imagePath)
+
 # run the shell script
-subprocess.call(["./testAllScript.sh", srcPath1, args.input_path2, str(testType), str(numIterations), str(qaMode), str(decoderType), " ".join(caseList)])
+subprocess.call(["./testAllScript.sh", srcPath1, args.input_path2, str(testType), str(numIterations), str(qaMode), str(decoderType), str(batchSize), str(maxWidth), str(maxHeight), " ".join(caseList)])
 
 # print the results of qa tests
 if qaMode:

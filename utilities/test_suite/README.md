@@ -55,3 +55,5 @@ python runTests.py --case_list 0 2 4 --test_type 0
 python runTests.py --case_list 0 2 4 --test_type 1
 ```
 
+## Note about QA mode
+The QA mode is only enabled for a batch size of 3. For all other batch sizes, the QA mode is automatically turned off. Kindly ensure that you set your batch size to 3 to make use of the QA mode feature.
