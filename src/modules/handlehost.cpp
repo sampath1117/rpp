@@ -89,6 +89,11 @@ Rpp32u Handle::GetNumThreads() const
     return this->impl->numThreads;
 }
 
+void Handle::SetNumThreads(Rpp32u numThreads) const
+{
+    this->impl->numThreads = numThreads;
+}
+
 void Handle::SetBatchSize(size_t bSize) const
 {
     this->impl->nBatchSize = bSize;
