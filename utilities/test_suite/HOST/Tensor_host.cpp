@@ -178,8 +178,9 @@ int main(int argc, char **argv)
     // Get number of images and image Names
     vector<string> imageNames, imageNamesSecond, imageNamesPath, imageNamesPathSecond;
     search_jpg_files(src, imageNames, imageNamesPath);
-    search_jpg_files(src, imageNamesSecond, imageNamesPathSecond);
+    search_jpg_files(srcSecond, imageNamesSecond, imageNamesPathSecond);
     sort(imageNames.begin(), imageNames.end());
+    sort(imageNamesSecond.begin(), imageNamesSecond.end());
     noOfImages = imageNames.size();
     if(noOfImages < batchSize)
     {
