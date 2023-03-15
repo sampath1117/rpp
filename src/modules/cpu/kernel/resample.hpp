@@ -2,71 +2,6 @@
 #include "rpp_cpu_simd.hpp"
 #include "rpp_cpu_common.hpp"
 
-inline double Hann(double x) {
-    return 0.5 * (1 + std::cos(x * M_PI));
-}
-
-struct ResamplingWindow {
-    inline std::pair<int, int> input_range(Rpp32f x) {
-        int xc = ceilf(x);
-        int i0 = xc - lobes;
-        int i1 = xc + lobes;
-        return {i0, i1};
-    }
-
-    inline Rpp32f operator()(Rpp32f x) {
-        Rpp32f fi = x * scale + center;
-        Rpp32s i = floorf(fi);
-        Rpp32f di = fi - i;
-        i = std::max(std::min(i, lookup_size - 2), 0);
-        Rpp32f curr = lookup[i];
-        Rpp32f next = lookup[i + 1];
-        return curr + di * (next - curr);
-    }
-
-    inline __m128 operator()(__m128 x) {
-        __m128 fi = _mm_add_ps(x * _mm_set1_ps(scale), _mm_set1_ps(center));
-        __m128i i = _mm_cvttps_epi32(fi);
-        __m128 fifloor = _mm_cvtepi32_ps(i);
-        __m128 di = _mm_sub_ps(fi, fifloor);
-        i = _mm_max_epi32(_mm_min_epi32(i, pxLookupMax), xmm_px0);
-        int idx[4];
-        _mm_storeu_si128(reinterpret_cast<__m128i*>(idx), i);
-        __m128 curr = _mm_setr_ps(lookup[idx[0]],   lookup[idx[1]],
-                                lookup[idx[2]],   lookup[idx[3]]);
-        __m128 next = _mm_setr_ps(lookup[idx[0]+1], lookup[idx[1]+1],
-                                lookup[idx[2]+1], lookup[idx[3]+1]);
-        return _mm_add_ps(curr, _mm_mul_ps(di, _mm_sub_ps(next, curr)));
-    }
-
-    Rpp32f scale = 1, center = 1;
-    Rpp32s lobes = 0, coeffs = 0;
-    Rpp32s lookup_size = 0;
-    __m128i pxLookupMax;
-    std::vector<Rpp32f> lookup;
-};
-
-inline void windowed_sinc(ResamplingWindow &window,
-        int coeffs, int lobes, std::function<double(double)> envelope = Hann) {
-    Rpp32f scale = 2.0f * lobes / (coeffs - 1);
-    Rpp32f scale_envelope = 2.0f / coeffs;
-    window.coeffs = coeffs;
-    window.lobes = lobes;
-    window.lookup.clear();
-    window.lookup.resize(coeffs + 5);
-    window.lookup_size = window.lookup.size();
-    window.pxLookupMax = _mm_set1_epi32(window.lookup_size - 2);
-    int center = (coeffs - 1) * 0.5f;
-    for (int i = 0; i < coeffs; i++) {
-        Rpp32f x = (i - center) * scale;
-        Rpp32f y = (i - center) * scale_envelope;
-        Rpp32f w = sinc(x) * envelope(y);
-        window.lookup[i + 1] = w;
-    }
-    window.center = center + 1;
-    window.scale = 1 / scale;
-}
-
 RppStatus resample_host_tensor(Rpp32f *srcPtr,
                                RpptDescPtr srcDescPtr,
                                Rpp32f *dstPtr,
@@ -75,7 +10,8 @@ RppStatus resample_host_tensor(Rpp32f *srcPtr,
                                Rpp32f *outRateTensor,
                                Rpp32s *srcLengthTensor,
                                Rpp32s *channelTensor,
-                               Rpp32f quality)
+                               Rpp32f quality,
+                               ResamplingWindow &window)
 {
     omp_set_dynamic(0);
 #pragma omp parallel for num_threads(8)
@@ -93,10 +29,6 @@ RppStatus resample_host_tensor(Rpp32f *srcPtr,
             // No need of Resampling, do a direct memcpy
             memcpy(dstPtrTemp, srcPtrTemp, (size_t)(srcLength * numChannels * sizeof(Rpp32f)));
         } else {
-            ResamplingWindow window;
-            int lobes = std::round(0.007 * quality * quality - 0.09 * quality + 3);
-            int lookupSize = lobes * 64 + 1;
-            windowed_sinc(window, lookupSize, lobes);
             int64_t outBegin = 0;
             int64_t outEnd = std::ceil(srcLength * outRate / inRate);
             int64_t inPos = 0;

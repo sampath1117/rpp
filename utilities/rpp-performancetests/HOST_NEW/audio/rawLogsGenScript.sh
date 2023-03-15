@@ -89,7 +89,7 @@ do
     do
         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
         printf "\n./Tensor_host_audio $SRC_FOLDER $bitDepth $case "
-        ./Tensor_host_audio "$SRC_FOLDER" "$bitDepth" "$case" | tee -a "$DST_FOLDER/Tensor_host_audio_host_raw_performance_log.txt"
+        ./Tensor_host_audio "$SRC_FOLDER" "$bitDepth" "$case" #| tee -a "$DST_FOLDER/Tensor_host_audio_host_raw_performance_log.txt"
 
         echo "------------------------------------------------------------------------------------------"
     done

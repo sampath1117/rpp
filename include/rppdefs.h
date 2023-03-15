@@ -40,6 +40,16 @@ THE SOFTWARE.
 const float ONE_OVER_6 = 1.0f / 6;
 const float ONE_OVER_3 = 1.0f / 3;
 
+#if _WIN32
+#include <intrin.h>
+#else
+#include <x86intrin.h>
+#include <smmintrin.h>
+#include <immintrin.h>
+#endif
+
+#include<vector>
+
 /******************** RPP typedefs ********************/
 
 typedef unsigned char       Rpp8u;
@@ -665,7 +675,6 @@ typedef struct
 {
     memCPU mcpu;
 } memMgmt;
-
 #endif //BACKEND
 
 typedef struct
@@ -674,6 +683,46 @@ typedef struct
     Rpp32u nbatchSize;
     memMgmt mem;
 } InitHandle;
+
+struct ResamplingWindow {
+    inline std::pair<int, int> input_range(Rpp32f x) {
+        int xc = ceilf(x);
+        int i0 = xc - lobes;
+        int i1 = xc + lobes;
+        return {i0, i1};
+    }
+
+    inline Rpp32f operator()(Rpp32f x) {
+        Rpp32f fi = x * scale + center;
+        Rpp32s i = floorf(fi);
+        Rpp32f di = fi - i;
+        i = std::max(std::min(i, lookup_size - 2), 0);
+        Rpp32f curr = lookup[i];
+        Rpp32f next = lookup[i + 1];
+        return curr + di * (next - curr);
+    }
+
+    inline __m128 operator()(__m128 x) {
+        __m128 fi = _mm_add_ps(x * _mm_set1_ps(scale), _mm_set1_ps(center));
+        __m128i i = _mm_cvttps_epi32(fi);
+        __m128 fifloor = _mm_cvtepi32_ps(i);
+        __m128 di = _mm_sub_ps(fi, fifloor);
+        i = _mm_max_epi32(_mm_min_epi32(i, pxLookupMax), _mm_set1_epi32(0));
+        int idx[4];
+        _mm_storeu_si128(reinterpret_cast<__m128i*>(idx), i);
+        __m128 curr = _mm_setr_ps(lookup[idx[0]],   lookup[idx[1]],
+                                lookup[idx[2]],   lookup[idx[3]]);
+        __m128 next = _mm_setr_ps(lookup[idx[0]+1], lookup[idx[1]+1],
+                                lookup[idx[2]+1], lookup[idx[3]+1]);
+        return _mm_add_ps(curr, _mm_mul_ps(di, _mm_sub_ps(next, curr)));
+    }
+
+    Rpp32f scale = 1, center = 1;
+    Rpp32s lobes = 0, coeffs = 0;
+    Rpp32s lookup_size = 0;
+    __m128i pxLookupMax;
+    std::vector<Rpp32f> lookup;
+};
 
 //#ifdef __cplusplus
 //}
