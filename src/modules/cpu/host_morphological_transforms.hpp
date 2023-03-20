@@ -9,8 +9,9 @@ template <typename T>
 RppStatus erode_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, T* dstPtr,
                            Rpp32u *batch_kernelSize,
                            RppiROI *roiPoints, Rpp32u nbatchSize,
-                           RppiChnFormat chnFormat, Rpp32u channel, Rpp32u numThreads)
+                           RppiChnFormat chnFormat, Rpp32u channel, rpp::Handle& handle)
 {
+    Rpp32u numThreads = handle.GetNumThreads();
     if(chnFormat == RPPI_CHN_PLANAR)
     {
         omp_set_dynamic(0);
@@ -418,8 +419,9 @@ template <typename T>
 RppStatus dilate_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, T* dstPtr,
                            Rpp32u *batch_kernelSize,
                            RppiROI *roiPoints, Rpp32u nbatchSize,
-                           RppiChnFormat chnFormat, Rpp32u channel, Rpp32u numThreads)
+                           RppiChnFormat chnFormat, Rpp32u channel, rpp::Handle& handle)
 {
+    Rpp32u numThreads = handle.GetNumThreads();
     if(chnFormat == RPPI_CHN_PLANAR)
     {
         omp_set_dynamic(0);

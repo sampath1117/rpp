@@ -8,8 +8,9 @@
 template <typename T>
 RppStatus bitwise_AND_host_batch(T* srcPtr1, T* srcPtr2, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, T* dstPtr,
                                  RppiROI *roiPoints, Rpp32u nbatchSize,
-                                 RppiChnFormat chnFormat, Rpp32u channel, Rpp32u numThreads)
+                                 RppiChnFormat chnFormat, Rpp32u channel, rpp::Handle& handle)
 {
+    Rpp32u numThreads = handle.GetNumThreads();
     if(chnFormat == RPPI_CHN_PLANAR)
     {
         omp_set_dynamic(0);
@@ -191,8 +192,9 @@ RppStatus bitwise_AND_host(T* srcPtr1, U* srcPtr2, RppiSize srcSize, T* dstPtr,
 template <typename T>
 RppStatus bitwise_NOT_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, T* dstPtr,
                                  RppiROI *roiPoints, Rpp32u nbatchSize,
-                                 RppiChnFormat chnFormat, Rpp32u channel, Rpp32u numThreads)
+                                 RppiChnFormat chnFormat, Rpp32u channel, rpp::Handle& handle)
 {
+    Rpp32u numThreads = handle.GetNumThreads();
     if(chnFormat == RPPI_CHN_PLANAR)
     {
         omp_set_dynamic(0);
@@ -376,8 +378,9 @@ RppStatus bitwise_NOT_host(T* srcPtr, RppiSize srcSize, T* dstPtr,
 template <typename T>
 RppStatus exclusive_OR_host_batch(T* srcPtr1, T* srcPtr2, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, T* dstPtr,
                                  RppiROI *roiPoints, Rpp32u nbatchSize,
-                                 RppiChnFormat chnFormat, Rpp32u channel, Rpp32u numThreads)
+                                 RppiChnFormat chnFormat, Rpp32u channel, rpp::Handle& handle)
 {
+    Rpp32u numThreads = handle.GetNumThreads();
     if(chnFormat == RPPI_CHN_PLANAR)
     {
         omp_set_dynamic(0);
@@ -560,8 +563,9 @@ RppStatus exclusive_OR_host(T* srcPtr1, U* srcPtr2, RppiSize srcSize, T* dstPtr,
 template <typename T>
 RppStatus inclusive_OR_host_batch(T* srcPtr1, T* srcPtr2, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, T* dstPtr,
                                  RppiROI *roiPoints, Rpp32u nbatchSize,
-                                 RppiChnFormat chnFormat, Rpp32u channel, Rpp32u numThreads)
+                                 RppiChnFormat chnFormat, Rpp32u channel, rpp::Handle& handle)
 {
+    Rpp32u numThreads = handle.GetNumThreads();
     if(chnFormat == RPPI_CHN_PLANAR)
     {
         omp_set_dynamic(0);
