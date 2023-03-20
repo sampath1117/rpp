@@ -33,7 +33,7 @@ RPP is developed for **Linux** operating system.
     ```
     sudo apt-get install clang
     ```
-  
+
   + CentOS `7`
     ```
     sudo yum install llvm-toolset-7-clang llvm-toolset-7-clang-analyzer llvm-toolset-7-clang-tools-extra
@@ -203,7 +203,8 @@ Extended RPP support as a functionality through OpenVX [MIVisionX](https://githu
 
     // Create handle
     rppHandle_t handle;
-    rppCreateWithBatchSize(&handle, noOfImages);
+    Rpp32u numThreads = 0;
+    rppCreateWithBatchSize(&handle, noOfImages, numThreads);
 
     // Call the RPP API for the specific variant required (pkd3/pln3/pln1)
     rppi_brightness_u8_pkd3_batchPD_host(input, srcSize, maxSize, output, alpha, beta, noOfImages, handle);
