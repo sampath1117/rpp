@@ -52,7 +52,7 @@ RppStatus box_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                 int vectorLoopCount = 0;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount+=16)
                 {
-                    __m128i pxScratch0[9], pxScratch1[9];
+                    __m128i pxScratch0[kernelSize], pxScratch1[kernelSize];
 
                     Rpp8u *srcPtrRow, *dstPtrRow;
                     srcPtrRow = srcPtrCol;
