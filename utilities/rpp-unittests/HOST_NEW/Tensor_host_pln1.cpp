@@ -1446,6 +1446,29 @@ int main(int argc, char **argv)
 
         break;
     }
+    case 49:
+    {
+        test_case_name = "box_filter";
+        Rpp32u kernelSize = additionalParam;
+        // Change RpptRoiType for ltrbROI override sample
+        // roiTypeSrc = RpptRoiType::LTRB;
+        // roiTypeDst = RpptRoiType::LTRB;
+
+        start_omp = omp_get_wtime();
+        start = clock();
+        if (ip_bitDepth == 0)
+            rppt_box_filter_host(input, srcDescPtr, ioBufferSize, output, dstDescPtr, kernelSize, roiTensorPtrSrc, roiTypeSrc, handle);
+        else
+            missingFuncFlag = 1;
+        end = clock();
+        end_omp = omp_get_wtime();
+
+        break;
+    }
+    default:
+        missingFuncFlag = 1;
+        break;
+    }
     case 70:
     {
         test_case_name = "copy";

@@ -23,11 +23,38 @@ THE SOFTWARE.
 #include "rppdefs.h"
 #include "rppi_validate.hpp"
 #include "rppt_tensor_filter_augmentations.h"
+#include "cpu/host_tensor_filter_augmentations.hpp"
 
 #ifdef HIP_COMPILE
 #include <hip/hip_fp16.h>
 #include "hip/hip_tensor_filter_augmentations.hpp"
 #endif // HIP_COMPILE
+
+RppStatus rppt_box_filter_host(RppPtr_t srcPtr,
+                              RpptDescPtr srcDescPtr,
+                              RppPtr_t dstPtr,
+                              RpptDescPtr dstDescPtr,
+                              Rpp32u kernelSize,
+                              RpptROIPtr roiTensorPtrSrc,
+                              RpptRoiType roiType,
+                              rppHandle_t rppHandle)
+{
+    RppLayoutParams layoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
+
+    if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
+    {
+        box_filter_u8_u8_host_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
+                                     srcDescPtr,
+                                     static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
+                                     dstDescPtr,
+                                     kernelSize,
+                                     roiTensorPtrSrc,
+                                     roiType,
+                                     layoutParams);
+    }
+
+    return RPP_SUCCESS;
+}
 
 /********************************************************************************************************************/
 /*********************************************** RPP_GPU_SUPPORT = ON ***********************************************/
