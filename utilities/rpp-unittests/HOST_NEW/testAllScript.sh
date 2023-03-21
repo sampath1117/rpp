@@ -170,7 +170,7 @@ do
     echo "--------------------------------"
     printf "Running a New Functionality...\n"
     echo "--------------------------------"
-    for ((bitDepth=0;bitDepth<7;bitDepth++))
+    for ((bitDepth=0;bitDepth<1;bitDepth++))
     do
         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
         for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
@@ -246,7 +246,7 @@ do
     echo "--------------------------------"
     printf "Running a New Functionality...\n"
     echo "--------------------------------"
-    for ((bitDepth=0;bitDepth<7;bitDepth++))
+    for ((bitDepth=0;bitDepth<1;bitDepth++))
     do
         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
         for ((outputFormatToggle=0;outputFormatToggle<1;outputFormatToggle++))
@@ -290,6 +290,13 @@ do
                     printf "\n./Tensor_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $interpolationType 0"
                     ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$interpolationType" "0"
                 done
+            elif [ "$case" -eq 40 ] || [ "$case" -eq 41 ] || [ "$case" -eq 49 ]
+            then
+                for ((kernelSize=3;kernelSize<=9;kernelSize+=2))
+                do
+                    printf "\n./Tensor_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $kernelSize 0"
+                    ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0"
+                done
             else
                 printf "\n./Tensor_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
                 ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
@@ -322,7 +329,7 @@ do
     echo "--------------------------------"
     printf "Running a New Functionality...\n"
     echo "--------------------------------"
-    for ((bitDepth=0;bitDepth<7;bitDepth++))
+    for ((bitDepth=0;bitDepth<1;bitDepth++))
     do
         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
         for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
@@ -366,6 +373,13 @@ do
                     printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $interpolationType 0"
                     ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$interpolationType" "0"
                 done
+            elif [ "$case" -eq 40 ] || [ "$case" -eq 41 ] || [ "$case" -eq 49 ]
+            then
+                for ((kernelSize=3;kernelSize<=9;kernelSize+=2))
+                do
+                    printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $kernelSize 0"
+                    ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0"
+                done
             else
                 printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
                 ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
@@ -397,7 +411,7 @@ then
         echo "--------------------------------" | tee -a "$DST_FOLDER/uniqueFunctionalities_host_log.txt"
         printf "Running a New Functionality...\n" | tee -a "$DST_FOLDER/uniqueFunctionalities_host_log.txt"
         echo "--------------------------------" | tee -a "$DST_FOLDER/uniqueFunctionalities_host_log.txt"
-        for ((bitDepth=0;bitDepth<7;bitDepth++))
+        for ((bitDepth=0;bitDepth<1;bitDepth++))
         do
             printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n" | tee -a "$DST_FOLDER/uniqueFunctionalities_host_log.txt"
             echo "./uniqueFunctionalities_host $bitDepth $case" | tee -a "$DST_FOLDER/uniqueFunctionalities_host_log.txt"

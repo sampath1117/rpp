@@ -98,8 +98,8 @@ int main(int argc, char **argv)
     unsigned int outputFormatToggle = atoi(argv[5]);
     int test_case = atoi(argv[6]);
 
-    bool additionalParamCase = (test_case == 8 || test_case == 21 || test_case == 23 || test_case == 24);
-    bool kernelSizeCase = false;
+    bool additionalParamCase = (test_case == 8 || test_case == 21 || test_case == 23 || test_case == 24 || test_case == 49);
+    bool kernelSizeCase = (test_case == 49);
     bool interpolationTypeCase = (test_case == 21 || test_case == 23 || test_case == 24);
     bool noiseTypeCase = (test_case == 8);
 
@@ -173,6 +173,9 @@ int main(int argc, char **argv)
         break;
     case 39:
         strcpy(funcName, "resize_crop_mirror");
+        break;
+    case 49:
+        strcpy(funcName, "box_filter");
         break;
     case 70:
         strcpy(funcName, "copy");
@@ -390,9 +393,6 @@ int main(int argc, char **argv)
     srcDescPtr->numDims = 4;
     dstDescPtr->numDims = 4;
 
-    srcDescPtr->offsetInBytes = 0;
-    dstDescPtr->offsetInBytes = 0;
-
     srcDescPtr->n = noOfImages;
     srcDescPtr->c = ip_channel;
     srcDescPtr->h = maxHeight;
@@ -407,6 +407,9 @@ int main(int argc, char **argv)
 
     srcDescPtr->w = ((srcDescPtr->w / 8) * 8) + 8;
     dstDescPtr->w = ((dstDescPtr->w / 8) * 8) + 8;
+
+    srcDescPtr->offsetInBytes = (test_case == 49) ? ((additionalParam / 2) * (srcDescPtr->w + 1) * 12) : 0;
+    dstDescPtr->offsetInBytes = 0;
 
     // Set n/c/h/w strides for src/dst
 
@@ -435,11 +438,14 @@ int main(int argc, char **argv)
     ioBufferSize = (unsigned long long)srcDescPtr->h * (unsigned long long)srcDescPtr->w * (unsigned long long)ip_channel * (unsigned long long)noOfImages;
     oBufferSize = (unsigned long long)dstDescPtr->h * (unsigned long long)dstDescPtr->w * (unsigned long long)ip_channel * (unsigned long long)noOfImages;
 
+    unsigned long long ioBufferSizeInBytes_u8 = ioBufferSize + (2 * srcDescPtr->offsetInBytes);
+    unsigned long long oBufferSizeInBytes_u8 = oBufferSize + (2 * dstDescPtr->offsetInBytes);
+
     // Initialize host buffers for src/dst
 
-    Rpp8u *input = (Rpp8u *)calloc(ioBufferSize, sizeof(Rpp8u));
-    Rpp8u *input_second = (Rpp8u *)calloc(ioBufferSize, sizeof(Rpp8u));
-    Rpp8u *output = (Rpp8u *)calloc(oBufferSize, sizeof(Rpp8u));
+    Rpp8u *input = (Rpp8u *)calloc(ioBufferSizeInBytes_u8, sizeof(Rpp8u));
+    Rpp8u *input_second = (Rpp8u *)calloc(ioBufferSizeInBytes_u8, sizeof(Rpp8u));
+    Rpp8u *output = (Rpp8u *)calloc(oBufferSizeInBytes_u8, sizeof(Rpp8u));
 
     Rpp16f *inputf16 = (Rpp16f *)calloc(ioBufferSize, sizeof(Rpp16f));
     Rpp16f *inputf16_second = (Rpp16f *)calloc(ioBufferSize, sizeof(Rpp16f));
@@ -461,12 +467,15 @@ int main(int argc, char **argv)
     i = 0;
 
     Rpp32u elementsInRowMax = srcDescPtr->w * ip_channel;
+    Rpp8u *offsetted_input, *offsetted_input_second;
+    offsetted_input = input + srcDescPtr->offsetInBytes;
+    offsetted_input_second = input_second + srcDescPtr->offsetInBytes;
 
     while ((de = readdir(dr2)) != NULL)
     {
         Rpp8u *input_temp, *input_second_temp;
-        input_temp = input + (i * srcDescPtr->strides.nStride);
-        input_second_temp = input_second + (i * srcDescPtr->strides.nStride);
+        input_temp = offsetted_input + (i * srcDescPtr->strides.nStride);
+        input_second_temp = offsetted_input_second + (i * srcDescPtr->strides.nStride);
 
         if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
             continue;
@@ -1450,23 +1459,15 @@ int main(int argc, char **argv)
     {
         test_case_name = "box_filter";
         Rpp32u kernelSize = additionalParam;
-        // Change RpptRoiType for ltrbROI override sample
-        // roiTypeSrc = RpptRoiType::LTRB;
-        // roiTypeDst = RpptRoiType::LTRB;
 
         start_omp = omp_get_wtime();
         start = clock();
+
         if (ip_bitDepth == 0)
-            rppt_box_filter_host(input, srcDescPtr, ioBufferSize, output, dstDescPtr, kernelSize, roiTensorPtrSrc, roiTypeSrc, handle);
+            rppt_box_filter_host(input, srcDescPtr, ioBufferSizeInBytes_u8, output, dstDescPtr, kernelSize, roiTensorPtrSrc, roiTypeSrc, handle);
         else
             missingFuncFlag = 1;
-        end = clock();
-        end_omp = omp_get_wtime();
 
-        break;
-    }
-    default:
-        missingFuncFlag = 1;
         break;
     }
     case 70:

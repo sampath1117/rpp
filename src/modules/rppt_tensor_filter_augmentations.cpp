@@ -31,18 +31,27 @@ THE SOFTWARE.
 #endif // HIP_COMPILE
 
 RppStatus rppt_box_filter_host(RppPtr_t srcPtr,
-                              RpptDescPtr srcDescPtr,
-                              RppPtr_t dstPtr,
-                              RpptDescPtr dstDescPtr,
-                              Rpp32u kernelSize,
-                              RpptROIPtr roiTensorPtrSrc,
-                              RpptRoiType roiType,
-                              rppHandle_t rppHandle)
+                               RpptDescPtr srcDescPtr,
+                               Rpp64u allocatedSrcBufferSizeInBytes,
+                               RppPtr_t dstPtr,
+                               RpptDescPtr dstDescPtr,
+                               Rpp32u kernelSize,
+                               RpptROIPtr roiTensorPtrSrc,
+                               RpptRoiType roiType,
+                               rppHandle_t rppHandle)
 {
+    if ((kernelSize != 3) && (kernelSize != 5) && (kernelSize != 7) && (kernelSize != 9))
+        return RPP_ERROR_INVALID_ARGUMENTS;
+    if (srcDescPtr->offsetInBytes < (kernelSize / 2) * (srcDescPtr->w + 1) * 12)
+        return RPP_ERROR_LOW_OFFSET;
+
     RppLayoutParams layoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
 
     if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
     {
+        if (allocatedSrcBufferSizeInBytes < ((srcDescPtr->offsetInBytes * 2) + (srcDescPtr->n * srcDescPtr->c * srcDescPtr->h * srcDescPtr->w * sizeof(Rpp8u))))
+            return RPP_ERROR_INVALID_ARGUMENTS;
+
         box_filter_u8_u8_host_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
                                      srcDescPtr,
                                      static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
