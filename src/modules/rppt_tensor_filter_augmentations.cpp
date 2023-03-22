@@ -42,8 +42,16 @@ RppStatus rppt_box_filter_host(RppPtr_t srcPtr,
 {
     if ((kernelSize != 3) && (kernelSize != 5) && (kernelSize != 7) && (kernelSize != 9))
         return RPP_ERROR_INVALID_ARGUMENTS;
-    if (srcDescPtr->offsetInBytes < (kernelSize / 2) * (srcDescPtr->w + 1) * 12)
-        return RPP_ERROR_LOW_OFFSET;
+    if(srcDescPtr->layout == dstDescPtr->layout == RpptLayout::NHWC)
+    {
+        if (srcDescPtr->offsetInBytes < ((kernelSize / 2) * (srcDescPtr->w + 1) * 12) * srcDescPtr->c)
+            return RPP_ERROR_LOW_OFFSET;
+    }
+    else
+    {
+        if (srcDescPtr->offsetInBytes < (kernelSize / 2) * (srcDescPtr->w + 1) * 12)
+            return RPP_ERROR_LOW_OFFSET;
+    }
 
     RppLayoutParams layoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
 
