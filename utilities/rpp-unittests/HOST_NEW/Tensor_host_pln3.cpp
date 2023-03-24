@@ -524,12 +524,12 @@ int main(int argc, char **argv)
 
     // Convert default OpenCV PKD3 to PLN3 for first input batch
 
-    Rpp8u *inputCopy = (Rpp8u *)calloc(ioBufferSize, sizeof(Rpp8u));
-    memcpy(inputCopy, input, ioBufferSize * sizeof(Rpp8u));
+    Rpp8u *inputCopy = (Rpp8u *)calloc(ioBufferSizeInBytes_u8, sizeof(Rpp8u));
+    memcpy(inputCopy, input, ioBufferSizeInBytes_u8 * sizeof(Rpp8u));
 
     Rpp8u *inputTemp, *inputCopyTemp;
-    inputTemp = input;
-    inputCopyTemp = inputCopy;
+    inputTemp = input + srcDescPtr->offsetInBytes;
+    inputCopyTemp = inputCopy + + srcDescPtr->offsetInBytes;
 
     for (int count = 0; count < noOfImages; count++)
     {

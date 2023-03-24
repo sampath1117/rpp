@@ -9,13 +9,13 @@ inline void rpp_shuffle_and_conv(__m128i *pxSrc, __m128i shuffleMask, __m128i *p
     // pxSrc[2] - R8 G8 B8 R9 G9 B9 R10 G10 B10 R11 G11 B11 R12 G12 B12 R13
     // pxSrc[3] - R12 G12 B12 R13 G13 B13 R14 G14 B14 R15 B15 G15 R16 B16 G16 R17
     __m128i pxTemp[4];
-    pxTemp[0] = _mm_shuffle_epi8(pxSrc[0], shuffleMask); // X0 X1 X2 X3 0 0 0 0
-    pxTemp[1] = _mm_shuffle_epi8(pxSrc[1], shuffleMask); // X4 X5 X6 X7 0 0 0 0
-    pxTemp[2] = _mm_shuffle_epi8(pxSrc[2], shuffleMask); // X8 X9 X10 X11 0 0 0 0
-    pxTemp[3] = _mm_shuffle_epi8(pxSrc[3], shuffleMask); // X12 X13 X14 X15 0 0 0 0
+    pxTemp[0] = _mm_shuffle_epi8(pxSrc[0], shuffleMask); // X0 0 X1 0 | X2 0 X3 0 | 0 0 0 0 | 0 0 0 0
+    pxTemp[1] = _mm_shuffle_epi8(pxSrc[1], shuffleMask); // X4 0 X5 0 | X6 0 X7 0 | 0 0 0 0 | 0 0 0 0
+    pxTemp[2] = _mm_shuffle_epi8(pxSrc[2], shuffleMask); // X8 0 X9 0 | X10 0 X11 0 | 0 0 0 0 | 0 0 0 0
+    pxTemp[3] = _mm_shuffle_epi8(pxSrc[3], shuffleMask); // X12 0 X13 0 | X14 0 X15 0 | 0 0 0 0 | 0 0 0 0
 
-    pxTemp[0] = _mm_unpacklo_epi64(pxTemp[0], pxTemp[1]); // X0 X1 X2 X3 X4 X5 X6 X7
-    pxTemp[1] = _mm_unpacklo_epi64(pxTemp[2], pxTemp[3]); // X8 X9 X10 X11 X12 X13 X14 X15
+    pxTemp[0] = _mm_unpacklo_epi64(pxTemp[0], pxTemp[1]); // X0 0 X1 0 | X2 0 X3 0 | X4 0 X5 0 | X6 0 X7 0
+    pxTemp[1] = _mm_unpacklo_epi64(pxTemp[2], pxTemp[3]); // X8 0 X9 0 | X10 0 X11 0 | X12 0 X13 0 | X14 0 X15 0
 
     pxColConv[0] = _mm_add_epi16(pxColConv[0], pxTemp[0]);
     pxColConv[1] = _mm_add_epi16(pxColConv[1], pxTemp[1]);
@@ -52,6 +52,16 @@ inline void rpp_pln_to_pkd_lower(__m128i *pxRowConv, __m128i shiftMask, __m128i 
 
 inline void rpp_pln_to_pkd_higher(__m128i *pxRowConv, __m128i shiftMask, __m128i* pxRes)
 {
+    // pxRowConv[0] - R0 0 R1 0 | R2 0 R3 0 | R4 0 R5 0 | R6 0 R7 0
+    // pxRowConv[2] - G0 0 G1 0 | G2 0 G3 0 | G4 0 G5 0 | G6 0 G7 0
+    // xmm_px0      - 0  0 0  0 | 0  0 0  0 | 0  0 0  0 | 0  0 0  0
+    // pxRowConv[4] - B0 0 B1 0 | B2 0 B3 0 | B4 0 B5 0 | B6 0 B7 0
+
+    // R4 G4 0 0 | R5 G5 0 0 | R6 G6 0 0 | R7 G7 0 0
+    // 0 0 B4 0  | 0 0 B5 0  | 0 0 B6 0 | 0 0 B7 0
+    // R4 G4 B4 0 R5 G5 B5 0 R6 G6 B6 0 R7 G7 B7 0
+    // R4 G4 B4 R5 G5 B5 R6 G6 B6 R7 G7 B7 0 0 0 0
+
     __m128i pTemp[2];
     pTemp[0] = _mm_unpackhi_epi8(pxRowConv[0], pxRowConv[2]);
     pTemp[1] = _mm_unpackhi_epi16(xmm_px0, pxRowConv[4]);
@@ -59,6 +69,29 @@ inline void rpp_pln_to_pkd_higher(__m128i *pxRowConv, __m128i shiftMask, __m128i
     pxRes[0] = _mm_shuffle_epi8(pTemp[0], shiftMask);
 }
 
+inline void rpp_pln_to_pkd_new(__m128i *pxRowConv, __m128i *pxRes, __m128i pxMask1, __m128i pxMask2)
+{
+    // Saturate and pack to 8 bits
+    pxRowConv[0] = _mm_packus_epi16(pxRowConv[0], pxRowConv[1]); // R0 - R15
+    pxRowConv[1] = _mm_packus_epi16(pxRowConv[2], pxRowConv[3]); // G0 - G15
+    pxRowConv[2] = _mm_packus_epi16(pxRowConv[4], pxRowConv[5]); // B0 - B15
+
+    // Shuffle to get the outputs
+    __m128i pxTemp[4];
+    pxTemp[0] = _mm_unpacklo_epi8(pxRowConv[0], pxRowConv[1]); // R0 G0 - R7 G7
+    pxTemp[1] = _mm_unpacklo_epi64(pxTemp[0], pxRowConv[2]); // R0 G0 R1 G1 R2 G2 R3 G3 | B0 B1 B2 B3 B4 B5 B6 B7
+    pxRes[0] = _mm_shuffle_epi8(pxTemp[1], pxMask1);
+
+    pxTemp[2] = _mm_unpackhi_epi64(pxTemp[0], pxTemp[1]); // R4 G4 R5 G5 R6 G6 R7 G7 | B0 B1 B2 B3 B4 B5 B6 B7
+    pxRes[1] = _mm_shuffle_epi8(pxTemp[2], pxMask2);
+
+    pxTemp[0] = _mm_unpackhi_epi8(pxRowConv[0], pxRowConv[1]); // R8 G8 - R15 G15
+    pxTemp[1] = _mm_unpackhi_epi64(pxTemp[0], pxRowConv[2]); // R8 G8 R9 G9 R10 G10 R11 G11 | B8 B9 B10 B11 B12 B13 B14 B15
+    pxRes[2] = _mm_shuffle_epi8(pxTemp[1], pxMask1);
+
+    pxTemp[2] = _mm_unpackhi_epi64(pxTemp[0], pxTemp[1]); // R12 G12 R13 G13 R14 G14 R15 G15 | B8 B9 B10 B11 B12 B13 B14 B15
+    pxRes[3] = _mm_shuffle_epi8(pxTemp[2], pxMask2);
+}
 
 RppStatus box_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                                        RpptDescPtr srcDescPtr,
@@ -74,7 +107,9 @@ RppStatus box_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
     const __m128i maskR16 = _mm_setr_epi8(0, 0x80, 3, 0x80, 6, 0x80, 9, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80);
     const __m128i maskG16 = _mm_setr_epi8(1, 0x80, 4, 0x80, 7, 0x80, 10, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80);
     const __m128i maskB16 = _mm_setr_epi8(2, 0x80, 5, 0x80, 8, 0x80, 11, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80);
-    const __m128i shiftMask = _mm_setr_epi8(0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80);
+
+    const __m128i pxMask1 = _mm_setr_epi8(0, 1, 8, 2, 3, 9, 4, 5, 10, 6, 7, 11, 0x80, 0x80, 0x80, 0x80);
+    const __m128i pxMask2 = _mm_setr_epi8(0, 1, 12, 2, 3, 13, 4, 5, 14, 6, 7, 15, 0x80, 0x80, 0x80, 0x80);
 
     omp_set_dynamic(0);
 #pragma omp parallel for num_threads(dstDescPtr->n)
@@ -243,7 +278,7 @@ RppStatus box_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
             Rpp32u alignedLength = (bufferLength / 48) * 48;
 
             Rpp8u *srcPtrCol, *dstPtrCol;
-            srcPtrCol = srcPtrChannel - (padLength * srcDescPtr->strides.hStride) - padLength;
+            srcPtrCol = srcPtrChannel - (padLength * srcDescPtr->strides.hStride) - padLength - 2;
             dstPtrCol = dstPtrChannel;
 
             int vectorLoopCount = 0;
@@ -262,8 +297,6 @@ RppStatus box_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                 srcPtrRowConv = srcPtrRow;
 
                 __m128i pxSrc[4];
-                __m128i pxZero = _mm_setzero_si128();
-
                 __m128i pxRowConv[6],  pxColConv[6];
                 rpp_reset_variables(pxRowConv);
                 rpp_reset_variables(pxColConv);
@@ -273,15 +306,16 @@ RppStatus box_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                 for (int kWidth = 0; kWidth < kernelSize; kWidth++)
                 {
                     // Load 16R, 16G, 16B values
-                    pxSrc[0] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + kWidth));
-                    pxSrc[1] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + kWidth + 12));
-                    pxSrc[2] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + kWidth + 24));
-                    pxSrc[3] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + kWidth + 36));
+                    pxSrc[0] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + 3 * kWidth));
+                    pxSrc[1] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + 3 * kWidth + 12));
+                    pxSrc[2] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + 3 * kWidth + 24));
+                    pxSrc[3] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + 3 * kWidth + 36));
 
                     rpp_shuffle_and_conv(pxSrc, maskR16, &pxColConv[0]); // R Channel
                     rpp_shuffle_and_conv(pxSrc, maskG16, &pxColConv[2]); // G Channel
                     rpp_shuffle_and_conv(pxSrc, maskB16, &pxColConv[4]); // B Channel
                 }
+
                 pxRowConv[0] = pxColConv[0];
                 pxRowConv[1] = pxColConv[1];
                 pxRowConv[2] = pxColConv[2];
@@ -300,10 +334,10 @@ RppStatus box_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                     for (int kWidth = 0; kWidth < kernelSize; kWidth++)
                     {
                         // Load 16R, 16G, 16B values
-                        pxSrc[0] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + kWidth));
-                        pxSrc[1] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + kWidth + 12));
-                        pxSrc[2] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + kWidth + 24));
-                        pxSrc[3] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + kWidth + 36));
+                        pxSrc[0] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + 3 * kWidth));
+                        pxSrc[1] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + 3 * kWidth + 12));
+                        pxSrc[2] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + 3 * kWidth + 24));
+                        pxSrc[3] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + 3 * kWidth + 36));
 
                         rpp_shuffle_and_conv(pxSrc, maskR16, &pxColConv[0]); // R Channel
                         rpp_shuffle_and_conv(pxSrc, maskG16, &pxColConv[2]); // G Channel
@@ -334,10 +368,7 @@ RppStatus box_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                 pxRowConv[5] = _mm_mulhi_epi16(pxRowConv[3], pxMul); // B8 - B15
 
                 __m128i pxRes[4];
-                rpp_pln_to_pkd_lower(&pxRowConv[0], shiftMask, &pxRes[0]); // RGB 00-03
-                rpp_pln_to_pkd_higher(&pxRowConv[0], shiftMask, &pxRes[1]); // RGB 04-07
-                rpp_pln_to_pkd_lower(&pxRowConv[1], shiftMask, &pxRes[2]); // RGB 05-08
-                rpp_pln_to_pkd_higher(&pxRowConv[1], shiftMask, &pxRes[3]); // RGB 09-11
+                rpp_pln_to_pkd_new(pxRowConv, pxRes, pxMask1, pxMask2);
 
                 _mm_storeu_si128((__m128i *)dstPtrRow, pxRes[0]);
                 _mm_storeu_si128((__m128i *)(dstPtrRow + 12), pxRes[1]);
@@ -373,10 +404,10 @@ RppStatus box_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                     for (int kWidth = 0; kWidth < kernelSize; kWidth++)
                     {
                         // Load 16R, 16G, 16B values
-                        pxSrc[0] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + kWidth));
-                        pxSrc[1] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + kWidth + 12));
-                        pxSrc[2] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + kWidth + 24));
-                        pxSrc[3] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + kWidth + 36));
+                        pxSrc[0] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + 3 * kWidth));
+                        pxSrc[1] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + 3 * kWidth + 12));
+                        pxSrc[2] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + 3 * kWidth + 24));
+                        pxSrc[3] = _mm_loadu_si128((__m128i *)(srcPtrRowConv + 3 * kWidth + 36));
 
                         rpp_shuffle_and_conv(pxSrc, maskR16, &pxColConv[0]); // R Channel
                         rpp_shuffle_and_conv(pxSrc, maskG16, &pxColConv[2]); // G Channel
@@ -399,10 +430,7 @@ RppStatus box_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
 
                     // Multiply by convolution factor and write to destination
                     __m128i pxRes[4];
-                    rpp_pln_to_pkd_lower(&pxRowConv[0], shiftMask, &pxRes[0]); // RGB 00-03
-                    rpp_pln_to_pkd_higher(&pxRowConv[0], shiftMask, &pxRes[1]); // RGB 04-07
-                    rpp_pln_to_pkd_lower(&pxRowConv[1], shiftMask, &pxRes[2]); // RGB 05-08
-                    rpp_pln_to_pkd_higher(&pxRowConv[1], shiftMask, &pxRes[3]); // RGB 09-11
+                    rpp_pln_to_pkd_new(pxRowConv, pxRes, pxMask1, pxMask2);
 
                     // R0 G0 B0 R1 G1 B1 R2 G2 B2 R3 G3 R4 G4 0
                     _mm_storeu_si128((__m128i *)dstPtrRow, pxRes[0]);

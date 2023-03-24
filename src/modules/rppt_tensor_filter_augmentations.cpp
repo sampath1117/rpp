@@ -42,12 +42,12 @@ RppStatus rppt_box_filter_host(RppPtr_t srcPtr,
 {
     if ((kernelSize != 3) && (kernelSize != 5) && (kernelSize != 7) && (kernelSize != 9))
         return RPP_ERROR_INVALID_ARGUMENTS;
-    if(srcDescPtr->layout == dstDescPtr->layout == RpptLayout::NHWC)
-    {
-        if (srcDescPtr->offsetInBytes < ((kernelSize / 2) * (srcDescPtr->w + 1) * 12) * srcDescPtr->c)
-            return RPP_ERROR_LOW_OFFSET;
-    }
-    else
+    // if ((srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
+    // {
+    //     if (srcDescPtr->offsetInBytes < ((kernelSize / 2) * (srcDescPtr->w + 1) * 12) * srcDescPtr->c)
+    //         return RPP_ERROR_LOW_OFFSET;
+    // }
+    if(1)
     {
         if (srcDescPtr->offsetInBytes < (kernelSize / 2) * (srcDescPtr->w + 1) * 12)
             return RPP_ERROR_LOW_OFFSET;
@@ -57,9 +57,6 @@ RppStatus rppt_box_filter_host(RppPtr_t srcPtr,
 
     if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
     {
-        if (allocatedSrcBufferSizeInBytes < ((srcDescPtr->offsetInBytes * 2) + (srcDescPtr->n * srcDescPtr->c * srcDescPtr->h * srcDescPtr->w * sizeof(Rpp8u))))
-            return RPP_ERROR_INVALID_ARGUMENTS;
-
         box_filter_u8_u8_host_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
                                      srcDescPtr,
                                      static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
