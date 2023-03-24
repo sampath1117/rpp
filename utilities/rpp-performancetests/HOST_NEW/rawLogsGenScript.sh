@@ -21,8 +21,8 @@ cwd=$(pwd)
 # DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/three_images_224x224_src2"
 
 # Input Images - Eight images (224 x 224)
-DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/eight_images_224x224_src1"
-DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/eight_images_224x224_src2"
+DEFAULT_SRC_FOLDER_1="/media/sampath/rppTestImages/1920x1080_0128_images_src1"
+DEFAULT_SRC_FOLDER_2="/media/sampath/rppTestImages/1920x1080_0128_images_src1"
 
 # Input Images - Two images (mixed size)
 # DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/two_images_mixed_src1"
@@ -147,7 +147,7 @@ do
     for ((bitDepth=0;bitDepth<1;bitDepth++))
     do
         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
-        for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
+        for ((outputFormatToggle=0;outputFormatToggle<1;outputFormatToggle++))
         do
 
             SRC_FOLDER_1_TEMP="$SRC_FOLDER_1"
@@ -169,6 +169,13 @@ do
                 do
                     printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case $interpolationType 0"
                     ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$interpolationType" "0" | tee -a "$DST_FOLDER/Tensor_host_pkd3_host_raw_performance_log.txt"
+                done
+            elif [ "$case" -eq 40 ] || [ "$case" -eq 41 ] || [ "$case" -eq 49 ]
+            then
+                for ((kernelSize=3;kernelSize<=3;kernelSize+=2))
+                do
+                    printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $kernelSize 0"
+                    ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0" | tee -a "$DST_FOLDER/Tensor_host_pkd3_host_raw_performance_log.txt"
                 done
             else
                 printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
@@ -228,7 +235,7 @@ do
                 done
             elif [ "$case" -eq 40 ] || [ "$case" -eq 41 ] || [ "$case" -eq 49 ]
             then
-                for ((kernelSize=3;kernelSize<=9;kernelSize+=2))
+                for ((kernelSize=3;kernelSize<=3;kernelSize+=2))
                 do
                     printf "\n./Tensor_host_pln1 $SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0"
                     ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0" | tee -a "$DST_FOLDER/Tensor_host_pln1_host_raw_performance_log.txt"
@@ -266,7 +273,7 @@ do
     for ((bitDepth=0;bitDepth<1;bitDepth++))
     do
         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
-        for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
+        for ((outputFormatToggle=0;outputFormatToggle<1;outputFormatToggle++))
         do
 
             SRC_FOLDER_1_TEMP="$SRC_FOLDER_1"
@@ -291,10 +298,17 @@ do
                 done
             elif [ "$case" -eq 40 ] || [ "$case" -eq 41 ] || [ "$case" -eq 49 ]
             then
-                for ((kernelSize=3;kernelSize<=9;kernelSize+=2))
+                for ((kernelSize=3;kernelSize<=3;kernelSize+=2))
                 do
                     printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0"
                     ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0" | tee -a "$DST_FOLDER/Tensor_host_pln3_host_raw_performance_log.txt"
+                done
+            elif [ "$case" -eq 40 ] || [ "$case" -eq 41 ] || [ "$case" -eq 49 ]
+            then
+                for ((kernelSize=3;kernelSize<=3;kernelSize+=2))
+                do
+                    printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $kernelSize 0"
+                    ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0" | tee -a "$DST_FOLDER/Tensor_host_pln3_host_raw_performance_log.txt"
                 done
             else
                 printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
