@@ -304,6 +304,219 @@ __global__ void box_filter_9x9_pkd_tensor(T *srcPtr,
     }
 }
 
+// -------------------- Set 2 - PLN1->PLN1, PLN3->PLN3 for T = U8/F32/F16/I8 --------------------
+
+// kernelSize = 3
+template <typename T>
+__global__ void box_filter_3x3_pln_tensor(T *srcPtr,
+                                          uint3 srcStridesNCH,
+                                          T *dstPtr,
+                                          uint3 dstStridesNCH,
+                                          int channelsDst,
+                                          uint padLength,
+                                          uint2 tileSize,
+                                          RpptROIPtr roiTensorPtrSrc,
+                                          d_float9 *filterTensor)
+{
+    int hipThreadIdx_x8 = hipThreadIdx_x << 3;
+    int id_x_o = (hipBlockIdx_x * tileSize.x * 8) + hipThreadIdx_x8;
+    int id_y_o = hipBlockIdx_y * tileSize.y + hipThreadIdx_y;
+    int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
+
+    int id_x_i = id_x_o - padLength;
+    int id_y_i = id_y_o - padLength;
+
+    d_float9 filter_f9 = filterTensor[id_z];
+
+    d_float8 sum_f8;
+    __shared__ uchar src_lds[16][128];
+
+    int srcIdx = (id_z * srcStridesNCH.x) + ((id_y_i + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (id_x_i + roiTensorPtrSrc[id_z].xywhROI.xy.x);
+    int dstIdx = (id_z * dstStridesNCH.x) + (id_y_o * dstStridesNCH.z) + id_x_o;
+    sum_f8.f4[0] = (float4) 0;
+    sum_f8.f4[1] = (float4) 0;
+    if ((id_x_i >= -(int)padLength) && (id_x_i < roiTensorPtrSrc[id_z].xywhROI.roiWidth) &&
+        (id_y_i >= 0) && (id_y_i < roiTensorPtrSrc[id_z].xywhROI.roiHeight))
+        rpp_hip_load8_to_uchar8(srcPtr + srcIdx, &src_lds[hipThreadIdx_y][hipThreadIdx_x8]);
+    else
+        *(uint2 *)&src_lds[hipThreadIdx_y][hipThreadIdx_x8] = (uint2)0;
+    __syncthreads();
+    if ((id_x_o < roiTensorPtrSrc[id_z].xywhROI.roiWidth) &&
+        (id_y_o < roiTensorPtrSrc[id_z].xywhROI.roiHeight) &&
+        (hipThreadIdx_x < tileSize.x) &&
+        (hipThreadIdx_y < tileSize.y))
+    {
+        box_filter_3x3_row_hip_compute(&src_lds[hipThreadIdx_y    ][hipThreadIdx_x8], &sum_f8, &filter_f9, 0);
+        box_filter_3x3_row_hip_compute(&src_lds[hipThreadIdx_y + 1][hipThreadIdx_x8], &sum_f8, &filter_f9, 3);
+        box_filter_3x3_row_hip_compute(&src_lds[hipThreadIdx_y + 2][hipThreadIdx_x8], &sum_f8, &filter_f9, 6);
+        rpp_hip_adjust_range(dstPtr, &sum_f8);
+        rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &sum_f8);
+    }
+
+    if (channelsDst == 3)
+    {
+        __syncthreads();
+        srcIdx += srcStridesNCH.y;
+        dstIdx += dstStridesNCH.y;
+        sum_f8.f4[0] = (float4) 0;
+        sum_f8.f4[1] = (float4) 0;
+        if ((id_x_i >= -(int)padLength) && (id_x_i < roiTensorPtrSrc[id_z].xywhROI.roiWidth) &&
+            (id_y_i >= 0) && (id_y_i < roiTensorPtrSrc[id_z].xywhROI.roiHeight))
+            rpp_hip_load8_to_uchar8(srcPtr + srcIdx, &src_lds[hipThreadIdx_y][hipThreadIdx_x8]);
+        else
+            *(uint2 *)&src_lds[hipThreadIdx_y][hipThreadIdx_x8] = (uint2)0;
+        __syncthreads();
+        if ((id_x_o < roiTensorPtrSrc[id_z].xywhROI.roiWidth) &&
+            (id_y_o < roiTensorPtrSrc[id_z].xywhROI.roiHeight) &&
+            (hipThreadIdx_x < tileSize.x) &&
+            (hipThreadIdx_y < tileSize.y))
+        {
+            box_filter_3x3_row_hip_compute(&src_lds[hipThreadIdx_y    ][hipThreadIdx_x8], &sum_f8, &filter_f9, 0);
+            box_filter_3x3_row_hip_compute(&src_lds[hipThreadIdx_y + 1][hipThreadIdx_x8], &sum_f8, &filter_f9, 3);
+            box_filter_3x3_row_hip_compute(&src_lds[hipThreadIdx_y + 2][hipThreadIdx_x8], &sum_f8, &filter_f9, 6);
+            rpp_hip_adjust_range(dstPtr, &sum_f8);
+            rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &sum_f8);
+        }
+
+        __syncthreads();
+        srcIdx += srcStridesNCH.y;
+        dstIdx += dstStridesNCH.y;
+        sum_f8.f4[0] = (float4) 0;
+        sum_f8.f4[1] = (float4) 0;
+        if ((id_x_i >= -(int)padLength) && (id_x_i < roiTensorPtrSrc[id_z].xywhROI.roiWidth) &&
+            (id_y_i >= 0) && (id_y_i < roiTensorPtrSrc[id_z].xywhROI.roiHeight))
+            rpp_hip_load8_to_uchar8(srcPtr + srcIdx, &src_lds[hipThreadIdx_y][hipThreadIdx_x8]);
+        else
+            *(uint2 *)&src_lds[hipThreadIdx_y][hipThreadIdx_x8] = (uint2)0;
+        __syncthreads();
+        if ((id_x_o < roiTensorPtrSrc[id_z].xywhROI.roiWidth) &&
+            (id_y_o < roiTensorPtrSrc[id_z].xywhROI.roiHeight) &&
+            (hipThreadIdx_x < tileSize.x) &&
+            (hipThreadIdx_y < tileSize.y))
+        {
+            box_filter_3x3_row_hip_compute(&src_lds[hipThreadIdx_y    ][hipThreadIdx_x8], &sum_f8, &filter_f9, 0);
+            box_filter_3x3_row_hip_compute(&src_lds[hipThreadIdx_y + 1][hipThreadIdx_x8], &sum_f8, &filter_f9, 3);
+            box_filter_3x3_row_hip_compute(&src_lds[hipThreadIdx_y + 2][hipThreadIdx_x8], &sum_f8, &filter_f9, 6);
+            rpp_hip_adjust_range(dstPtr, &sum_f8);
+            rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &sum_f8);
+        }
+    }
+}
+
+// kernelSize = 9
+template <typename T>
+__global__ void box_filter_9x9_pln_tensor(T *srcPtr,
+                                          uint3 srcStridesNCH,
+                                          T *dstPtr,
+                                          uint3 dstStridesNCH,
+                                          int channelsDst,
+                                          uint padLength,
+                                          uint2 tileSize,
+                                          RpptROIPtr roiTensorPtrSrc,
+                                          d_float81 *filterTensor)
+{
+    int hipThreadIdx_x8 = hipThreadIdx_x << 3;
+    int id_x_o = (hipBlockIdx_x * tileSize.x * 8) + hipThreadIdx_x8;
+    int id_y_o = hipBlockIdx_y * tileSize.y + hipThreadIdx_y;
+    int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
+
+    int id_x_i = id_x_o - padLength;
+    int id_y_i = id_y_o - padLength;
+    d_float8 sum_f8;
+    __shared__ uchar src_lds[16][128];
+
+    d_float81 filter_f81 = filterTensor[id_z];
+
+    int srcIdx = (id_z * srcStridesNCH.x) + ((id_y_i + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (id_x_i + roiTensorPtrSrc[id_z].xywhROI.xy.x);
+    int dstIdx = (id_z * dstStridesNCH.x) + (id_y_o * dstStridesNCH.z) + id_x_o;
+    sum_f8.f4[0] = (float4) 0;
+    sum_f8.f4[1] = (float4) 0;
+    if ((id_x_i >= -(int)padLength) && (id_x_i < roiTensorPtrSrc[id_z].xywhROI.roiWidth) &&
+        (id_y_i >= 0) && (id_y_i < roiTensorPtrSrc[id_z].xywhROI.roiHeight))
+        rpp_hip_load8_to_uchar8(srcPtr + srcIdx, &src_lds[hipThreadIdx_y][hipThreadIdx_x8]);
+    else
+        *(uint2 *)&src_lds[hipThreadIdx_y][hipThreadIdx_x8] = (uint2)0;
+    __syncthreads();
+    if ((id_x_o < roiTensorPtrSrc[id_z].xywhROI.roiWidth) &&
+        (id_y_o < roiTensorPtrSrc[id_z].xywhROI.roiHeight) &&
+        (hipThreadIdx_x < tileSize.x) &&
+        (hipThreadIdx_y < tileSize.y))
+    {
+        box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y    ][hipThreadIdx_x8], &sum_f8, &filter_f81, 0);
+        box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 1][hipThreadIdx_x8], &sum_f8, &filter_f81, 9);
+        box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 2][hipThreadIdx_x8], &sum_f8, &filter_f81, 18);
+        box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 3][hipThreadIdx_x8], &sum_f8, &filter_f81, 27);
+        box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 4][hipThreadIdx_x8], &sum_f8, &filter_f81, 36);
+        box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 5][hipThreadIdx_x8], &sum_f8, &filter_f81, 45);
+        box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 6][hipThreadIdx_x8], &sum_f8, &filter_f81, 54);
+        box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 7][hipThreadIdx_x8], &sum_f8, &filter_f81, 63);
+        box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 8][hipThreadIdx_x8], &sum_f8, &filter_f81, 72);
+        rpp_hip_adjust_range(dstPtr, &sum_f8);
+        rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &sum_f8);
+    }
+
+    if (channelsDst == 3)
+    {
+        __syncthreads();
+        srcIdx += srcStridesNCH.y;
+        dstIdx += dstStridesNCH.y;
+        sum_f8.f4[0] = (float4) 0;
+        sum_f8.f4[1] = (float4) 0;
+        if ((id_x_i >= -(int)padLength) && (id_x_i < roiTensorPtrSrc[id_z].xywhROI.roiWidth) &&
+            (id_y_i >= 0) && (id_y_i < roiTensorPtrSrc[id_z].xywhROI.roiHeight))
+            rpp_hip_load8_to_uchar8(srcPtr + srcIdx, &src_lds[hipThreadIdx_y][hipThreadIdx_x8]);
+        else
+            *(uint2 *)&src_lds[hipThreadIdx_y][hipThreadIdx_x8] = (uint2)0;
+        __syncthreads();
+        if ((id_x_o < roiTensorPtrSrc[id_z].xywhROI.roiWidth) &&
+            (id_y_o < roiTensorPtrSrc[id_z].xywhROI.roiHeight) &&
+            (hipThreadIdx_x < tileSize.x) &&
+            (hipThreadIdx_y < tileSize.y))
+        {
+            box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y    ][hipThreadIdx_x8], &sum_f8, &filter_f81, 0);
+            box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 1][hipThreadIdx_x8], &sum_f8, &filter_f81, 9);
+            box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 2][hipThreadIdx_x8], &sum_f8, &filter_f81, 18);
+            box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 3][hipThreadIdx_x8], &sum_f8, &filter_f81, 27);
+            box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 4][hipThreadIdx_x8], &sum_f8, &filter_f81, 36);
+            box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 5][hipThreadIdx_x8], &sum_f8, &filter_f81, 45);
+            box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 6][hipThreadIdx_x8], &sum_f8, &filter_f81, 54);
+            box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 7][hipThreadIdx_x8], &sum_f8, &filter_f81, 63);
+            box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 8][hipThreadIdx_x8], &sum_f8, &filter_f81, 72);
+            rpp_hip_adjust_range(dstPtr, &sum_f8);
+            rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &sum_f8);
+        }
+
+        __syncthreads();
+        srcIdx += srcStridesNCH.y;
+        dstIdx += dstStridesNCH.y;
+        sum_f8.f4[0] = (float4) 0;
+        sum_f8.f4[1] = (float4) 0;
+        if ((id_x_i >= -(int)padLength) && (id_x_i < roiTensorPtrSrc[id_z].xywhROI.roiWidth) &&
+            (id_y_i >= 0) && (id_y_i < roiTensorPtrSrc[id_z].xywhROI.roiHeight))
+            rpp_hip_load8_to_uchar8(srcPtr + srcIdx, &src_lds[hipThreadIdx_y][hipThreadIdx_x8]);
+        else
+            *(uint2 *)&src_lds[hipThreadIdx_y][hipThreadIdx_x8] = (uint2)0;
+        __syncthreads();
+        if ((id_x_o < roiTensorPtrSrc[id_z].xywhROI.roiWidth) &&
+            (id_y_o < roiTensorPtrSrc[id_z].xywhROI.roiHeight) &&
+            (hipThreadIdx_x < tileSize.x) &&
+            (hipThreadIdx_y < tileSize.y))
+        {
+            box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y    ][hipThreadIdx_x8], &sum_f8, &filter_f81, 0);
+            box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 1][hipThreadIdx_x8], &sum_f8, &filter_f81, 9);
+            box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 2][hipThreadIdx_x8], &sum_f8, &filter_f81, 18);
+            box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 3][hipThreadIdx_x8], &sum_f8, &filter_f81, 27);
+            box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 4][hipThreadIdx_x8], &sum_f8, &filter_f81, 36);
+            box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 5][hipThreadIdx_x8], &sum_f8, &filter_f81, 45);
+            box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 6][hipThreadIdx_x8], &sum_f8, &filter_f81, 54);
+            box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 7][hipThreadIdx_x8], &sum_f8, &filter_f81, 63);
+            box_filter_9x9_row_hip_compute(&src_lds[hipThreadIdx_y + 8][hipThreadIdx_x8], &sum_f8, &filter_f81, 72);
+            rpp_hip_adjust_range(dstPtr, &sum_f8);
+            rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &sum_f8);
+        }
+    }
+}
+
 __device__ float gaussian(int x, int y, float mulFactor)
 {
     float expFactor = - ((x * x) + (y * y)) * mulFactor;
@@ -385,15 +598,15 @@ RppStatus hip_exec_box_filter_tensor(T *srcPtr,
     tileSize.x = (128 - padLengthTwice) / 8;
     tileSize.y = 16 - padLengthTwice;
 
+    // Create a filter of size (kernel size x kernel size)
+    void *filterTensor;
+    int numValues = kernelSize * kernelSize;
+    hipMalloc(&filterTensor,  numValues * dstDescPtr->n * sizeof(float));
+    hip_exec_fill_kernel_values((float *)filterTensor, kernelSize, handle);
+
     if ((srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
     {
         globalThreads_x = (dstDescPtr->strides.hStride / 3 + 7) >> 3;
-
-        // Create a filter of size (kernel size x kernel size)
-        void *filterTensor;
-        int numValues = kernelSize * kernelSize;
-        hipMalloc(&filterTensor,  numValues * dstDescPtr->n * sizeof(float));
-        hip_exec_fill_kernel_values((float *)filterTensor, kernelSize, handle);
 
         if (kernelSize == 3)
         {
@@ -429,8 +642,46 @@ RppStatus hip_exec_box_filter_tensor(T *srcPtr,
                                (d_float81 *)filterTensor);
 
         }
-        hipFree(filterTensor);
     }
+    else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
+    {
+        if (kernelSize == 3)
+        {
+            hipLaunchKernelGGL(box_filter_3x3_pln_tensor,
+                               dim3(ceil((float)globalThreads_x/tileSize.x), ceil((float)globalThreads_y/tileSize.y), ceil((float)globalThreads_z/localThreads_z)),
+                               dim3(localThreads_x, localThreads_y, localThreads_z),
+                               0,
+                               handle.GetStream(),
+                               srcPtr,
+                               make_uint3(srcDescPtr->strides.nStride, srcDescPtr->strides.cStride, srcDescPtr->strides.hStride),
+                               dstPtr,
+                               make_uint3(dstDescPtr->strides.nStride, dstDescPtr->strides.cStride, dstDescPtr->strides.hStride),
+                               dstDescPtr->c,
+                               padLength,
+                               tileSize,
+                               roiTensorPtrSrc,
+                               (d_float9 *)filterTensor);
+        }
+        else if (kernelSize == 9)
+        {
+            hipLaunchKernelGGL(box_filter_9x9_pln_tensor,
+                               dim3(ceil((float)globalThreads_x/tileSize.x), ceil((float)globalThreads_y/tileSize.y), ceil((float)globalThreads_z/localThreads_z)),
+                               dim3(localThreads_x, localThreads_y, localThreads_z),
+                               0,
+                               handle.GetStream(),
+                               srcPtr,
+                               make_uint3(srcDescPtr->strides.nStride, srcDescPtr->strides.cStride, srcDescPtr->strides.hStride),
+                               dstPtr,
+                               make_uint3(dstDescPtr->strides.nStride, dstDescPtr->strides.cStride, dstDescPtr->strides.hStride),
+                               dstDescPtr->c,
+                               padLength,
+                               tileSize,
+                               roiTensorPtrSrc,
+                               (d_float81 *)filterTensor);
+        }
+    }
+
+    hipFree(filterTensor);
 
     return RPP_SUCCESS;
 }

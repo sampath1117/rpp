@@ -2600,7 +2600,7 @@ int main(int argc, char **argv)
 
             start_omp = omp_get_wtime();
             start = clock();
-            
+
             if (ip_bitDepth == 0)
                 rppi_gaussian_filter_u8_pkd3_batchPD_gpu(d_input, srcSize, maxSize, d_output, stdDev, kernelSize, noOfImages, handle);
             else if (ip_bitDepth == 1)

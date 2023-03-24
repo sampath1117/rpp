@@ -748,7 +748,9 @@ int main(int argc, char **argv)
 
     for (int perfRunCount = 0; perfRunCount < 100; perfRunCount++)
     {
-        double gpu_time_used;
+        double gpu_time_used = 0, omp_time_used = 0;
+        double start_omp = 0, end_omp = 0;
+
         switch (test_case)
         {
         case 0:
@@ -1884,6 +1886,7 @@ int main(int argc, char **argv)
             roiTypeDst = RpptRoiType::LTRB;*/
 
             start = clock();
+            start_omp = omp_get_wtime();
 
             if (ip_bitDepth == 0)
                 rppt_box_filter_gpu(d_input, srcDescPtr, d_output, dstDescPtr, kernelSize, roiTensorPtrSrc, roiTypeSrc, handle);
@@ -2177,6 +2180,7 @@ int main(int argc, char **argv)
 
         hipDeviceSynchronize();
         end = clock();
+        end_omp = omp_get_wtime();
 
         if (missingFuncFlag == 1)
         {
@@ -2186,12 +2190,17 @@ int main(int argc, char **argv)
 
         // Display measured times
 
-        gpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-        if (gpu_time_used > max_time_used)
-            max_time_used = gpu_time_used;
-        if (gpu_time_used < min_time_used)
-            min_time_used = gpu_time_used;
-        avg_time_used += gpu_time_used;
+        omp_time_used = end_omp - start_omp;
+        if (omp_time_used > max_time_used)
+            max_time_used = omp_time_used;
+        if (omp_time_used < min_time_used)
+            min_time_used = omp_time_used;
+        // gpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+        // if (gpu_time_used > max_time_used)
+        //     max_time_used = gpu_time_used;
+        // if (gpu_time_used < min_time_used)
+        //     min_time_used = gpu_time_used;
+        avg_time_used += omp_time_used;
     }
 
     avg_time_used /= 100;
