@@ -403,4 +403,95 @@ RppStatus rppt_mel_filter_bank_gpu(RppPtr_t srcPtr,
 #endif // backend
 }
 
+RppStatus rppt_slice_gpu(RppPtr_t srcPtr,
+                         RpptDescPtr srcDescPtr,
+                         RppPtr_t dstPtr,
+                         RpptDescPtr dstDescPtr,
+                         Rpp32s *srcLengthTensor,
+                         Rpp32f *anchorTensor,
+                         Rpp32f *shapeTensor,
+                         Rpp32f *fillValues,
+                         rppHandle_t rppHandle)
+{
+#ifdef HIP_COMPILE
+    Rpp32u paramIndex = 0;
+    copy_param_int2(srcLengthTensor, rpp::deref(rppHandle), paramIndex);
+    copy_param_float2(anchorTensor, rpp::deref(rppHandle), paramIndex++);
+    copy_param_float2(shapeTensor, rpp::deref(rppHandle), paramIndex++);
+
+    hip_exec_slice_tensor((Rpp32f*)srcPtr,
+                      srcDescPtr,
+                      (Rpp32f*)dstPtr,
+                      dstDescPtr,
+                      fillValues,
+                      rpp::deref(rppHandle));
+
+    return RPP_SUCCESS;
+#elif defined(OCL_COMPILE)
+    return RPP_ERROR_NOT_IMPLEMENTED;
+#endif // backend
+}
+
+RppStatus rppt_normalize_audio_gpu(RppPtr_t srcPtr,
+                                   RpptDescPtr srcDescPtr,
+                                   RppPtr_t dstPtr,
+                                   RpptDescPtr dstDescPtr,
+                                   Rpp32s *srcDimsTensor,
+                                   Rpp32s axisMask,
+                                   Rpp32f mean,
+                                   Rpp32f stdDev,
+                                   Rpp32f scale,
+                                   Rpp32f shift,
+                                   Rpp32f epsilon,
+                                   Rpp32s ddof,
+                                   rppHandle_t rppHandle)
+{
+#ifdef HIP_COMPILE
+    Rpp32u paramIndex = 0;
+    Rpp32s *srcReductionDims = (Rpp32s *)malloc(srcDescPtr->n * 2 * sizeof(int));
+
+    for(int i = 0; i < srcDescPtr->n; i++)
+    {
+        Rpp32s ind = 2 * i;
+        if (axisMask == 3)
+        {
+            srcReductionDims[ind] = 1;
+            srcReductionDims[ind + 1] = srcDimsTensor[ind] * srcDimsTensor[ind + 1];
+        }
+        else if (axisMask == 1)
+        {
+            srcReductionDims[ind] = srcDimsTensor[ind + 1];
+            srcReductionDims[ind + 1] = srcDimsTensor[ind];
+        }
+        else if (axisMask == 2)
+        {
+            srcReductionDims[ind] = srcDimsTensor[ind];
+            srcReductionDims[ind + 1] = srcDimsTensor[ind + 1];
+        }
+    }
+
+    copy_param_int2(srcReductionDims, rpp::deref(rppHandle), paramIndex++);
+    free(srcReductionDims);
+
+    if (srcDescPtr->dataType == RpptDataType::F32)
+    {
+        hip_exec_normalize_audio_tensor((Rpp32f*)(srcPtr),
+                                        srcDescPtr,
+                                        (Rpp32f*)(dstPtr),
+                                        dstDescPtr,
+                                        axisMask,
+                                        mean,
+                                        stdDev,
+                                        scale,
+                                        shift,
+                                        epsilon,
+                                        ddof,
+                                        rpp::deref(rppHandle));
+    }
+    return RPP_SUCCESS;
+#elif defined(OCL_COMPILE)
+    return RPP_ERROR_NOT_IMPLEMENTED;
+#endif // backend
+}
+
 #endif // GPU_SUPPORT

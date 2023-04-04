@@ -27,5 +27,7 @@ THE SOFTWARE.
 #include "kernel/pre_emphasis_filter.hpp"
 #include "kernel/spectrogram.hpp"
 #include "kernel/mel_filter_bank.hpp"
+#include "kernel/slice.hpp"
+#include "kernel/normalize.hpp"
 
 #endif // HIP_TENSOR_AUDIO_HPP
