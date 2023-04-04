@@ -24,25 +24,25 @@ SRC_FOLDER="$DEFAULT_SRC_FOLDER"
 DST_FOLDER="$DEFAULT_DST_FOLDER"
 
 # <<<<<<<<<<<<<< EXECUTION OF ALL FUNCTIONALITIES (NEED NOT CHANGE) >>>>>>>>>>>>>>
-if [[ "$1" -lt 1 ]] | [[ "$1" -gt 6 ]]; then
-    echo "The starting case# must be in the 1-6 range!"
+if [[ "$1" -lt 1 ]] | [[ "$1" -gt 8 ]]; then
+    echo "The starting case# must be in the 1-8 range!"
     echo
     echo "The testAllScript.sh bash script runs the RPP audio unittest testsuite for AMDRPP functionalities in HIP/OCL/HIP backends."
     echo
     echo "Syntax: ./testAllScriptAudio.sh <S> <E>"
-    echo "S     CASE_START (Starting case# (1-6))"
-    echo "E     CASE_END (Ending case# (1-6))"
+    echo "S     CASE_START (Starting case# (1-8))"
+    echo "E     CASE_END (Ending case# (1-8))"
     exit 1
 fi
 
-if [[ "$2" -lt 1 ]] | [[ "$2" -gt 6 ]]; then
-    echo "The ending case# must be in the 1-6 range!"
+if [[ "$2" -lt 1 ]] | [[ "$2" -gt 8 ]]; then
+    echo "The ending case# must be in the 1-8 range!"
     echo
     echo "The testAllScript.sh bash script runs the RPP audio unittest testsuite for AMDRPP functionalities in HIP/OCL/HIP backends."
     echo
     echo "Syntax: ./testAllScriptAudio.sh <S> <E>"
-    echo "S     CASE_START (Starting case# (1-6))"
-    echo "E     CASE_END (Ending case# (1-6))"
+    echo "S     CASE_START (Starting case# (1-8))"
+    echo "E     CASE_END (Ending case# (1-8))"
     exit 1
 fi
 
