@@ -126,13 +126,23 @@ RppStatus mel_filter_bank_host_tensor(Rpp32f *srcPtr,
             }
         }
 
-        // Set all values in dst buffer to 0.0
-        for(int i = 0; i < dstDescPtr->strides.nStride; i++)
-            dstPtrTemp[i] = 0.0f;
-        // memset(dstPtrTemp, 0.0f, (size_t)(dstDescPtr->strides.nStride * sizeof(Rpp32f)));
-
         Rpp32u vectorIncrement = 8;
         Rpp32u alignedLength = (numFrames / 8) * 8;
+
+        // Set ROI values in dst buffer to 0.0
+        for(int i = 0; i < numFilter; i++)
+        {
+            Rpp32f *dstPtrRow = dstPtrTemp + i * dstDescPtr->strides.hStride;
+            Rpp32u vectorLoopCount = 0;
+            for(; vectorLoopCount < alignedLength; vectorLoopCount += 8)
+            {
+                _mm256_storeu_ps(dstPtrRow, avx_p0);
+                dstPtrRow += 8;
+            }
+            for(; vectorLoopCount < numFrames; vectorLoopCount++)
+                *dstPtrRow++ = 0.0f;
+        }
+
         __m256 pSrc, pDst;
         Rpp32f *srcRowPtr = srcPtrTemp + fftBinStart * srcDescPtr->strides.hStride;
         for (int64_t fftBin = fftBinStart; fftBin < fftBinEnd; fftBin++) {

@@ -173,6 +173,44 @@ void normalize_2D_tensor(Rpp32f *srcPtr, RpptDescPtr srcDescPtr, Rpp32f *dstPtr,
     }
 }
 
+void normalize_2D_tensor_avx_axis2(Rpp32f *srcPtr, RpptDescPtr srcDescPtr, Rpp32f *dstPtr, RpptDescPtr dstDescPtr,
+                                   Rpp32f *meanPtr, Rpp32f *invStdDevPtr, Rpp32f shift, Rpp32u *dims, Rpp32u *paramStride)
+{
+    Rpp32f *srcPtrTemp = srcPtr;
+    Rpp32f *dstPtrTemp = dstPtr;
+    Rpp32s paramIdx = 0;
+    Rpp32u vectorIncrement = 8;
+    Rpp32u bufferLength = dims[1];
+    Rpp32u alignedLength = (bufferLength / 8) * 8;
+    Rpp32u numRows = dims[0];
+
+    __m256 pShift = _mm256_set1_ps(shift);
+    for(Rpp32u i = 0; i < numRows; i++)
+    {
+        Rpp32f *srcPtrTempRow = srcPtrTemp + i * srcDescPtr->strides.hStride;
+        Rpp32f *dstPtrTempRow = dstPtrTemp + i * dstDescPtr->strides.hStride;
+
+        // set mean and stddev
+        Rpp32f mean = meanPtr[i];
+        Rpp32f invStdDev = invStdDevPtr[i];
+        __m256 pMean, pInvStdDev;
+        pMean = _mm256_set1_ps(mean);
+        pInvStdDev = _mm256_set1_ps(invStdDev);
+
+        Rpp32u vectorLoopCount = 0;
+        for(; vectorLoopCount < alignedLength ; vectorLoopCount += 8)
+        {
+            __m256 pSrc = _mm256_loadu_ps(srcPtrTempRow);
+            __m256 pDst = _mm256_add_ps(_mm256_mul_ps(_mm256_sub_ps(pSrc, pMean), pInvStdDev), pShift);
+            _mm256_storeu_ps(dstPtrTempRow, pDst);
+            srcPtrTempRow += 8;
+            dstPtrTempRow += 8;
+        }
+        for(; vectorLoopCount < dims[1] ; vectorLoopCount += 8)
+             *dstPtrTempRow++ = (*srcPtrTempRow++ - mean) * invStdDev + shift;
+    }
+}
+
 RppStatus normalize_audio_host_tensor(Rpp32f* srcPtr,
                                       RpptDescPtr srcDescPtr,
                                       Rpp32f* dstPtr,
@@ -195,9 +233,9 @@ RppStatus normalize_audio_host_tensor(Rpp32f* srcPtr,
         Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
 		Rpp32f *dstPtrTemp = dstPtr + batchCount * dstDescPtr->strides.nStride;
 
-        // // Set all values in dst buffer to 0.0
-        // for(int cnt = 0; cnt < dstDescPtr->strides.nStride; cnt++)
-        //     dstPtrTemp[cnt] = 0.0f;
+        // Set all values in dst buffer to 0.0
+        for(int cnt = 0; cnt < dstDescPtr->strides.nStride; cnt++)
+            dstPtrTemp[cnt] = 0.0f;
 
         Rpp32u srcAudioDims[numOfDims], srcReductionDims[numOfDims], srcStride[numOfDims], paramStride[numOfDims];
         srcAudioDims[0] = srcLengthTensor[batchCount];
@@ -235,7 +273,10 @@ RppStatus normalize_audio_host_tensor(Rpp32f* srcPtr,
             compute_2D_inv_std_dev(srcPtrTemp, meanTensor, stdDevTensor, srcReductionDims, srcStride);
 
         // Inv std dev calculations missing
-        normalize_2D_tensor(srcPtrTemp, srcDescPtr, dstPtrTemp, dstDescPtr, meanTensor, stdDevTensor, shift, srcAudioDims, paramStride);
+        if(axis_mask == 2)
+            normalize_2D_tensor_avx_axis2(srcPtrTemp, srcDescPtr, dstPtrTemp, dstDescPtr, meanTensor, stdDevTensor, shift, srcAudioDims, paramStride);
+        else
+            normalize_2D_tensor(srcPtrTemp, srcDescPtr, dstPtrTemp, dstDescPtr, meanTensor, stdDevTensor, shift, srcAudioDims, paramStride);
 
         // No mean and std dev
         // No mean
