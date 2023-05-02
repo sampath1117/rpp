@@ -126,23 +126,25 @@ RppStatus mel_filter_bank_host_tensor(Rpp32f *srcPtr,
             }
         }
 
+        Rpp32u maxFrames = std::min((Rpp32u)numFrames + 8, dstDescPtr->strides.hStride);
+        Rpp32u maxAlignedLength = (maxFrames / 8) * 8;
         Rpp32u vectorIncrement = 8;
-        Rpp32u alignedLength = (numFrames / 8) * 8;
 
         // Set ROI values in dst buffer to 0.0
         for(int i = 0; i < numFilter; i++)
         {
             Rpp32f *dstPtrRow = dstPtrTemp + i * dstDescPtr->strides.hStride;
             Rpp32u vectorLoopCount = 0;
-            for(; vectorLoopCount < alignedLength; vectorLoopCount += 8)
+            for(; vectorLoopCount < maxAlignedLength; vectorLoopCount += 8)
             {
                 _mm256_storeu_ps(dstPtrRow, avx_p0);
                 dstPtrRow += 8;
             }
-            for(; vectorLoopCount < numFrames; vectorLoopCount++)
+            for(; vectorLoopCount < maxFrames; vectorLoopCount++)
                 *dstPtrRow++ = 0.0f;
         }
 
+        Rpp32u alignedLength = (numFrames / 8) * 8;
         __m256 pSrc, pDst;
         Rpp32f *srcRowPtr = srcPtrTemp + fftBinStart * srcDescPtr->strides.hStride;
         for (int64_t fftBin = fftBinStart; fftBin < fftBinEnd; fftBin++) {
