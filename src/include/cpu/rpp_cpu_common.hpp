@@ -2529,6 +2529,14 @@ inline void compute_brightness_24_host(__m128 *p, __m128 *pBrightnessParams)
     p[5] = _mm_fmadd_ps(p[5], pBrightnessParams[0], pBrightnessParams[1]);    // brightness adjustment
 }
 
+inline void compute_brightness_16_host(__m512 *p, __m512 *pBrightnessParams)
+{
+    p[0] = _mm512_fmadd_ps(p[0], pBrightnessParams[0], pBrightnessParams[1]);    // brightness adjustment
+    p[1] = _mm512_fmadd_ps(p[1], pBrightnessParams[0], pBrightnessParams[1]);
+    p[2] = _mm512_fmadd_ps(p[2], pBrightnessParams[0], pBrightnessParams[1]);
+    p[3] = _mm512_fmadd_ps(p[3], pBrightnessParams[0], pBrightnessParams[1]);
+}
+
 inline void compute_brightness_16_host(__m256 *p, __m256 *pBrightnessParams)
 {
     p[0] = _mm256_fmadd_ps(p[0], pBrightnessParams[0], pBrightnessParams[1]);    // brightness adjustment
