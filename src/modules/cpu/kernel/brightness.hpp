@@ -219,7 +219,7 @@ RppStatus brightness_u8_u8_host_tensor(Rpp8u *srcPtr,
         // Brightness without fused output-layout toggle (NHWC -> NHWC or NCHW ->
         // NCHW)
         else {
-        Rpp32u alignedLength = bufferLength & ~96;
+        Rpp32u alignedLength = bufferLength & ~63;
         for (int c = 0; c < layoutParams.channelParam; c++) {
             Rpp8u *srcPtrRow, *dstPtrRow;
             srcPtrRow = srcPtrChannel;
@@ -231,12 +231,12 @@ RppStatus brightness_u8_u8_host_tensor(Rpp8u *srcPtr,
             dstPtrTemp = dstPtrRow;
 
             int vectorLoopCount = 0;
-            for (; vectorLoopCount < alignedLength; vectorLoopCount += 96) {
+            for (; vectorLoopCount < alignedLength; vectorLoopCount += 64) {
 #if __AVX512__
                 __m512 p[4];
-                rpp_simd_load(rpp_load16_u8_to_f32_avx512, srcPtrTemp, p);
-                compute_brightness_16_host(p, pBrightnessParams);
-                rpp_simd_store(rpp_store16_f32_to_u8_avx512, dstPtrTemp, p);
+                rpp_simd_load(rpp_load64_u8_to_f32_avx512, srcPtrTemp, p);
+                compute_brightness_64_host(p, pBrightnessParams);
+                rpp_simd_store(rpp_store64_f32_to_u8_avx512, dstPtrTemp, p);
 #elif __AVX2__
                 __m256 p[2];
                 __m256 pBrightnessParams[2];
@@ -257,8 +257,8 @@ RppStatus brightness_u8_u8_host_tensor(Rpp8u *srcPtr,
                 rpp_simd_store(rpp_store16_f32_to_u8, dstPtrTemp,
                             p);  // simd stores
 #endif
-                srcPtrTemp += 16;
-                dstPtrTemp += 16;
+                srcPtrTemp += 64;
+                dstPtrTemp += 64;
             }
             for (; vectorLoopCount < bufferLength; vectorLoopCount++) {
                 *dstPtrTemp = (Rpp8u)RPPPIXELCHECK(
