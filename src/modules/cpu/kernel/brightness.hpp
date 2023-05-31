@@ -31,9 +31,8 @@ RppStatus brightness_u8_u8_host_tensor(Rpp8u *srcPtr, RpptDescPtr srcDescPtr,
                                        RpptRoiType roiType,
                                        RppLayoutParams layoutParams) {
   RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
-  // printf("\n Batch size = %d\n", dstDescPtr->n);
-//    omp_set_dynamic(0);
-// #pragma omp parallel for num_threads(dstDescPtr->n)
+   omp_set_dynamic(0);
+#pragma omp parallel for num_threads(dstDescPtr->n)
   for (int batchCount = 0; batchCount < dstDescPtr->n; batchCount++) {
     RpptROI roi;
     RpptROIPtr roiPtrInput = &roiTensorPtrSrc[batchCount];
@@ -163,16 +162,16 @@ RppStatus brightness_u8_u8_host_tensor(Rpp8u *srcPtr, RpptDescPtr srcDescPtr,
         int vectorLoopCount = 0;
         for (; vectorLoopCount < alignedLength;
              vectorLoopCount += vectorIncrementPerChannel) {
-// #if __AVX512__
+#if __AVX512__
+            __m512 p[3];
+            rpp_simd_load(rpp_load48_u8pln3_to_f32pln3_avx512, srcPtrTempR,
+                        srcPtrTempG, srcPtrTempB, p);  // simd loads
+            compute_brightness_48_host1(
+              p, pBrightnessParams);  // brightness adjustment
+            rpp_simd_store(rpp_store48_f32pln3_to_u8pkd3_avx512, dstPtrTemp,
+                         p);  // simd stores
 
-//             __m512 p[3];
-//             rpp_simd_load(rpp_load48_u8pln3_to_f32pln3_avx512, srcPtrTempR,
-//                         srcPtrTempG, srcPtrTempB, p);  // simd loads
-//             compute_brightness_48_host(
-//               p, pBrightnessParams);  // brightness adjustment
-//             rpp_simd_store(rpp_store48_f32pln3_to_u8pkd3_avx, dstPtrTemp,
-//                          p);  // simd stores
-#if __AVX2__
+#elif __AVX2__
           __m256 p[6];
           __m256 pBrightnessParams[2];
           pBrightnessParams[0] = _mm256_set1_ps(alpha);
