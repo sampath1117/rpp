@@ -1456,17 +1456,12 @@ inline void rpp_store64_f32_to_u8_avx512(Rpp8u *dstPtr, __m512 *p)
     pxCvt[1] = _mm512_cvtusepi32_epi8(px[1]);
     pxCvt[2] = _mm512_cvtusepi32_epi8(px[2]);
     pxCvt[3] = _mm512_cvtusepi32_epi8(px[3]);
-    // _mm_storeu_si128((__m128i *)dstPtr, pxCvt[0]);
-    // _mm_storeu_si128((__m128i *)dstPtr + 48, pxCvt[1]);
-    // _mm_storeu_si128((__m128i *)dstPtr + 96, pxCvt[2]);
-    // _mm_storeu_si128((__m128i *)dstPtr + 144, pxCvt[3]);
+
     __m512i out;
     out = _mm512_inserti32x4(_mm512_setzero_epi32(), pxCvt[0], 0);
     out = _mm512_inserti32x4(out, pxCvt[1], 1);
     out = _mm512_inserti32x4(out, pxCvt[2], 2);
     out = _mm512_inserti32x4(out, pxCvt[3], 3);
-    printf("\nInitial Storing\n");
-    rpp_mm512_print_epi8(out);
     _mm512_storeu_si512((__m512i *)dstPtr, out);
 }
 
