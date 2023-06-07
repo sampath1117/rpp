@@ -139,7 +139,7 @@ AMD ROCm Performance Primitives (**RPP**) library is a comprehensive high-perfor
   sudo make install
   ```
 
-## Build & Install RPP 
+## Build & Install RPP
 
 The ROCm Performance Primitives (RPP) library has support for three backends: HIP, OpenCL, and CPU:
 
@@ -221,7 +221,11 @@ $ sudo make install
 
     // Create handle
     rppHandle_t handle;
-    rppCreateWithBatchSize(&handle, noOfImages);
+
+    // Set the number of threads to be used by OpenMP pragma for RPP batch processing on host.
+    // If numThreads value passed is 0, number of OpenMP threads used by RPP will be set to batch size
+    Rpp32u numThreads = 0;
+    rppCreateWithBatchSize(&handle, noOfImages, numThreads);
 
     // Call the RPP API for the specific variant required (pkd3/pln3/pln1)
     rppi_brightness_u8_pkd3_batchPD_host(input, srcSize, maxSize, output, alpha, beta, noOfImages, handle);
@@ -346,6 +350,6 @@ Review all notable [changes](CHANGELOG.md#changelog) with the latest release
   + CentOS - `7` / `8`
   + RedHat - `8` / `9`
   + SLES - `15-SP3`
-* ROCm: rocm-core - `5.4.0.50400-72`
+* ROCm: rocm-core - `5.5.0.50500-63`
 * Protobuf - [V3.12.4](https://github.com/protocolbuffers/protobuf/releases/tag/v3.12.4)
 * OpenCV - [4.6.0](https://github.com/opencv/opencv/releases/tag/4.6.0)
