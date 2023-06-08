@@ -343,9 +343,9 @@ int main(int argc, char **argv)
                 Rpp32f detectedIndex[noOfAudioFiles];
                 Rpp32f detectionLength[noOfAudioFiles];
                 Rpp32f cutOffDB = -60.0;
-                Rpp32s windowLength = 3;
+                Rpp32s windowLength = 2048;
                 Rpp32f referencePower = 0.0f;
-                Rpp32s resetInterval = -1;
+                Rpp32s resetInterval = 8192;
 
                 start_omp = omp_get_wtime();
                 start = clock();
@@ -361,9 +361,9 @@ int main(int argc, char **argv)
             case 1:
             {
                 test_case_name = "to_decibels";
-                Rpp32f cutOffDB = -200.0;
-                Rpp32f multiplier = 10.0;
-                Rpp32f referenceMagnitude = 0.0;
+                Rpp32f cutOffDB = std::log(1e-20);
+                Rpp32f multiplier = std::log(10);
+                Rpp32f referenceMagnitude = 1.0f;
 
                 for (i = 0; i < noOfAudioFiles; i++)
                 {
@@ -434,13 +434,13 @@ int main(int argc, char **argv)
                     shape[i] =  dstDims[i].width = 200;
                     anchor[i] = 100;
                 }
-                fillValues[0] = 0.5f;
+                fillValues[0] = 0.0f;
 
                 start_omp = omp_get_wtime();
                 start = clock();
                 if (ip_bitDepth == 2)
                 {
-                    rppt_slice_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcLengthTensor, anchor, shape, fillValues);
+                    rppt_slice_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcDimsTensor, anchor, shape, fillValues);
                 }
                 else
                     missingFuncFlag = 1;
@@ -455,7 +455,7 @@ int main(int argc, char **argv)
                 Rpp32f minFreq = 0.0;
                 Rpp32f maxFreq = sampleRate / 2;
                 RpptMelScaleFormula melFormula = RpptMelScaleFormula::SLANEY;
-                Rpp32s numFilter = 128;
+                Rpp32s numFilter = 80;
                 bool normalize = true;
 
                 // Read source dimension
@@ -518,9 +518,9 @@ int main(int argc, char **argv)
                 bool reflectPadding = true;
                 Rpp32f *windowFn = NULL;
                 Rpp32s power = 2;
-                Rpp32s windowLength = 512;
-                Rpp32s windowStep = 256;
-                Rpp32s nfft = windowLength;
+                Rpp32s windowLength = 320;
+                Rpp32s windowStep = 160;
+                Rpp32s nfft = 512;
                 RpptSpectrogramLayout layout = RpptSpectrogramLayout::FT;
 
                 int windowOffset = 0;
@@ -584,7 +584,7 @@ int main(int argc, char **argv)
                 for(int i = 0; i < noOfAudioFiles; i++)
                 {
                     inRateTensor[i] = 16000;
-                    outRateTensor[i] = 18400;
+                    outRateTensor[i] = 16000 * 1.15f;
                     Rpp32f scaleRatio = outRateTensor[i] / inRateTensor[i];
                     dstDims[i].width = (int)std::ceil(scaleRatio * srcLengthTensor[i]);
                     maxDstWidth = std::max(maxDstWidth, (int)dstDims[i].width);
