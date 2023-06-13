@@ -1458,12 +1458,10 @@ inline void rpp_store64_f32_to_u8_avx512(Rpp8u *dstPtr, __m512 *p)
     pxCvt[2] = _mm512_cvtusepi32_epi8(px[2]);
     pxCvt[3] = _mm512_cvtusepi32_epi8(px[3]);
 
-    __m512i out;
-    out = _mm512_inserti32x4(_mm512_setzero_epi32(), pxCvt[0], 0);
-    out = _mm512_inserti32x4(out, pxCvt[1], 1);
-    out = _mm512_inserti32x4(out, pxCvt[2], 2);
-    out = _mm512_inserti32x4(out, pxCvt[3], 3);
-    _mm512_storeu_si512((__m512i *)dstPtr, out);
+    _mm_storeu_si128((__m128i *)dstPtr, pxCvt[0]);
+    _mm_storeu_si128((__m128i *)(dstPtr+16), pxCvt[1]);
+    _mm_storeu_si128((__m128i *)(dstPtr+32), pxCvt[2]);
+    _mm_storeu_si128((__m128i *)(dstPtr+48), pxCvt[3]);
 }
 
 inline void rpp_store16_f32_to_u8_avx(Rpp8u *dstPtr, __m256 *p)
@@ -1476,6 +1474,35 @@ inline void rpp_store16_f32_to_u8_avx(Rpp8u *dstPtr, __m256 *p)
     px[2] = _mm_packus_epi32(_mm256_extracti128_si256(pxCvt, 0), _mm256_extracti128_si256(pxCvt, 1));    /* pack pixels 8-15 for R */
     px[0] = _mm_packus_epi16(px[1], px[2]);    /* pack pixels 0-15 */
     _mm_storeu_si128((__m128i *)dstPtr, px[0]);
+}
+
+inline void rpp_load48_f32pkd3_to_f32pln3_avx512(Rpp32f *srcPtr, __m512 *p)
+{
+    __m512i px[2];
+    px[0] = _mm512_loadu_si512((__m512i *)srcPtr);
+    __m512i pxCvt[6];
+
+    __mmask64 maskR = 0x0000249249249249;
+    __mmask64 maskG = 0x0000492492492492;
+    __mmask64 maskB = 0x0000924924924924;
+
+    pxCvt[0] = _mm512_bslli_epi128 (_mm512_maskz_mov_epi8 (maskR, px[0]),1);
+    pxCvt[1] = _mm512_bslli_epi128 (_mm512_maskz_mov_epi8 (maskG, px[0]),4);
+    pxCvt[2] = _mm512_bslli_epi128 (_mm512_maskz_mov_epi8 (maskB, px[0]),7);
+
+    __m128i input[3];
+    input[0] = _mm512_castsi512_si128 (pxCvt[0]);
+    input[1] = _mm512_castsi512_si128 (pxCvt[1]);
+    input[2] = _mm512_castsi512_si128 (pxCvt[2]);
+
+    __m512i output[3];
+    output[0] = _mm512_cvtepu8_epi32(input[0]);
+    output[1] = _mm512_cvtepu8_epi32(input[1]);
+    output[2] = _mm512_cvtepu8_epi32(input[2]);
+
+    p[0] = _mm512_cvtepu32_ps(output[0]);
+    p[1] = _mm512_cvtepu32_ps(output[1]);
+    p[2] = _mm512_cvtepu32_ps(output[2]);
 }
 
 inline void rpp_load24_f32pkd3_to_f32pln3_avx(Rpp32f *srcPtr, __m256 *p)

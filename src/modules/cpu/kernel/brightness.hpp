@@ -753,6 +753,7 @@ RppStatus brightness_f16_f16_host_tensor(Rpp16f *srcPtr,
                             srcPtrTemp_ps[cnt] = (Rpp16f) srcPtrTemp[cnt];
                         }
 #if __AVX512__
+                        __m512 p[1];
                         rpp_simd_load(rpp_load16_f32_to_f32_avx512, srcPtrTemp_ps, p);    // simd loads
                         compute_brightness_16_host(p, pBrightnessParams);  // brightness adjustment
                         rpp_simd_store(rpp_store16_f32_to_f32_avx512, dstPtrTemp_ps, p);    // simd stores
