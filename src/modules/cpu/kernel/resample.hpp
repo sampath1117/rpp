@@ -2,16 +2,15 @@
 #include "rpp_cpu_simd.hpp"
 #include "rpp_cpu_common.hpp"
 
-inline double Hann(double x) {
+inline Rpp64f Hann(Rpp64f x) {
     return 0.5 * (1 + std::cos(x * M_PI));
 }
 
 struct ResamplingWindow {
-    inline std::pair<int, int> input_range(Rpp32f x) {
-        int xc = ceilf(x);
-        int i0 = xc - lobes;
-        int i1 = xc + lobes;
-        return {i0, i1};
+    inline void input_range(Rpp32f x, Rpp32s *i0, Rpp32s *i1) {
+        Rpp32s xc = ceilf(x);
+        *i0 = xc - lobes;
+        *i1 = xc + lobes;
     }
 
     inline Rpp32f operator()(Rpp32f x) {
@@ -29,25 +28,24 @@ struct ResamplingWindow {
         __m128i i = _mm_cvttps_epi32(fi);
         __m128 fifloor = _mm_cvtepi32_ps(i);
         __m128 di = _mm_sub_ps(fi, fifloor);
-        i = _mm_max_epi32(_mm_min_epi32(i, pxLookupMax), xmm_px0);
         int idx[4];
         _mm_storeu_si128(reinterpret_cast<__m128i*>(idx), i);
         __m128 curr = _mm_setr_ps(lookup[idx[0]],   lookup[idx[1]],
                                 lookup[idx[2]],   lookup[idx[3]]);
         __m128 next = _mm_setr_ps(lookup[idx[0]+1], lookup[idx[1]+1],
                                 lookup[idx[2]+1], lookup[idx[3]+1]);
+
         return _mm_add_ps(curr, _mm_mul_ps(di, _mm_sub_ps(next, curr)));
     }
 
     Rpp32f scale = 1, center = 1;
     Rpp32s lobes = 0, coeffs = 0;
     Rpp32s lookup_size = 0;
-    __m128i pxLookupMax;
     std::vector<Rpp32f> lookup;
 };
 
 inline void windowed_sinc(ResamplingWindow &window,
-        int coeffs, int lobes, std::function<double(double)> envelope = Hann) {
+        Rpp32s coeffs, Rpp32s lobes, std::function<Rpp64f(Rpp64f)> envelope = Hann) {
     Rpp32f scale = 2.0f * lobes / (coeffs - 1);
     Rpp32f scale_envelope = 2.0f / coeffs;
     window.coeffs = coeffs;
@@ -55,8 +53,7 @@ inline void windowed_sinc(ResamplingWindow &window,
     window.lookup.clear();
     window.lookup.resize(coeffs + 5);
     window.lookup_size = window.lookup.size();
-    window.pxLookupMax = _mm_set1_epi32(window.lookup_size - 2);
-    int center = (coeffs - 1) * 0.5f;
+    Rpp32s center = (coeffs - 1) * 0.5f;
     for (int i = 0; i < coeffs; i++) {
         Rpp32f x = (i - center) * scale;
         Rpp32f y = (i - center) * scale_envelope;
@@ -94,41 +91,41 @@ RppStatus resample_host_tensor(Rpp32f *srcPtr,
             memcpy(dstPtrTemp, srcPtrTemp, (size_t)(srcLength * numChannels * sizeof(Rpp32f)));
         } else {
             ResamplingWindow window;
-            int lobes = std::round(0.007 * quality * quality - 0.09 * quality + 3);
-            int lookupSize = lobes * 64 + 1;
+            Rpp32s lobes = std::round(0.007 * quality * quality - 0.09 * quality + 3);
+            Rpp32s lookupSize = lobes * 64 + 1;
             windowed_sinc(window, lookupSize, lobes);
-            int64_t outBegin = 0;
-            int64_t outEnd = std::ceil(srcLength * outRate / inRate);
-            int64_t inPos = 0;
-            int64_t block = 1 << 8;
-            double scale = (double)inRate / outRate;
+            Rpp32s outBegin = 0;
+            Rpp32s outEnd = std::ceil(srcLength * outRate / inRate);
+            Rpp32s inPos = 0;
+            Rpp32s block = 1 << 8;
+            Rpp64f scale = (Rpp64f)inRate / outRate;
             Rpp32f fscale = scale;
 
             if(numChannels == 1) {
-                for (int64_t outBlock = outBegin; outBlock < outEnd; outBlock += block) {
-                    int64_t blockEnd = std::min(outBlock + block, outEnd);
-                    double inBlockRaw = outBlock * scale;
-                    int64_t inBlockRounded = std::floor(inBlockRaw);
+                for (int outBlock = outBegin; outBlock < outEnd; outBlock += block) {
+                    Rpp32s blockEnd = std::min(outBlock + block, outEnd);
+                    Rpp64f inBlockRaw = outBlock * scale;
+                    Rpp32s inBlockRounded = std::floor(inBlockRaw);
                     Rpp32f inPos = inBlockRaw - inBlockRounded;
                     const Rpp32f * __restrict__ inBlockPtr = srcPtrTemp + inBlockRounded;
 
-                    for (int64_t outPos = outBlock; outPos < blockEnd; outPos++, inPos += fscale) {
-                        int i0, i1;
-                        std::tie(i0, i1) = window.input_range(inPos);
+                    for (int outPos = outBlock; outPos < blockEnd; outPos++, inPos += fscale) {
+                        Rpp32s i0, i1;
+                        window.input_range(inPos, &i0, &i1);
                         if (i0 + inBlockRounded < 0)
                             i0 = -inBlockRounded;
                         if (i1 + inBlockRounded > srcLength)
                             i1 = srcLength - inBlockRounded;
                         Rpp32f f = 0.0f;
-                        int i = i0;
+                        Rpp32s i = i0;
 
-                        __m128 f4 = _mm_setzero_ps();
+                        __m128 f4 = xmm_p0;
                         __m128 x4 = _mm_setr_ps(i - inPos, i + 1 - inPos, i + 2 - inPos, i + 3 - inPos);
                         for (; i + 3 < i1; i += 4) {
                             __m128 w4 = window(x4);
 
                             f4 = _mm_add_ps(f4, _mm_mul_ps(_mm_loadu_ps(inBlockPtr + i), w4));
-                            x4 = _mm_add_ps(x4, _mm_set1_ps(4));
+                            x4 = _mm_add_ps(x4, xmm_p4);
                         }
 
                         f4 = _mm_add_ps(f4, _mm_shuffle_ps(f4, f4, _MM_SHUFFLE(1, 0, 3, 2)));
@@ -148,16 +145,16 @@ RppStatus resample_host_tensor(Rpp32f *srcPtr,
             else {
                 std::vector<Rpp32f> tmp;
                 tmp.resize(numChannels);
-                for (int64_t outBlock = outBegin; outBlock < outEnd; outBlock += block) {
-                    int64_t blockEnd = std::min(outBlock + block, outEnd);
-                    double inBlockRaw = outBlock * scale;
-                    int64_t inBlockRounded = std::floor(inBlockRaw);
+                for (int outBlock = outBegin; outBlock < outEnd; outBlock += block) {
+                    Rpp32s blockEnd = std::min(outBlock + block, outEnd);
+                    Rpp64f inBlockRaw = outBlock * scale;
+                    Rpp32s inBlockRounded = std::floor(inBlockRaw);
 
                     Rpp32f inPos = inBlockRaw - inBlockRounded;
                     const Rpp32f * __restrict__ inBlockPtr = srcPtrTemp + inBlockRounded * numChannels;
-                    for (int64_t outPos = outBlock; outPos < blockEnd; outPos++, inPos += fscale) {
-                        int i0, i1;
-                        std::tie(i0, i1) = window.input_range(inPos);
+                    for (int outPos = outBlock; outPos < blockEnd; outPos++, inPos += fscale) {
+                        Rpp32s i0, i1;
+                        window.input_range(inPos, &i0, &i1);
                         if (i0 + inBlockRounded < 0)
                             i0 = -inBlockRounded;
                         if (i1 + inBlockRounded > srcLength)
@@ -167,8 +164,8 @@ RppStatus resample_host_tensor(Rpp32f *srcPtr,
                             tmp[c] = 0;
 
                         Rpp32f x = i0 - inPos;
-                        int ofs0 = i0 * numChannels;
-                        int ofs1 = i1 * numChannels;
+                        Rpp32s ofs0 = i0 * numChannels;
+                        Rpp32s ofs1 = i1 * numChannels;
 
                         for (int in_ofs = ofs0; in_ofs < ofs1; in_ofs += numChannels, x++) {
                             Rpp32f w = window(x);
