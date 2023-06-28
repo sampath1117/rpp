@@ -327,9 +327,10 @@ RppStatus hip_exec_resize_mirror_normalize_tensor(T *srcPtr,
         int globalThreads_y = dstDescPtr->h;
         int globalThreads_z = handle.GetBatchSize();
 
-        // Set non ROI pixels to zero
-        hipMemset(dstPtr, 0, dstDescPtr->n * dstDescPtr->strides.nStride * sizeof(U));
-
+        // // Set non ROI pixels to zero
+        // hipMemset(dstPtr, 0, dstDescPtr->n * dstDescPtr->strides.nStride * sizeof(U));
+        hipMemsetAsync((void *)dstPtr, 0, dstDescPtr->n * dstDescPtr->strides.nStride * sizeof(U), handle.GetStream());
+        hipStreamSynchronize(handle.GetStream());
         if ((srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
         {
             hipLaunchKernelGGL(resize_mirror_normalize_bilinear_pkd_tensor,
