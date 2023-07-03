@@ -141,7 +141,13 @@ python3 -m sphinx -T -E -b html -d _build/doctrees -D language=en . _build/html
   sudo make install
   ```
 
-## Build & Install RPP 
+* Libsndfile installation
+  ```
+  sudo apt-get update
+  sudo apt-get install libsndfile1-dev
+  ```
+
+## Build & Install RPP
 
 The ROCm Performance Primitives (RPP) library has support for three backends: HIP, OpenCL, and CPU:
 
