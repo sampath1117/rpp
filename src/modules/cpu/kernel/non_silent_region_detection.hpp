@@ -7,7 +7,7 @@ Rpp32f getSquare(Rpp32f &value)
     return (res * res);
 }
 
-Rpp32f getMax(std::vector<float> &values, Rpp32s srcLength)
+Rpp32f getMax(std::vector<Rpp32f> &values, Rpp32s srcLength)
 {
     Rpp32f max = values[0];
     for(int i = 1; i < srcLength; i++)
@@ -23,10 +23,13 @@ RppStatus non_silent_region_detection_host_tensor(Rpp32f *srcPtr,
                                                   Rpp32f cutOffDB,
                                                   Rpp32s windowLength,
                                                   Rpp32f referencePower,
-                                                  Rpp32s resetInterval)
+                                                  Rpp32s resetInterval,
+                                                  rpp::Handle& handle)
 {
+    Rpp32u numThreads = handle.GetNumThreads();
+
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(numThreads)
     for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
     {
         Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
@@ -38,7 +41,7 @@ RppStatus non_silent_region_detection_host_tensor(Rpp32f *srcPtr,
 
         // Calculate buffer size for mms array and allocate mms buffer
         Rpp32s mmsBufferSize = srcLength;
-        std::vector<float> mmsBuffer;
+        std::vector<Rpp32f> mmsBuffer;
         mmsBuffer.reserve(mmsBufferSize);
 
         // Calculate moving mean square of input array and store srcPtrTemp mms buffer
@@ -98,7 +101,7 @@ RppStatus non_silent_region_detection_host_tensor(Rpp32f *srcPtr,
         // Extend non silent region
         if(detectBegin != 0 && detectEnd != 0)
         {
-            Rpp32s newBegin = std::max<int>(detectBegin - (windowLength - 1), 0);
+            Rpp32s newBegin = std::max<Rpp32s>(detectBegin - (windowLength - 1), 0);
             detectEnd += detectBegin - newBegin;
             detectBegin = newBegin;
         }

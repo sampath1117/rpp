@@ -28,7 +28,7 @@ struct ResamplingWindow {
         __m128i i = _mm_cvttps_epi32(fi);
         __m128 fifloor = _mm_cvtepi32_ps(i);
         __m128 di = _mm_sub_ps(fi, fifloor);
-        int idx[4];
+        Rpp32s idx[4];
         _mm_storeu_si128(reinterpret_cast<__m128i*>(idx), i);
         __m128 curr = _mm_setr_ps(lookup[idx[0]],   lookup[idx[1]],
                                 lookup[idx[2]],   lookup[idx[3]]);
@@ -72,10 +72,17 @@ RppStatus resample_host_tensor(Rpp32f *srcPtr,
                                Rpp32f *outRateTensor,
                                Rpp32s *srcLengthTensor,
                                Rpp32s *channelTensor,
-                               Rpp32f quality)
+                               Rpp32f quality,
+                               rpp::Handle& handle)
 {
+    Rpp32u numThreads = handle.GetNumThreads();
+    ResamplingWindow window;
+    Rpp32s lobes = std::round(0.007 * quality * quality - 0.09 * quality + 3);
+    Rpp32s lookupSize = lobes * 64 + 1;
+    windowed_sinc(window, lookupSize, lobes);
+
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(numThreads)
     for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
     {
         Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
@@ -90,10 +97,6 @@ RppStatus resample_host_tensor(Rpp32f *srcPtr,
             // No need of Resampling, do a direct memcpy
             memcpy(dstPtrTemp, srcPtrTemp, (size_t)(srcLength * numChannels * sizeof(Rpp32f)));
         } else {
-            ResamplingWindow window;
-            Rpp32s lobes = std::round(0.007 * quality * quality - 0.09 * quality + 3);
-            Rpp32s lookupSize = lobes * 64 + 1;
-            windowed_sinc(window, lookupSize, lobes);
             Rpp32s outBegin = 0;
             Rpp32s outEnd = std::ceil(srcLength * outRate / inRate);
             Rpp32s inPos = 0;

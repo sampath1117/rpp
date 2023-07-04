@@ -59,7 +59,8 @@ RppStatus mel_filter_bank_host_tensor(Rpp32f *srcPtr,
                                       RpptMelScaleFormula melFormula,
                                       Rpp32s numFilter,
                                       Rpp32f sampleRate,
-                                      bool normalize)
+                                      bool normalize,
+                                      rpp::Handle& handle)
 {
     BaseMelScale *melScalePtr;
     switch(melFormula) {
@@ -71,9 +72,10 @@ RppStatus mel_filter_bank_host_tensor(Rpp32f *srcPtr,
             melScalePtr = new SlaneyMelScale();
             break;
     }
+    Rpp32u numThreads = handle.GetNumThreads();
 
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(numThreads)
     for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
     {
         Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;

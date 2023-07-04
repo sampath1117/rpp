@@ -1,6 +1,4 @@
 #include "rppdefs.h"
-#include "rpp_cpu_simd.hpp"
-#include "rpp_cpu_common.hpp"
 #include "../../../../third_party/ffts/include/ffts.h"
 #include "../../../..//third_party/ffts/include/ffts_attributes.h"
 
@@ -18,17 +16,9 @@ bool is_pow2(int64_t n) { return (n & (n-1)) == 0; }
 
 inline bool can_use_real_impl(int64_t n) { return is_pow2(n); }
 
-inline int64_t size_in_buf(int64_t n) {
-  // Real impl input needs:    N real numbers    -> N floats
-  // Complex impl input needs: N complex numbers -> 2*N floats
-  return can_use_real_impl(n) ? n : 2*n;
-}
+inline int64_t size_in_buf(int64_t n) { return can_use_real_impl(n) ? n : 2 * n; }
 
-inline int64_t size_out_buf(int64_t n) {
-  // Real impl output needs:    (N/2)+1 complex numbers -> N+2 floats
-  // Complex impl output needs: N complex numbers       -> 2*N floats
-  return can_use_real_impl(n) ? n+2 : 2*n;
-}
+inline int64_t size_out_buf(int64_t n) { return can_use_real_impl(n) ? n + 2 : 2 * n; }
 
 inline Rpp32s get_num_windows(Rpp32s length, Rpp32s windowLength, Rpp32s windowStep, bool centerWindows)
 {
@@ -65,7 +55,8 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
                                   Rpp32s power,
                                   Rpp32s windowLength,
                                   Rpp32s windowStep,
-                                  RpptSpectrogramLayout layout)
+                                  RpptSpectrogramLayout layout,
+                                  rpp::Handle& handle)
 {
     Rpp32s windowCenterOffset = 0;
     bool vertical = (layout == RpptSpectrogramLayout::FT);
@@ -79,6 +70,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
     Rpp32s alignedNfftLength = nfft & ~7;
     Rpp32s alignedNbinsLength = numBins & ~7;
     Rpp32s alignedWindowLength = windowLength & ~7;
+    Rpp32u numThreads = handle.GetNumThreads();
 
     std::vector<Rpp32f> windowFn;
     windowFn.resize(windowLength);
@@ -90,7 +82,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
 
     // Get windows output
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(numThreads)
     for (Rpp32s batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
     {
         Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
@@ -98,7 +90,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
         Rpp32s bufferLength = srcLengthTensor[batchCount];
         Rpp32s numWindows = get_num_windows(bufferLength, windowLength, windowStep, centerWindows);
         Rpp32f windowOutput[numWindows * nfft];
-        std::fill_n (windowOutput, numWindows * nfft, 0);
+        std::fill_n(windowOutput, numWindows * nfft, 0);
         for (Rpp64s w = 0; w < numWindows; w++)
         {
             Rpp64s windowStart = w * windowStep - windowCenterOffset;
@@ -173,10 +165,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
             for(int k = 0; k < fftOutSize; k++)
                 fftOutBuf[k] = 0.0f;
 
-            // memset(fftInBuf, 0, fftInSize * sizeof(Rpp32f));
-            // memset(fftOutBuf, 0, fftOutSize * sizeof(Rpp32f));
             Rpp32s inWindowStart = windowLength < nfft ? (nfft - windowLength) / 2 : 0;
-
             // Copy the window input to fftInBuf
             if (useRealImpl)
             {

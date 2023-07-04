@@ -1,6 +1,5 @@
 #include "rppdefs.h"
-#include "rpp_cpu_simd.hpp"
-#include "rpp_cpu_common.hpp"
+#include <omp.h>
 
 RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
                                   RpptDescPtr srcDescPtr,
@@ -9,8 +8,10 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
                                   RpptImagePatchPtr srcDims,
                                   Rpp32f cutOffDB,
                                   Rpp32f multiplier,
-                                  Rpp32f referenceMagnitude)
+                                  Rpp32f referenceMagnitude,
+                                  rpp::Handle& handle)
 {
+    Rpp32u numThreads = handle.GetNumThreads();
     bool referenceMax = (referenceMagnitude == 0.0) ? false : true;
 
     // Calculate the intermediate values needed for DB conversion
@@ -21,19 +22,12 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
     Rpp32f log10Factor = 0.3010299956639812;//1 / std::log(10);
     multiplier *= log10Factor;
 
-    __m256 pMultiplier = _mm256_set1_ps(multiplier);
-    __m256 pMinRatio = _mm256_set1_ps(minRatio);
-
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(numThreads)
     for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
     {
         Rpp32f *srcPtrCurrent = srcPtr + batchCount * srcDescPtr->strides.nStride;
         Rpp32f *dstPtrCurrent = dstPtr + batchCount * dstDescPtr->strides.nStride;
-
-        // // Set all values in dst buffer to 0.0
-        // for(int cnt = 0; cnt < dstDescPtr->strides.nStride; cnt++)
-        //     dstPtrCurrent[cnt] = 0.0f;
 
         Rpp32u height = srcDims[batchCount].height;
         Rpp32u width = srcDims[batchCount].width;
@@ -42,7 +36,7 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
         // Compute maximum value in the input buffer
         if(!referenceMax)
         {
-            refMag = -std::numeric_limits<float>::max();
+            refMag = -std::numeric_limits<Rpp32f>::max();
             Rpp32f *srcPtrTemp = srcPtrCurrent;
             if(width == 1)
             {
@@ -63,28 +57,12 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
             refMag = 1.0f;
 
         Rpp32f invReferenceMagnitude = 1.f / refMag;
-        __m256 pinvMag = _mm256_set1_ps(invReferenceMagnitude);
-
         // Interpret as 1D array
         if(width == 1)
         {
-            int vectorIncrement = 8;
-            int alignedLength = (height / 8) * 8;
-            int vectorLoopCount = 0;
-
-            // for(; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement)
-            // {
-            //     __m256 pSrc;
-            //     pSrc = _mm256_loadu_ps(srcPtrCurrent);
-            //     pSrc = _mm256_mul_ps(pSrc, pinvMag);
-            //     pSrc = _mm256_max_ps(pMinRatio, pSrc);
-            //     pSrc = log_ps(pSrc);
-            //     pSrc = _mm256_mul_ps(pSrc, pMultiplier);
-            //     _mm256_storeu_ps(dstPtrCurrent, pSrc);
-            //     srcPtrCurrent += vectorIncrement;
-            //     dstPtrCurrent += vectorIncrement;
-            // }
-            for(; vectorLoopCount < height; vectorLoopCount++)
+            Rpp32s vectorIncrement = 8;
+            Rpp32s alignedLength = (height / 8) * 8;
+            for(Rpp32s vectorLoopCount = 0; vectorLoopCount < height; vectorLoopCount++)
             {
                 *dstPtrCurrent = multiplier * std::log2(std::max(minRatio, (*srcPtrCurrent) * invReferenceMagnitude));
                 srcPtrCurrent++;
@@ -93,8 +71,8 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
         }
         else
         {
-            int vectorIncrement = 8;
-            int alignedLength = (width / 8) * 8;
+            Rpp32s vectorIncrement = 8;
+            Rpp32s alignedLength = (width / 8) * 8;
 
             Rpp32f *srcPtrRow, *dstPtrRow;
             srcPtrRow = srcPtrCurrent;
@@ -104,20 +82,7 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
                 Rpp32f *srcPtrTemp, *dstPtrTemp;
                 srcPtrTemp = srcPtrRow;
                 dstPtrTemp = dstPtrRow;
-                int vectorLoopCount = 0;
-                // for(; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement)
-                // {
-                //     __m256 pSrc;
-                //     pSrc = _mm256_loadu_ps(srcPtrTemp);
-                //     pSrc = _mm256_mul_ps(pSrc, pinvMag);
-                //     pSrc = _mm256_max_ps(pMinRatio, pSrc);
-                //     pSrc = log_ps(pSrc);
-                //     pSrc = _mm256_mul_ps(pSrc, pMultiplier);
-                //     _mm256_storeu_ps(dstPtrTemp, pSrc);
-                //     srcPtrTemp += vectorIncrement;
-                //     dstPtrTemp += vectorIncrement;
-                // }
-
+                Rpp32s vectorLoopCount = 0;
                 for(; vectorLoopCount < width; vectorLoopCount++)
                 {
                     *dstPtrTemp = multiplier * std::log2(std::max(minRatio, (*srcPtrTemp) * invReferenceMagnitude));

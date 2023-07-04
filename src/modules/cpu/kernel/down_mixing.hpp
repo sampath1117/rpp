@@ -1,7 +1,7 @@
 #include "rppdefs.h"
 #include <omp.h>
 
-float hsum_ps(__m128 x)
+Rpp32f rpp_hsum_ps(__m128 x)
 {
     __m128 shuf = _mm_movehdup_ps(x);        // broadcast elements 3,1 to 2,0
     __m128 sums = _mm_add_ps(x, shuf);
@@ -16,10 +16,13 @@ RppStatus down_mixing_host_tensor(Rpp32f *srcPtr,
                                   RpptDescPtr dstDescPtr,
                                   Rpp32s *srcLengthTensor,
                                   Rpp32s *channelsTensor,
-                                  bool normalizeWeights)
+                                  bool normalizeWeights,
+                                  rpp::Handle& handle)
 {
+    Rpp32u numThreads = handle.GetNumThreads();
+
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(numThreads)
     for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
     {
         Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
@@ -35,9 +38,9 @@ RppStatus down_mixing_host_tensor(Rpp32f *srcPtr,
         }
         else
         {
-            std::vector<float> weights;
+            std::vector<Rpp32f> weights;
             weights.resize(channels, 1.f / channels);
-            std::vector<float> normalizedWeights;
+            std::vector<Rpp32f> normalizedWeights;
 
             if(normalizeWeights)
             {
@@ -56,14 +59,14 @@ RppStatus down_mixing_host_tensor(Rpp32f *srcPtr,
                 weights = normalizedWeights;
             }
 
-            int channelIncrement = 4;
-            int alignedChannels = (channels / 4) * 4;
+            Rpp32s channelIncrement = 4;
+            Rpp32s alignedChannels = (channels / 4) * 4;
 
             // use weights to downmix to mono
             for(int64_t dstIdx = 0; dstIdx < samples; dstIdx++)
             {
                 __m128 pDst = _mm_setzero_ps();
-                int channelLoopCount = 0;
+                Rpp32s channelLoopCount = 0;
                 for(; channelLoopCount < alignedChannels; channelLoopCount += channelIncrement)
                 {
                     __m128 pSrc, pWeights;
@@ -74,7 +77,7 @@ RppStatus down_mixing_host_tensor(Rpp32f *srcPtr,
                     srcPtrTemp += channelIncrement;
                 }
 
-                dstPtrTemp[dstIdx] = hsum_ps(pDst);
+                dstPtrTemp[dstIdx] = rpp_hsum_ps(pDst);
                 for(; channelLoopCount < channels; channelLoopCount++)
                 {
                     dstPtrTemp[dstIdx] += ((*srcPtrTemp) * weights[channelLoopCount]);

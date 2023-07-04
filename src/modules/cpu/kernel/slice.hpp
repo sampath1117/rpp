@@ -9,10 +9,13 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
                             Rpp32s *srcDimsTensor,
                             Rpp32f *anchorTensor,
                             Rpp32f *shapeTensor,
-                            Rpp32f *fillValues)
+                            Rpp32f *fillValues,
+                            rpp::Handle& handle)
 {
+    Rpp32u numThreads = handle.GetNumThreads();
+
     omp_set_dynamic(0);
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(numThreads)
     for(int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
     {
         Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
