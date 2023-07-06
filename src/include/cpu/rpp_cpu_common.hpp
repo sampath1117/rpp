@@ -5179,11 +5179,11 @@ inline void compute_bicubic_coefficient(Rpp32f weight, Rpp32f &coeff)
     coeff = (x >= 2) ? 0 : ((x > 1) ? (x * x * (-0.5f * x + 2.5f) - 4.0f * x + 2.0f) : (x * x * (1.5f * x - 2.5f) + 1.0f));
 }
 
-inline Rpp32f sinc(Rpp32f x)
-{
-    x *= M_PI;
-    return (std::abs(x) < 1e-5f) ? (1.0f - x * x * (1.0f / 6)) : std::sin(x) / x;
-}
+// inline Rpp32f sinc(Rpp32f x)
+// {
+//     x *= M_PI;
+//     return (std::abs(x) < 1e-5f) ? (1.0f - x * x * (1.0f / 6)) : std::sin(x) / x;
+// }
 
 inline void compute_lanczos3_coefficient(Rpp32f weight, Rpp32f &coeff)
 {

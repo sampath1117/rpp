@@ -195,7 +195,8 @@ RppStatus rppt_resample_host(RppPtr_t srcPtr,
                              Rpp32f *outRateTensor,
                              Rpp32s *srcLengthTensor,
                              Rpp32s *channelsTensor,
-                             Rpp32f quality)
+                             Rpp32f quality,
+                             ResamplingWindow &window)
 {
     resample_host_tensor((Rpp32f*)srcPtr,
                          srcDescPtr,
@@ -205,7 +206,8 @@ RppStatus rppt_resample_host(RppPtr_t srcPtr,
                          outRateTensor,
                          srcLengthTensor,
                          channelsTensor,
-                         quality);
+                         quality,
+                         window);
 
     return RPP_SUCCESS;
 }

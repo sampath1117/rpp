@@ -28,6 +28,8 @@ THE SOFTWARE.
 
 #include <stddef.h>
 #include <cmath>
+#include<vector>
+#include<functional>
 #ifdef OCL_COMPILE
 #include <CL/cl.h>
 #endif
@@ -39,6 +41,7 @@ THE SOFTWARE.
 
 const float ONE_OVER_6 = 1.0f / 6;
 const float ONE_OVER_3 = 1.0f / 3;
+#define PI                              3.14159265
 
 /******************** RPP typedefs ********************/
 
@@ -142,6 +145,83 @@ typedef struct
 {
     Rpp32f data[24];
 } Rpp32f24;
+
+#if _WIN32
+#include <intrin.h>
+#else
+#include <x86intrin.h>
+#include <smmintrin.h>
+#include <immintrin.h>
+#endif
+
+
+inline Rpp64f Hann(Rpp64f x) {
+    return 0.5 * (1 + std::cos(x * M_PI));
+}
+
+inline Rpp32f sinc(Rpp32f x)
+{
+    x *= PI;
+    return (std::abs(x) < 1e-5f) ? (1.0f - x * x * ONE_OVER_6) : std::sin(x) / x;
+}
+
+struct ResamplingWindow {
+    inline void input_range(Rpp32f x, Rpp32s *i0, Rpp32s *i1) {
+        Rpp32s xc = ceilf(x);
+        *i0 = xc - lobes;
+        *i1 = xc + lobes;
+    }
+
+    inline Rpp32f operator()(Rpp32f x) {
+        Rpp32f fi = x * scale + center;
+        Rpp32s i = floorf(fi);
+        Rpp32f di = fi - i;
+        i = std::max(std::min(i, lookup_size - 2), 0);
+        Rpp32f curr = lookup[i];
+        Rpp32f next = lookup[i + 1];
+        return curr + di * (next - curr);
+    }
+
+    inline __m128 operator()(__m128 x) {
+        __m128 fi = _mm_add_ps(x * _mm_set1_ps(scale), _mm_set1_ps(center));
+        __m128i i = _mm_cvttps_epi32(fi);
+        __m128 fifloor = _mm_cvtepi32_ps(i);
+        __m128 di = _mm_sub_ps(fi, fifloor);
+        int idx[4];
+        _mm_storeu_si128(reinterpret_cast<__m128i*>(idx), i);
+        __m128 curr = _mm_setr_ps(lookup[idx[0]],   lookup[idx[1]],
+                                lookup[idx[2]],   lookup[idx[3]]);
+        __m128 next = _mm_setr_ps(lookup[idx[0]+1], lookup[idx[1]+1],
+                                lookup[idx[2]+1], lookup[idx[3]+1]);
+
+        return _mm_add_ps(curr, _mm_mul_ps(di, _mm_sub_ps(next, curr)));
+    }
+
+    Rpp32f scale = 1, center = 1;
+    Rpp32s lobes = 0, coeffs = 0;
+    Rpp32s lookup_size = 0;
+    std::vector<Rpp32f> lookup;
+};
+
+inline void windowed_sinc(ResamplingWindow &window,
+        Rpp32s coeffs, Rpp32s lobes, std::function<Rpp64f(Rpp64f)> envelope = Hann) {
+    Rpp32f scale = 2.0f * lobes / (coeffs - 1);
+    Rpp32f scale_envelope = 2.0f / coeffs;
+    window.coeffs = coeffs;
+    window.lobes = lobes;
+    window.lookup.clear();
+    window.lookup.resize(coeffs + 5);
+    window.lookup_size = window.lookup.size();
+    Rpp32s center = (coeffs - 1) * 0.5f;
+    for (int i = 0; i < coeffs; i++) {
+        Rpp32f x = (i - center) * scale;
+        Rpp32f y = (i - center) * scale_envelope;
+        Rpp32f w = sinc(x) * envelope(y);
+        window.lookup[i + 1] = w;
+    }
+    window.center = center + 1;
+    window.scale = 1 / scale;
+}
 
 /******************** RPPI typedefs ********************/
 

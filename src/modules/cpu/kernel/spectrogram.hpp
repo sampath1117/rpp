@@ -60,7 +60,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
                                   Rpp32s *srcLengthTensor,
                                   bool centerWindows,
                                   bool reflectPadding,
-                                  Rpp32f *windowFunction,
+                                  Rpp32f *windowFn,
                                   Rpp32s nfft,
                                   Rpp32s power,
                                   Rpp32s windowLength,
@@ -80,13 +80,13 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
     Rpp32s alignedNbinsLength = numBins & ~7;
     Rpp32s alignedWindowLength = windowLength & ~7;
 
-    std::vector<Rpp32f> windowFn;
-    windowFn.resize(windowLength);
-    // Generate hanning window
-    if (windowFunction == NULL)
-        hann_window(windowFn.data(), windowLength);
-    else
-        memcpy(windowFn.data(), windowFunction, windowLength * sizeof(Rpp32f));
+    // std::vector<Rpp32f> windowFn;
+    // windowFn.resize(windowLength);
+    // // Generate hanning window
+    // if (windowFunction == NULL)
+    //     hann_window(windowFn.data(), windowLength);
+    // else
+    //     memcpy(windowFn.data(), windowFunction, windowLength * sizeof(Rpp32f));
 
     // Get windows output
     omp_set_dynamic(0);
@@ -125,7 +125,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
             else
             {
                 Rpp32f *srcPtrWindowTemp = srcPtrTemp + windowStart;
-                Rpp32f *windowFnTemp = windowFn.data();
+                Rpp32f *windowFnTemp = windowFn;//windowFn.data();
                 Rpp32s t = 0;
                 for (; t < alignedWindowLength; t += 8)
                 {
