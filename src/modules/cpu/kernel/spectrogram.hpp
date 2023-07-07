@@ -1,6 +1,6 @@
 #include "rppdefs.h"
 #include "../../../../third_party/ffts/include/ffts.h"
-#include "../../../..//third_party/ffts/include/ffts_attributes.h"
+#include "../../../../third_party/ffts/include/ffts_attributes.h"
 
 inline void hann_window(Rpp32f *output, Rpp32s windowSize)
 {
