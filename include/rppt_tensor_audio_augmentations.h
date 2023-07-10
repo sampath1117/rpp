@@ -104,7 +104,7 @@ RppStatus rppt_down_mixing_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_
 
 /******************** slice ********************/
 
-// Extracts a subtensor or slice from the audio file
+// Extracts a subtensor or slice from the audio buffer
 
 // *param[in] srcPtr source tensor memory
 // *param[in] srcDescPtr source tensor descriptor
@@ -124,19 +124,21 @@ RppStatus rppt_down_mixing_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_
 
 RppStatus rppt_slice_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, Rpp32s *srcLengthTensor, Rpp32f *anchorTensor, Rpp32f *shapeTensor, Rpp32f *fillValues, rppHandle_t rppHandle);
 
-// Mel Filter Bank augmentation
+/******************** mel_filter_bank ********************/
+
+// Converts a spectrogram to a mel spectrogram
 
 // *param[in] srcPtr source tensor memory
 // *param[in] srcDescPtr source tensor descriptor
 // *param[out] dstPtr destination tensor memory
 // *param[in] dstDescPtr destination tensor descriptor
-// *param[in] srcDims
+// *param[in] srcDims source dimensions
 // *param[in] maxFreq maximum frequency if not provided maxFreq = sampleRate / 2
 // *param[in] minFreq minimum frequency
-// *param[in] melFormula
-// *param[in] numFilter
-// *param[in] sampleRate
-// *param[in] normalize
+// *param[in] melFormula formula used to convert frequencies from hertz to mel and from mel to hertz (SLANEY / HTK)
+// *param[in] numFilter number of mel filters
+// *param[in] sampleRate sampling rate of the audio
+// *param[in] normalize boolean variable that determine whether to normalize weights / not
 // *param[in] rppHandle HIP-handle for "_gpu" variants and Host-handle for "_host" variants
 // *returns a  RppStatus enumeration.
 // *retval RPP_SUCCESS : successful completion
@@ -144,21 +146,23 @@ RppStatus rppt_slice_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstP
 
 RppStatus rppt_mel_filter_bank_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr srcDims, Rpp32f maxFreq, Rpp32f minFreq, RpptMelScaleFormula melFormula, Rpp32s numFilter, Rpp32f sampleRate, bool normalize, rppHandle_t rppHandle);
 
-// Spectrogram augmentation
+/******************** spectrogram ********************/
+
+// Produces a spectrogram from a 1D audio buffer
 
 // *param[in] srcPtr source tensor memory
 // *param[in] srcDescPtr source tensor descriptor
 // *param[out] dstPtr destination tensor memory
 // *param[in] dstDescPtr destination tensor descriptor
-// *param[in] srcLengthTensor number of samples per channel
-// *param[in] centerWindows
-// *param[in] reflectPadding
-// *param[in] windowFunction
-// *param[in] nfft
-// *param[in] power
-// *param[in] windowLength
-// *param[in] windowStep
-// *param[in] layout
+// *param[in] srcLengthTensor source audio buffer length (1D tensor of size batchSize)
+// *param[in] centerWindows Indicates whether extracted windows should be padded so that the window function is centered at multiples of window_step
+// *param[in] reflectPadding Indicates the padding policy when sampling outside the bounds of the signal
+// *param[in] windowFunction Samples of the window function that will be multiplied to each extracted window when calculating the STFT
+// *param[in] nfft Size of the FFT
+// *param[in] power Exponent of the magnitude of the spectrum
+// *param[in] windowLength Window size in number of samples
+// *param[in] windowStep Step betweeen the STFT windows in number of samples
+// *param[in] layout output layout of spectrogram
 // *param[in] rppHandle HIP-handle for "_gpu" variants and Host-handle for "_host" variants
 // *returns a  RppStatus enumeration.
 // *retval RPP_SUCCESS : successful completion
@@ -168,17 +172,17 @@ RppStatus rppt_spectrogram_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_
 
 /******************** resample ********************/
 
-// Resample audio signal based on the target sample rate
+// Resample audio buffer based on the target sample rate
 
 // *param[in] srcPtr source tensor memory
 // *param[in] srcDescPtr source tensor descriptor
 // *param[out] dstPtr destination tensor memory
 // *param[in] dstDescPtr destination tensor descriptor
-// *param[in] inRate
-// *param[in] outRate
-// *param[in] srcLengthTensor
-// *param[in] channelsTensor
-// *param[in] quality
+// *param[in] inRate Input sampling rate (1D tensor of size batchSize)
+// *param[in] outRate Output sampling rate (1D tensor of size batchSize)
+// *param[in] srcLengthTensor source audio buffer length (1D tensor of size batchSize)
+// *param[in] channelsTensor number of channels in audio buffer (1D tensor of size batchSize)
+// *param[in] quality resampling quality, where 0 is the lowest, and 100 is the highest
 // *param[in] rppHandle HIP-handle for "_gpu" variants and Host-handle for "_host" variants
 // *returns a  RppStatus enumeration.
 // *retval RPP_SUCCESS : successful completion
@@ -187,6 +191,27 @@ RppStatus rppt_spectrogram_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_
 RppStatus rppt_resample_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, Rpp32f *inRateTensor, Rpp32f *outRateTensor, Rpp32s *srcLengthTensor, Rpp32s *channelsTensor, Rpp32f quality, rppHandle_t rppHandle);
 
 /******************** normalize_audio ********************/
+
+// Normalizes the input audio buffer by removing the mean and dividing by the standard deviation
+
+// *param[in] srcPtr source tensor memory
+// *param[in] srcDescPtr source tensor descriptor
+// *param[out] dstPtr destination tensor memory
+// *param[in] dstDescPtr destination tensor descriptor
+// *param[in] srcLengthTensor source audio buffer length (1D tensor of size batchSize)
+// *param[in] channelsTensor number of channels in audio buffer (1D tensor of size batchSize)
+// *param[in] axisMask axis along which normalization needs to be done
+// *param[in] mean mean value to be subtracted from input
+// *param[in] stdDev standard deviation value to scale the input
+// *param[in] scale scaling factor applied to output
+// *param[in] shift value to which the mean will map in the output
+// *param[in] epsilon  value that is added to the variance to avoid division by small number
+// *param[in] ddof Delta Degrees of Freedom for Bessel’s correction
+// *param[in] numOfDims number of dimensions of input
+// *param[in] rppHandle HIP-handle for "_gpu" variants and Host-handle for "_host" variants
+// *returns a  RppStatus enumeration.
+// *retval RPP_SUCCESS : successful completion
+// *retval RPP_ERROR : Error
 
 RppStatus rppt_normalize_audio_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, Rpp32s *srcLengthTensor, Rpp32s *channelsTensor, Rpp32s axisMask,
                                     Rpp32f mean, Rpp32f stdDev, Rpp32f scale, Rpp32f shift, Rpp32f epsilon, Rpp32s ddof, Rpp32s numOfDims, rppHandle_t rppHandle);
