@@ -19,7 +19,7 @@ RppStatus to_decibels_host_tensor(Rpp32f *srcPtr,
     if(minRatio == 0.0f)
         minRatio = std::nextafter(0.0f, 1.0f);
 
-    Rpp32f log10Factor = 0.3010299956639812;//1 / std::log(10);
+    const Rpp32f log10Factor = 0.3010299956639812;      //1 / std::log(10);
     multiplier *= log10Factor;
 
     omp_set_dynamic(0);

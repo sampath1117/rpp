@@ -120,10 +120,10 @@ RppStatus slice_host_tensor(Rpp32f *srcPtr,
 
                 // Fill the columns which are beyond the input width with fill value specified
                 if (col < shape[1] && needColPad) {
-                    // for (; col < alignedCol; col += vectorIncrement) {
-                    //     _mm256_storeu_ps(dstPtrRow, pFillValue);
-                    //     dstPtrRow += vectorIncrement;
-                    // }
+                    for (; col < alignedCol; col += vectorIncrement) {
+                        _mm256_storeu_ps(dstPtrRow, pFillValue);
+                        dstPtrRow += vectorIncrement;
+                    }
                     for (; col < shape[1]; col++)
                         *dstPtrRow++ = fillValue;
                 }

@@ -2,6 +2,11 @@
 #include "../../../../third_party/ffts/include/ffts.h"
 #include "../../../../third_party/ffts/include/ffts_attributes.h"
 
+bool is_pow2(Rpp64s n) { return (n & (n-1)) == 0; }
+inline bool can_use_real_impl(Rpp64s n) { return is_pow2(n); }
+inline Rpp64s size_in_buf(Rpp64s n) { return can_use_real_impl(n) ? n : 2 * n; }
+inline Rpp64s size_out_buf(Rpp64s n) { return can_use_real_impl(n) ? n + 2 : 2 * n; }
+
 inline void hann_window(Rpp32f *output, Rpp32s windowSize)
 {
     Rpp64f a = (2.0 * M_PI) / windowSize;
@@ -12,14 +17,6 @@ inline void hann_window(Rpp32f *output, Rpp32s windowSize)
     }
 }
 
-bool is_pow2(int64_t n) { return (n & (n-1)) == 0; }
-
-inline bool can_use_real_impl(int64_t n) { return is_pow2(n); }
-
-inline int64_t size_in_buf(int64_t n) { return can_use_real_impl(n) ? n : 2 * n; }
-
-inline int64_t size_out_buf(int64_t n) { return can_use_real_impl(n) ? n + 2 : 2 * n; }
-
 inline Rpp32s get_num_windows(Rpp32s length, Rpp32s windowLength, Rpp32s windowStep, bool centerWindows)
 {
     if (!centerWindows)
@@ -27,20 +24,20 @@ inline Rpp32s get_num_windows(Rpp32s length, Rpp32s windowLength, Rpp32s windowS
     return ((length / windowStep) + 1);
 }
 
-inline Rpp32s get_idx_reflect(Rpp32s idx, Rpp32s lo, Rpp32s hi)
+inline Rpp32s get_idx_reflect(Rpp32s loc, Rpp32s minLoc, Rpp32s maxLoc)
 {
-    if (hi - lo < 2)
-        return hi - 1;
+    if (maxLoc - minLoc < 2)
+        return maxLoc - 1;
     for (;;)
     {
-        if (idx < lo)
-            idx = 2 * lo - idx;
-        else if (idx >= hi)
-            idx = 2 * hi - 2 - idx;
+        if (loc < minLoc)
+            loc = 2 * minLoc - loc;
+        else if (loc >= maxLoc)
+            loc = 2 * maxLoc - 2 - loc;
         else
             break;
     }
-    return idx;
+    return loc;
 }
 
 RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
@@ -64,13 +61,15 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
         windowCenterOffset = windowLength / 2;
     if (nfft == 0)
         nfft = windowLength;
-    Rpp32s numBins = nfft / 2 + 1;
+    const Rpp32s numBins = nfft / 2 + 1;
     const Rpp32f mulFactor = (2.0 * M_PI) / nfft;
-    Rpp32u hStride = dstDescPtr->strides.hStride;
-    Rpp32s alignedNfftLength = nfft & ~7;
-    Rpp32s alignedNbinsLength = numBins & ~7;
-    Rpp32s alignedWindowLength = windowLength & ~7;
-    Rpp32u numThreads = handle.GetNumThreads();
+    const Rpp32u hStride = dstDescPtr->strides.hStride;
+    const Rpp32s alignedNfftLength = nfft & ~7;
+    const Rpp32s alignedNbinsLength = numBins & ~7;
+    const Rpp32s alignedWindowLength = windowLength & ~7;
+    bool useRealImpl = can_use_real_impl(nfft);
+    const auto fftInSize = size_in_buf(nfft);
+    const auto fftOutSize = size_out_buf(nfft);
 
     std::vector<Rpp32f> windowFn;
     windowFn.resize(windowLength);
@@ -79,6 +78,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
         hann_window(windowFn.data(), windowLength);
     else
         memcpy(windowFn.data(), windowFunction, windowLength * sizeof(Rpp32f));
+    Rpp32u numThreads = handle.GetNumThreads();
 
     // Get windows output
     omp_set_dynamic(0);
@@ -137,7 +137,6 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
 
         // Generate FFT output
         ffts_plan_t *p;
-        bool useRealImpl = can_use_real_impl(nfft);
         if(useRealImpl)
             p = ffts_init_1d_real(nfft, FFTS_FORWARD);
         else
@@ -147,9 +146,6 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
             printf("FFT Plan is unsupported. Exiting the code\n");
             exit(0);
         }
-
-        auto fftInSize = size_in_buf(nfft);
-        auto fftOutSize = size_out_buf(nfft);
 
         // Set temporary buffers to 0
         Rpp32f FFTS_ALIGN(32) *fftInBuf = (Rpp32f *)_mm_malloc(fftInSize * sizeof(Rpp32f), 32); // ffts requires 32-byte aligned memory
@@ -176,7 +172,7 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
             {
                 for (int i = 0; i < windowLength; i++)
                 {
-                    int64_t off = 2 * (inWindowStart + i);
+                    Rpp64s off = 2 * (inWindowStart + i);
                     fftInBuf[off] = windowOutputTemp[i];
                     fftInBuf[off + 1] = 0.0f;
                 }
