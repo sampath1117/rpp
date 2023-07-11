@@ -34,7 +34,7 @@ void verify_output(Rpp32f *dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dst
 {
     fstream ref_file;
     string ref_path = get_current_dir_name();
-    string pattern = "HOST_NEW/audio/build";
+    string pattern = "HOST/audio/build";
     remove_substring(ref_path, pattern);
     ref_path = ref_path + "REFERENCE_OUTPUTS_AUDIO/";
     int file_match = 0;
@@ -62,7 +62,7 @@ void verify_output(Rpp32f *dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dst
                 ref_file>>ref_val;
                 out_val = dstPtrTemp[j];
                 bool invalid_comparision = ((out_val == 0.0f) && (ref_val != 0.0f));
-                if(!invalid_comparision && abs(out_val - ref_val) < 1e-2)
+                if(!invalid_comparision && abs(out_val - ref_val) < 1e-6)
                     matched_indices += 1;
             }
             dstPtrRow += dstDescPtr->strides.hStride;
@@ -83,7 +83,7 @@ void verify_non_silent_region_detection(float *detectedIndex, float *detectionLe
 {
     fstream ref_file;
     string ref_path = get_current_dir_name();
-    string pattern = "HOST_NEW/audio/build";
+    string pattern = "HOST/audio/build";
     remove_substring(ref_path, pattern);
     ref_path = ref_path + "REFERENCE_OUTPUTS_AUDIO/";
     int file_match = 0;
@@ -122,7 +122,7 @@ void read_from_text_files(Rpp32f *srcPtr, RpptDescPtr srcDescPtr, RpptImagePatch
 {
     fstream ref_file;
     string ref_path = get_current_dir_name();
-    string pattern = "HOST_NEW/audio/build";
+    string pattern = "HOST/audio/build";
     remove_substring(ref_path, pattern);
     ref_path = ref_path + "REFERENCE_OUTPUTS_AUDIO/";
 
@@ -441,7 +441,7 @@ int main(int argc, char **argv)
             else
                 missingFuncFlag = 1;
 
-            // verify_non_silent_region_detection(detectedIndex, detectionLength, test_case_name, noOfAudioFiles, audioNames);
+            verify_non_silent_region_detection(detectedIndex, detectionLength, test_case_name, noOfAudioFiles, audioNames);
             break;
         }
         case 1:
@@ -722,81 +722,6 @@ int main(int argc, char **argv)
             {
                 rppt_normalize_audio_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcLengthTensor, channelsTensor, axis_mask,
                                           mean, std_dev, scale, shift, epsilon, ddof, num_of_dims, handle);
-            }
-            else
-                missingFuncFlag = 1;
-
-            verify_output(outputf32, dstDescPtr, dstDims, test_case_name, audioNames);
-            break;
-        }
-        case 9:
-        {
-            test_case_name = "pad";
-            Rpp32f anchor[noOfAudioFiles * 2];
-            Rpp32f shape[noOfAudioFiles * 2];
-            Rpp32f fillValues[noOfAudioFiles];
-            Rpp32s srcDimsTensor[noOfAudioFiles * 2];
-
-            // Read source dimension
-            read_from_text_files(inputf32, srcDescPtr, srcDims, "spectrogram", 1, audioNames);
-
-            maxDstHeight = 0;
-            maxDstWidth = 0;
-            maxSrcHeight = 0;
-            maxSrcWidth = 0;
-            for(int i = 0; i < noOfAudioFiles; i++)
-            {
-                maxSrcHeight = std::max(maxSrcHeight, (int)srcDims[i].height);
-                maxSrcWidth = std::max(maxSrcWidth, (int)srcDims[i].width);
-            }
-            maxDstHeight = maxSrcHeight;
-            maxDstWidth = maxSrcWidth;
-
-            for (i = 0; i < noOfAudioFiles * 2; i += 2)
-            {
-                srcDimsTensor[i] = (int)srcDims[i / 2].height;
-                srcDimsTensor[i + 1] = (int)srcDims[i / 2].width;
-                shape[i] = maxDstHeight;
-                shape[i + 1] = maxDstWidth;
-                anchor[i] = 0.0f;
-                anchor[i + 1] = 0.0f;
-                fillValues[i / 2] = 40.0f;
-                dstDims[i].height = maxDstHeight;
-                dstDims[i].width = maxDstWidth;
-            }
-
-            srcDescPtr->h = maxSrcHeight;
-            srcDescPtr->w = 1;
-            dstDescPtr->h = maxDstHeight;
-            dstDescPtr->w = 1;
-
-            srcDescPtr->c = maxSrcWidth;
-            dstDescPtr->c = maxDstWidth;
-
-            srcDescPtr->strides.nStride = srcDescPtr->c * srcDescPtr->w * srcDescPtr->h;
-            srcDescPtr->strides.hStride = srcDescPtr->c * srcDescPtr->w;
-            srcDescPtr->strides.wStride = maxSrcWidth;
-            srcDescPtr->strides.cStride = 1;
-
-            dstDescPtr->strides.nStride = dstDescPtr->c * dstDescPtr->w * dstDescPtr->h;
-            dstDescPtr->strides.hStride = dstDescPtr->c * dstDescPtr->w;
-            dstDescPtr->strides.wStride = maxDstWidth;
-            dstDescPtr->strides.cStride = 1;
-
-            // // Set buffer sizes for src/dst
-            unsigned long long spectrogramBufferSize = (unsigned long long)srcDescPtr->h * (unsigned long long)srcDescPtr->w * (unsigned long long)srcDescPtr->c * (unsigned long long)srcDescPtr->n;
-            unsigned long long padBufferSize = (unsigned long long)dstDescPtr->h * (unsigned long long)dstDescPtr->w * (unsigned long long)dstDescPtr->c * (unsigned long long)dstDescPtr->n;
-            inputf32 = (Rpp32f *)realloc(inputf32, spectrogramBufferSize * sizeof(Rpp32f));
-            outputf32 = (Rpp32f *)realloc(outputf32, padBufferSize * sizeof(Rpp32f));
-
-            // Read source data
-            read_from_text_files(inputf32, srcDescPtr, srcDims, "spectrogram", 0, audioNames);
-
-            start_omp = omp_get_wtime();
-            start = clock();
-            if (ip_bitDepth == 2)
-            {
-                rppt_slice_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcDimsTensor, anchor, shape, fillValues, handle);
             }
             else
                 missingFuncFlag = 1;
