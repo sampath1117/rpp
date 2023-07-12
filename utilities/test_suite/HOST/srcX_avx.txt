@@ -1,0 +1,234 @@
+
+Running Unittests with QA mode...
+mkdir: cannot create directory 'build': File exists
+removed 'build/CMakeCache.txt'
+removed directory 'build/CMakeFiles/3.16.3/CompilerIdC/tmp'
+removed 'build/CMakeFiles/3.16.3/CompilerIdC/CMakeCCompilerId.c'
+removed 'build/CMakeFiles/3.16.3/CompilerIdC/a.out'
+removed directory 'build/CMakeFiles/3.16.3/CompilerIdC'
+removed 'build/CMakeFiles/3.16.3/CMakeSystem.cmake'
+removed 'build/CMakeFiles/3.16.3/CMakeCXXCompiler.cmake'
+removed 'build/CMakeFiles/3.16.3/CMakeDetermineCompilerABI_CXX.bin'
+removed 'build/CMakeFiles/3.16.3/CMakeDetermineCompilerABI_C.bin'
+removed directory 'build/CMakeFiles/3.16.3/CompilerIdCXX/tmp'
+removed 'build/CMakeFiles/3.16.3/CompilerIdCXX/CMakeCXXCompilerId.cpp'
+removed 'build/CMakeFiles/3.16.3/CompilerIdCXX/a.out'
+removed directory 'build/CMakeFiles/3.16.3/CompilerIdCXX'
+removed 'build/CMakeFiles/3.16.3/CMakeCCompiler.cmake'
+removed directory 'build/CMakeFiles/3.16.3'
+removed 'build/CMakeFiles/CMakeOutput.log'
+removed 'build/CMakeFiles/cmake.check_cache'
+removed 'build/CMakeFiles/Makefile2'
+removed 'build/CMakeFiles/progress.marks'
+removed directory 'build/CMakeFiles/CMakeTmp'
+removed 'build/CMakeFiles/Tensor_host.dir/cmake_clean.cmake'
+removed 'build/CMakeFiles/Tensor_host.dir/CXX.includecache'
+removed 'build/CMakeFiles/Tensor_host.dir/link.txt'
+removed 'build/CMakeFiles/Tensor_host.dir/Tensor_host.cpp.o'
+removed 'build/CMakeFiles/Tensor_host.dir/flags.make'
+removed 'build/CMakeFiles/Tensor_host.dir/build.make'
+removed 'build/CMakeFiles/Tensor_host.dir/DependInfo.cmake'
+removed 'build/CMakeFiles/Tensor_host.dir/depend.make'
+removed 'build/CMakeFiles/Tensor_host.dir/progress.make'
+removed 'build/CMakeFiles/Tensor_host.dir/depend.internal'
+removed directory 'build/CMakeFiles/Tensor_host.dir'
+removed 'build/CMakeFiles/TargetDirectories.txt'
+removed 'build/CMakeFiles/FindOpenMP/OpenMPCheckVersion.cpp'
+removed 'build/CMakeFiles/FindOpenMP/ompver_C.bin'
+removed 'build/CMakeFiles/FindOpenMP/OpenMPTryFlag.cpp'
+removed 'build/CMakeFiles/FindOpenMP/OpenMPTryFlag.c'
+removed 'build/CMakeFiles/FindOpenMP/ompver_CXX.bin'
+removed 'build/CMakeFiles/FindOpenMP/OpenMPCheckVersion.c'
+removed directory 'build/CMakeFiles/FindOpenMP'
+removed 'build/CMakeFiles/Makefile.cmake'
+removed 'build/CMakeFiles/CMakeDirectoryInformation.cmake'
+removed directory 'build/CMakeFiles'
+removed 'build/Makefile'
+removed 'build/Tensor_host'
+removed 'build/cmake_install.cmake'
+-- The C compiler identification is GNU 9.4.0
+-- The CXX compiler identification is GNU 9.4.0
+-- Check for working C compiler: /usr/bin/cc
+-- Check for working C compiler: /usr/bin/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Check for working CXX compiler: /usr/bin/c++
+-- Check for working CXX compiler: /usr/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- [37mUsing Turbo JPEG -- 
+	Libraries:/lib/libturbojpeg.so 
+	Includes:/usr/include[m
+-- Found Boost: /usr/local/lib/cmake/Boost-1.72.0/BoostConfig.cmake (found version "1.72.0") found components: filesystem system 
+-- Found OpenMP_C: -fopenmp (found version "4.5") 
+-- Found OpenMP_CXX: -fopenmp (found version "4.5") 
+-- Found OpenMP: TRUE (found version "4.5")  
+-- [32mtest_suite/HOST set to build with rpp and TurboJpeg[m
+-- [32mtest_suite/HOST set to build with rpp and OpenCV[m
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /dockerx/rpp/utilities/test_suite/HOST/build
+Scanning dependencies of target Tensor_host
+[ 50%] Building CXX object CMakeFiles/Tensor_host.dir/Tensor_host.cpp.o
+[100%] Linking CXX executable Tensor_host
+[100%] Built target Tensor_host
+
+
+
+
+
+##########################################################################################
+Running all layout Inputs...
+##########################################################################################
+
+
+
+
+--------------------------------
+Running a New Functionality...
+--------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_host /dockerx/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /dockerx/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /dockerx/rpp/utilities/test_suite/HOST/../QA_RESULTS_HOST_2023-06-12_04-35-30 0 0 24 0 0
+Running warp_affine_u8_Tensor_HOST_PKD3_toPKD3_interpolationTypeNearestNeighbor 1 times (each time with a batch size of 3 images) and computing mean statistics...
+ srcY -17.0000000000 
+ srcY -16.0000000000 
+ srcY -15.0000000000 
+ srcY -14.0000000000 
+ srcY -12.0000000000 
+ srcY -11.0000000000 
+ srcY -10.0000000000 
+ srcY -9.0000000000 
+ srcY -7.0000000000 
+ srcY -6.0000000000 
+ srcY -5.0000000000 
+ srcY -4.0000000000 
+ srcY -2.0000000000 
+ srcY -1.0000000000 
+ srcY -0.0000000000 
+ srcY 1.0000000000 
+ srcY 2.0000000000 
+ srcY 4.0000000000 
+ srcY 5.0000000000 
+ srcY 6.0000000000 
+ srcY 7.0000000000 
+ srcY 9.0000000000 
+ srcY 10.0000000000 
+ srcY 11.0000000000 
+ srcY 12.0000000000 
+ srcY 14.0000000000 
+ srcY 15.0000000000 
+ srcY 16.0000000000 
+ srcY 17.0000000000 
+ srcY 18.0000000000 
+ srcY 20.0000000000 
+ srcY 21.0000000000 
+
+CPU Backend Clock Time: 0.741 ms/batch
+CPU Backend Wall Time: 0.746195 ms/batch
+
+ mismatches 2 42 0 104 104
+ mismatches 2 43 0 104 104
+ mismatches 2 44 0 92 92
+ mismatches 2 45 0 119 119
+ mismatches 2 46 0 121 121
+ mismatches 2 47 0 110 110
+ mismatches 2 48 0 123 123
+ mismatches 2 49 0 124 124
+ mismatches 2 50 0 116 116
+ mismatches 2 51 0 142 142
+ mismatches 2 52 0 146 146
+ mismatches 2 53 0 132 132
+ mismatches 2 54 0 139 139
+ mismatches 2 55 0 145 145
+ mismatches 2 56 0 131 131
+ mismatches 2 57 0 109 109
+ mismatches 2 58 0 121 121
+ mismatches 2 59 0 101 101
+ mismatches 2 60 0 82 82
+ mismatches 2 61 0 107 107
+ mismatches 2 62 0 77 77
+ mismatches 2 63 0 24 24
+ mismatches 2 64 0 63 63
+ mismatches 2 65 0 16 16
+ mismatches 2 66 0 29 29
+ mismatches 2 67 0 79 79
+ mismatches 2 68 0 16 16
+ mismatches 2 69 0 31 31
+ mismatches 2 70 0 75 75
+ mismatches 2 71 0 16 16
+ mismatches 2 72 0 68 68
+ mismatches 2 73 0 108 108
+ mismatches 2 74 0 45 45
+ mismatches 2 75 0 88 88
+ mismatches 2 76 0 123 123
+ mismatches 2 77 0 65 65
+ mismatches 2 78 0 107 107
+ mismatches 2 79 0 134 134
+ mismatches 2 80 0 93 93
+ mismatches 2 81 0 104 104
+ mismatches 2 82 0 137 137
+ mismatches 2 83 0 94 94
+ mismatches 2 84 0 102 102
+ mismatches 2 85 0 133 133
+ mismatches 2 86 0 91 91
+ mismatches 2 87 0 72 72
+ mismatches 2 88 0 111 111
+ mismatches 2 89 0 54 54
+ mismatches 2 90 0 54 54
+ mismatches 2 91 0 101 101
+ mismatches 2 92 0 31 31
+ mismatches 2 93 0 50 50
+ mismatches 2 94 0 101 101
+ mismatches 2 95 0 34 34
+ mismatches 2 96 0 69 69
+ mismatches 2 97 0 121 121
+ mismatches 2 98 0 55 55
+ mismatches 2 99 0 58 58
+ mismatches 2 100 0 113 113
+ mismatches 2 101 0 46 46
+Results for warp_affine_u8_Tensor_PKD3 :
+FAILED! 0/3 outputs are matching with reference outputs
+
+
+./Tensor_host /dockerx/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /dockerx/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /dockerx/rpp/utilities/test_suite/HOST/../QA_RESULTS_HOST_2023-06-12_04-35-30 0 0 24 1 0
+Running warp_affine_u8_Tensor_HOST_PKD3_toPKD3_interpolationTypeBilinear 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+CPU Backend Clock Time: 377.69 ms/batch
+CPU Backend Wall Time: 187.831 ms/batch
+
+Results for warp_affine_u8_Tensor_PKD3 :
+FAILED! 0/3 outputs are matching with reference outputs
+
+
+./Tensor_host /dockerx/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /dockerx/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /dockerx/rpp/utilities/test_suite/HOST/../QA_RESULTS_HOST_2023-06-12_04-35-30 0 0 24 2 0
+Running warp_affine_u8_Tensor_HOST_PKD3_toPKD3_interpolationTypeBicubic 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality warp_affine_u8_Tensor_HOST_PKD3_toPKD3_interpolationTypeBicubic doesn't yet exist in RPP
+
+./Tensor_host /dockerx/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /dockerx/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /dockerx/rpp/utilities/test_suite/HOST/../QA_RESULTS_HOST_2023-06-12_04-35-30 0 0 24 3 0
+Running warp_affine_u8_Tensor_HOST_PKD3_toPKD3_interpolationTypeLanczos 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality warp_affine_u8_Tensor_HOST_PKD3_toPKD3_interpolationTypeLanczos doesn't yet exist in RPP
+
+./Tensor_host /dockerx/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /dockerx/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /dockerx/rpp/utilities/test_suite/HOST/../QA_RESULTS_HOST_2023-06-12_04-35-30 0 0 24 4 0
+Running warp_affine_u8_Tensor_HOST_PKD3_toPKD3_interpolationTypeTriangular 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality warp_affine_u8_Tensor_HOST_PKD3_toPKD3_interpolationTypeTriangular doesn't yet exist in RPP
+
+./Tensor_host /dockerx/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /dockerx/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /dockerx/rpp/utilities/test_suite/HOST/../QA_RESULTS_HOST_2023-06-12_04-35-30 0 0 24 5 0
+Running warp_affine_u8_Tensor_HOST_PKD3_toPKD3_interpolationTypeGaussian 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality warp_affine_u8_Tensor_HOST_PKD3_toPKD3_interpolationTypeGaussian doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+---------------------------------- Results of QA Test ----------------------------------
+
+warp_affine_u8_Tensor_PKD3: FAILED
+warp_affine_u8_Tensor_PKD3: FAILED
+
+-------------- Tests are run for 1 supported cases out of the 1 cases requested --------------

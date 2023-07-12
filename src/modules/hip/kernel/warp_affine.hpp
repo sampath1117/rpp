@@ -17,8 +17,8 @@ __device__ void warp_affine_roi_and_srclocs_hip_compute(int4 *srcRoiPtr_i4, int 
     float2 locDst_f2, locSrc_f2;
     int roiHalfWidth = (srcRoiPtr_i4->z - srcRoiPtr_i4->x + 1) >> 1;
     int roiHalfHeight = (srcRoiPtr_i4->w - srcRoiPtr_i4->y + 1) >> 1;
-    srcRoiPtr_i4->z -= 1;
-    srcRoiPtr_i4->w -= 1;
+    // srcRoiPtr_i4->z -= 1;
+    // srcRoiPtr_i4->w -= 1;
     locDst_f2.x = (float) (id_x - roiHalfWidth);
     locDst_f2.y = (float) (id_y - roiHalfHeight);
     locSrc_f2.x = fmaf(locDst_f2.x, affineMatrix_f6->f1[0], fmaf(locDst_f2.y, affineMatrix_f6->f1[1], affineMatrix_f6->f1[2])) + roiHalfWidth;
@@ -72,13 +72,15 @@ __global__ void warp_affine_bilinear_pln_tensor(T *srcPtr,
 {
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+    // int id_y = 0;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
     if ((id_y >= dstDimsWH.y) || (id_x >= dstDimsWH.x))
     {
         return;
     }
-
+    if ((id_y == 0) && (id_x == 32))
+    {
     uint srcIdx = (id_z * srcStridesNCH.x);
     uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + id_x;
 
@@ -86,6 +88,18 @@ __global__ void warp_affine_bilinear_pln_tensor(T *srcPtr,
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
     d_float16 locSrc_f16;
     warp_affine_roi_and_srclocs_hip_compute(&srcRoi_i4, id_x, id_y, &affineMatrix_f6, &locSrc_f16);
+
+    // if(id_x == 32)
+    // {
+        for (int ct = 0; ct < 8; ct++)
+        {
+            printf("\n srcY : %0.10f ", locSrc_f16.f8[1].f1[ct]);
+        }
+        for (int ct = 0; ct < 8; ct++)
+        {
+            printf("\n srcX : %0.10f ", locSrc_f16.f8[0].f1[ct]);
+        }
+    // }
 
     d_float8 dst_f8;
     rpp_hip_interpolate8_bilinear_pln1(srcPtr + srcIdx, srcStridesNCH.z, &locSrc_f16, &srcRoi_i4, &dst_f8);
@@ -104,6 +118,7 @@ __global__ void warp_affine_bilinear_pln_tensor(T *srcPtr,
 
         rpp_hip_interpolate8_bilinear_pln1(srcPtr + srcIdx, srcStridesNCH.z, &locSrc_f16, &srcRoi_i4, &dst_f8);
         rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &dst_f8);
+    }
     }
 }
 

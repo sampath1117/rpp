@@ -223,7 +223,7 @@ if [ "$TEST_TYPE" -eq 0 ]; then
             echo "--------------------------------"
             printf "Running a New Functionality...\n"
             echo "--------------------------------"
-            for ((bitDepth=0;bitDepth<7;bitDepth++))
+            for ((bitDepth=0;bitDepth<1;bitDepth++))
             do
                 printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
                 for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))

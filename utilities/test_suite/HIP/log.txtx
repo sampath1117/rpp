@@ -1,0 +1,460 @@
+
+Running Unittests with QA mode...
+mkdir: cannot create directory 'build': File exists
+removed 'build/CMakeCache.txt'
+removed directory 'build/CMakeFiles/3.16.3/CompilerIdC/tmp'
+removed 'build/CMakeFiles/3.16.3/CompilerIdC/CMakeCCompilerId.c'
+removed 'build/CMakeFiles/3.16.3/CompilerIdC/a.out'
+removed directory 'build/CMakeFiles/3.16.3/CompilerIdC'
+removed 'build/CMakeFiles/3.16.3/CMakeSystem.cmake'
+removed 'build/CMakeFiles/3.16.3/CMakeCXXCompiler.cmake'
+removed 'build/CMakeFiles/3.16.3/CMakeDetermineCompilerABI_CXX.bin'
+removed 'build/CMakeFiles/3.16.3/CMakeDetermineCompilerABI_C.bin'
+removed directory 'build/CMakeFiles/3.16.3/CompilerIdCXX/tmp'
+removed 'build/CMakeFiles/3.16.3/CompilerIdCXX/CMakeCXXCompilerId.cpp'
+removed 'build/CMakeFiles/3.16.3/CompilerIdCXX/a.out'
+removed directory 'build/CMakeFiles/3.16.3/CompilerIdCXX'
+removed 'build/CMakeFiles/3.16.3/CMakeCCompiler.cmake'
+removed directory 'build/CMakeFiles/3.16.3'
+removed 'build/CMakeFiles/CMakeOutput.log'
+removed 'build/CMakeFiles/cmake.check_cache'
+removed 'build/CMakeFiles/Makefile2'
+removed 'build/CMakeFiles/progress.marks'
+removed directory 'build/CMakeFiles/CMakeTmp'
+removed 'build/CMakeFiles/Tensor_hip.dir/cmake_clean.cmake'
+removed 'build/CMakeFiles/Tensor_hip.dir/CXX.includecache'
+removed 'build/CMakeFiles/Tensor_hip.dir/link.txt'
+removed 'build/CMakeFiles/Tensor_hip.dir/flags.make'
+removed 'build/CMakeFiles/Tensor_hip.dir/build.make'
+removed 'build/CMakeFiles/Tensor_hip.dir/DependInfo.cmake'
+removed 'build/CMakeFiles/Tensor_hip.dir/Tensor_hip.cpp.o'
+removed 'build/CMakeFiles/Tensor_hip.dir/depend.make'
+removed 'build/CMakeFiles/Tensor_hip.dir/progress.make'
+removed 'build/CMakeFiles/Tensor_hip.dir/depend.internal'
+removed directory 'build/CMakeFiles/Tensor_hip.dir'
+removed 'build/CMakeFiles/TargetDirectories.txt'
+removed 'build/CMakeFiles/FindOpenMP/OpenMPCheckVersion.cpp'
+removed 'build/CMakeFiles/FindOpenMP/ompver_C.bin'
+removed 'build/CMakeFiles/FindOpenMP/OpenMPTryFlag.cpp'
+removed 'build/CMakeFiles/FindOpenMP/OpenMPTryFlag.c'
+removed 'build/CMakeFiles/FindOpenMP/ompver_CXX.bin'
+removed 'build/CMakeFiles/FindOpenMP/OpenMPCheckVersion.c'
+removed directory 'build/CMakeFiles/FindOpenMP'
+removed 'build/CMakeFiles/Makefile.cmake'
+removed 'build/CMakeFiles/CMakeDirectoryInformation.cmake'
+removed 'build/CMakeFiles/CMakeError.log'
+removed directory 'build/CMakeFiles'
+removed 'build/Makefile'
+removed 'build/Tensor_hip'
+removed 'build/cmake_install.cmake'
+-- The C compiler identification is GNU 9.4.0
+-- The CXX compiler identification is GNU 9.4.0
+-- Check for working C compiler: /usr/bin/cc
+-- Check for working C compiler: /usr/bin/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Check for working CXX compiler: /usr/bin/c++
+-- Check for working CXX compiler: /usr/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- hip::amdhip64 is SHARED_LIBRARY
+-- [37mUsing Turbo JPEG -- 
+	Libraries:/lib/libturbojpeg.so 
+	Includes:/usr/include[m
+-- Found Boost: /usr/local/lib/cmake/Boost-1.72.0/BoostConfig.cmake (found version "1.72.0") found components: filesystem system 
+-- Found OpenMP_C: -fopenmp (found version "4.5") 
+-- Found OpenMP_CXX: -fopenmp (found version "4.5") 
+-- Found OpenMP: TRUE (found version "4.5")  
+-- [32mtest_suite/HIP set to build with rpp and TurboJpeg[m
+-- [32mtest_suite/HIP set to build with rpp, hip and OpenCV[m
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /media/rpp/utilities/test_suite/HIP/build
+Scanning dependencies of target Tensor_hip
+[ 50%] Building CXX object CMakeFiles/Tensor_hip.dir/Tensor_hip.cpp.o
+[100%] Linking CXX executable Tensor_hip
+[100%] Built target Tensor_hip
+
+
+
+
+
+##########################################################################################
+Running all layout Inputs...
+##########################################################################################
+
+
+
+
+--------------------------------
+Running a New Functionality...
+--------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 0 0 20 1 0 0
+Running flip_u8_Tensor_HIP_PKD3_toPKD3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 21.9512 ms/batch
+
+ mismatches 0 144 0 89 89
+ mismatches 0 145 0 130 130
+ mismatches 0 146 0 74 74
+ mismatches 0 147 0 88 88
+ mismatches 0 148 0 131 131
+ mismatches 0 149 0 75 75
+Results for flip_u8_Tensor_PKD3 :
+FAILED! 2/3 outputs are matching with reference outputs
+------------------------------------------------------------------------------------------
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 0 1 20 1 0 0
+Running flip_u8_Tensor_HIP_PKD3_toPLN3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 21.893 ms/batch
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 1 0 20 1 0 0
+Running flip_f16_Tensor_HIP_PKD3_toPKD3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 23.5 ms/batch
+------------------------------------------------------------------------------------------
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 1 1 20 1 0 0
+Running flip_f16_Tensor_HIP_PKD3_toPLN3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 30.371 ms/batch
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 2 0 20 1 0 0
+Running flip_f32_Tensor_HIP_PKD3_toPKD3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 24.3411 ms/batch
+------------------------------------------------------------------------------------------
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 2 1 20 1 0 0
+Running flip_f32_Tensor_HIP_PKD3_toPLN3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 28.0581 ms/batch
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 3 0 20 1 0 0
+Running flip_u8_f16_Tensor_HIP_PKD3_toPKD3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality flip_u8_f16_Tensor_HIP_PKD3_toPKD3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 3 1 20 1 0 0
+Running flip_u8_f16_Tensor_HIP_PKD3_toPLN3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality flip_u8_f16_Tensor_HIP_PKD3_toPLN3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 4 0 20 1 0 0
+Running flip_u8_f32_Tensor_HIP_PKD3_toPKD3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality flip_u8_f32_Tensor_HIP_PKD3_toPKD3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 4 1 20 1 0 0
+Running flip_u8_f32_Tensor_HIP_PKD3_toPLN3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality flip_u8_f32_Tensor_HIP_PKD3_toPLN3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 5 0 20 1 0 0
+Running flip_i8_Tensor_HIP_PKD3_toPKD3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 22.033 ms/batch
+------------------------------------------------------------------------------------------
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 5 1 20 1 0 0
+Running flip_i8_Tensor_HIP_PKD3_toPLN3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 22.717 ms/batch
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 6 0 20 1 0 0
+Running flip_u8_i8_Tensor_HIP_PKD3_toPKD3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality flip_u8_i8_Tensor_HIP_PKD3_toPKD3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 6 1 20 1 0 0
+Running flip_u8_i8_Tensor_HIP_PKD3_toPLN3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality flip_u8_i8_Tensor_HIP_PKD3_toPLN3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+
+
+
+--------------------------------
+Running a New Functionality...
+--------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 0 0 20 1 0 1
+Running flip_u8_Tensor_HIP_PLN3_toPLN3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 23.031 ms/batch
+
+ mismatches 0 48 0 89 89
+ mismatches 0 49 0 88 88
+ mismatches 0 48 0 130 130
+ mismatches 0 49 0 131 131
+ mismatches 0 48 0 74 74
+ mismatches 0 49 0 75 75
+Results for flip_u8_Tensor_PLN3 :
+FAILED! 2/3 outputs are matching with reference outputs
+------------------------------------------------------------------------------------------
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 0 1 20 1 0 1
+Running flip_u8_Tensor_HIP_PLN3_toPKD3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 23.0191 ms/batch
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 1 0 20 1 0 1
+Running flip_f16_Tensor_HIP_PLN3_toPLN3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 34.534 ms/batch
+------------------------------------------------------------------------------------------
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 1 1 20 1 0 1
+Running flip_f16_Tensor_HIP_PLN3_toPKD3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 33.9448 ms/batch
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 2 0 20 1 0 1
+Running flip_f32_Tensor_HIP_PLN3_toPLN3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 30.9191 ms/batch
+------------------------------------------------------------------------------------------
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 2 1 20 1 0 1
+Running flip_f32_Tensor_HIP_PLN3_toPKD3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 31.534 ms/batch
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 3 0 20 1 0 1
+Running flip_u8_f16_Tensor_HIP_PLN3_toPLN3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality flip_u8_f16_Tensor_HIP_PLN3_toPLN3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 3 1 20 1 0 1
+Running flip_u8_f16_Tensor_HIP_PLN3_toPKD3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality flip_u8_f16_Tensor_HIP_PLN3_toPKD3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 4 0 20 1 0 1
+Running flip_u8_f32_Tensor_HIP_PLN3_toPLN3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality flip_u8_f32_Tensor_HIP_PLN3_toPLN3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 4 1 20 1 0 1
+Running flip_u8_f32_Tensor_HIP_PLN3_toPKD3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality flip_u8_f32_Tensor_HIP_PLN3_toPKD3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 5 0 20 1 0 1
+Running flip_i8_Tensor_HIP_PLN3_toPLN3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 30.8461 ms/batch
+------------------------------------------------------------------------------------------
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 5 1 20 1 0 1
+Running flip_i8_Tensor_HIP_PLN3_toPKD3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 31.2371 ms/batch
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 6 0 20 1 0 1
+Running flip_u8_i8_Tensor_HIP_PLN3_toPLN3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality flip_u8_i8_Tensor_HIP_PLN3_toPLN3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 6 1 20 1 0 1
+Running flip_u8_i8_Tensor_HIP_PLN3_toPKD3 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality flip_u8_i8_Tensor_HIP_PLN3_toPKD3 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+
+
+
+--------------------------------
+Running a New Functionality...
+--------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 0 0 20 1 0 2
+Running flip_u8_Tensor_HIP_PLN1_toPLN1 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 22.4931 ms/batch
+
+ mismatches 0 48 0 111 111
+ mismatches 0 49 0 112 112
+Results for flip_u8_Tensor_PLN1 :
+FAILED! 2/3 outputs are matching with reference outputs
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 1 0 20 1 0 2
+Running flip_f16_Tensor_HIP_PLN1_toPLN1 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 22.068 ms/batch
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 2 0 20 1 0 2
+Running flip_f32_Tensor_HIP_PLN1_toPLN1 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 21.9891 ms/batch
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 3 0 20 1 0 2
+Running flip_u8_f16_Tensor_HIP_PLN1_toPLN1 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality flip_u8_f16_Tensor_HIP_PLN1_toPLN1 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 4 0 20 1 0 2
+Running flip_u8_f32_Tensor_HIP_PLN1_toPLN1 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality flip_u8_f32_Tensor_HIP_PLN1_toPLN1 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 5 0 20 1 0 2
+Running flip_i8_Tensor_HIP_PLN1_toPLN1 1 times (each time with a batch size of 3 images) and computing mean statistics...
+
+GPU Backend Wall Time: 21.961 ms/batch
+------------------------------------------------------------------------------------------
+
+
+
+Running New Bit Depth...
+-------------------------
+
+
+./Tensor_hip /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src1 /media/rpp/utilities/test_suite/TEST_IMAGES/three_images_mixed_src2 /media/rpp/utilities/test_suite/HIP/../QA_RESULTS_HIP_2023-05-25_06-42-12 6 0 20 1 0 2
+Running flip_u8_i8_Tensor_HIP_PLN1_toPLN1 1 times (each time with a batch size of 3 images) and computing mean statistics...
+The functionality flip_u8_i8_Tensor_HIP_PLN1_toPLN1 doesn't yet exist in RPP
+------------------------------------------------------------------------------------------
+---------------------------------- Results of QA Test ----------------------------------
+
+flip_u8_Tensor_PKD3: FAILED
+flip_u8_Tensor_PLN3: FAILED
+flip_u8_Tensor_PLN1: FAILED
+
+-------------- Tests are run for 1 supported cases out of the 1 cases requested --------------

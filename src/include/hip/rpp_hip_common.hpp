@@ -1854,21 +1854,25 @@ __device__ __forceinline__ void rpp_hip_interpolate1_bilinear_load_pln1(uchar *s
 {
     uint2 src_u2;
     int2 locSrc1_i2, locSrc2_i2;
-    rpp_hip_roi_range_check(locSrcFloor_f2, roiPtrSrc_i4, &locSrc1_i2);
+    // rpp_hip_roi_range_check(locSrcFloor_f2, roiPtrSrc_i4, &locSrc1_i2);
     *locSrcFloor_f2 = *locSrcFloor_f2 + (float2)1.0f;
-    rpp_hip_roi_range_check(locSrcFloor_f2, roiPtrSrc_i4, &locSrc2_i2);
+    // rpp_hip_roi_range_check(locSrcFloor_f2, roiPtrSrc_i4, &locSrc2_i2);
     int2 srcInterRowLoc_i2;
     srcInterRowLoc_i2.x = locSrc1_i2.y * srcStrideH;
     srcInterRowLoc_i2.y = locSrc2_i2.y * srcStrideH;
 
     int srcIdx1 = srcInterRowLoc_i2.x + locSrc1_i2.x;   // Top Left
     int srcIdx2 = srcInterRowLoc_i2.x + locSrc2_i2.x;   // Top Right
+    printf("\n TL %d",srcIdx1);
+    printf("\n TR %d",srcIdx2);
     src_u2.x = *(uint *)&srcPtr[srcIdx1];
     src_u2.y = *(uint *)&srcPtr[srcIdx2];
     srcNeighborhood_f4->x = rpp_hip_unpack0(src_u2.x);
     srcNeighborhood_f4->y = rpp_hip_unpack0(src_u2.y);
     srcIdx1 = srcInterRowLoc_i2.y + locSrc1_i2.x;   // Bottom left
     srcIdx2 = srcInterRowLoc_i2.y + locSrc2_i2.x;   // Bottom right
+    printf("\n BL %d",srcIdx1);
+    printf("\n BR %d",srcIdx2);
     src_u2.x = *(uint *)&srcPtr[srcIdx1];
     src_u2.y = *(uint *)&srcPtr[srcIdx2];
     srcNeighborhood_f4->z = rpp_hip_unpack0(src_u2.x);
@@ -2074,6 +2078,7 @@ __device__ __forceinline__ void rpp_hip_interpolate3_bilinear_load_pkd3(half *sr
 
     int srcIdx1 = srcInterRowLoc_i2.x + srcInterColLoc_i2.x;   // Top Left
     int srcIdx2 = srcInterRowLoc_i2.x + srcInterColLoc_i2.y;   // Top Right
+
     src1_h3 = *(d_half3_s *)&srcPtr[srcIdx1];
     src2_h3 = *(d_half3_s *)&srcPtr[srcIdx2];
     srcNeighborhood_f12->f1[0] = __half2float(src1_h3.h1[0]);
@@ -2114,6 +2119,9 @@ __device__ __forceinline__ void rpp_hip_interpolate1_bilinear_pln1(T *srcPtr, ui
     float2 locSrcFloor_f2, weightedWH_f2, oneMinusWeightedWH_f2;
     locSrcFloor_f2.x = floorf(locSrcX);
     locSrcFloor_f2.y = floorf(locSrcY);
+    printf("\n After floor");
+            printf("\n srcY : %0.10f ", static_cast<float>(locSrcFloor_f2.y));
+         printf("\n srcX : %0.10f ", static_cast<float>(locSrcFloor_f2.x));
     if (checkRange && ((locSrcFloor_f2.x < roiPtrSrc_i4->x) || (locSrcFloor_f2.y < roiPtrSrc_i4->y) || (locSrcFloor_f2.x > roiPtrSrc_i4->z) || (locSrcFloor_f2.y > roiPtrSrc_i4->w)))
     {
         *dst = 0.0f;

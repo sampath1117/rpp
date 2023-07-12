@@ -832,6 +832,8 @@ void compare_pkd(Rpp8u* output, Rpp8u* refOutput, RpptDescPtr dstDescPtr, RpptIm
                 int diff = abs(*outVal - *outRefVal);
                 if(diff <= CUTOFF)
                     matched_idx++;
+                else
+                    std::cerr<<"\n mismatches "<<i<<" "<<j<<" "<<(int)*outVal<<" "<<(int)*outRefVal<<" "<<diff<<" "<<imageCnt;
             }
         }
         if(matched_idx == (height * width) && matched_idx !=0)
@@ -867,6 +869,8 @@ void compare_pln(Rpp8u* output, Rpp8u* refOutput, RpptDescPtr dstDescPtr, RpptIm
                     int diff = abs(*outVal - *outRefVal);
                     if(diff <= CUTOFF)
                         matched_idx++;
+                    else
+                        std::cerr<<"\n mismatches "<<i<<" "<<j<<" "<<(int)*outVal<<" "<<(int)*outRefVal<<" "<<diff;
                 }
             }
         }

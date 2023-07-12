@@ -198,10 +198,10 @@ inline void rpp_mm_print_epi32(__m128i vPrintArray)
 {
     int printArray[4];
     _mm_storeu_si128((__m128i *)printArray, vPrintArray);
-    printf("\n");
+    // printf("\n");
     for (int ct = 0; ct < 4; ct++)
     {
-        printf("%d ", printArray[ct]);
+        printf("\n srcLocs : %d ", printArray[ct]);
     }
 }
 
@@ -209,10 +209,10 @@ inline void rpp_mm_print_ps(__m128 vPrintArray)
 {
     float printArray[4];
     _mm_storeu_ps(printArray, vPrintArray);
-    printf("\n");
+    // printf("\n");
     for (int ct = 0; ct < 4; ct++)
     {
-        printf("%0.6f ", printArray[ct]);
+        printf("\n %0.10f ", printArray[ct]);
     }
 }
 
@@ -220,10 +220,10 @@ inline void rpp_mm256_print_epi8(__m256i vPrintArray)
 {
     unsigned char printArray[32];
     _mm256_storeu_si256((__m256i *)printArray, vPrintArray);
-    printf("\n");
+    // printf("\n");
     for (int ct = 0; ct < 32; ct++)
     {
-        printf("%d ", printArray[ct]);
+        printf("\n %d ", printArray[ct]);
     }
 }
 
@@ -245,7 +245,7 @@ inline void rpp_mm256_print_ps(__m256 vPrintArray)
     printf("\n");
     for (int ct = 0; ct < 8; ct++)
     {
-        printf("%0.6f ", printArray[ct]);
+        printf("\n %0.10f ", printArray[ct]);
     }
 }
 
