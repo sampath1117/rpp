@@ -1854,29 +1854,41 @@ __device__ __forceinline__ void rpp_hip_interpolate1_bilinear_load_pln1(uchar *s
 {
     uint2 src_u2;
     int2 locSrc1_i2, locSrc2_i2;
-    // rpp_hip_roi_range_check(locSrcFloor_f2, roiPtrSrc_i4, &locSrc1_i2);
+    rpp_hip_roi_range_check(locSrcFloor_f2, roiPtrSrc_i4, &locSrc1_i2);
     *locSrcFloor_f2 = *locSrcFloor_f2 + (float2)1.0f;
-    // rpp_hip_roi_range_check(locSrcFloor_f2, roiPtrSrc_i4, &locSrc2_i2);
+    rpp_hip_roi_range_check(locSrcFloor_f2, roiPtrSrc_i4, &locSrc2_i2);
+    // locSrc1_i2.x = locSrcFloor_f2->x;
+    // locSrc2_i2.x = locSrcFloor_f2->x;
+    // locSrc1_i2.y = locSrcFloor_f2->y;
+    // locSrc2_i2.y = locSrcFloor_f2->y + 1;
     int2 srcInterRowLoc_i2;
     srcInterRowLoc_i2.x = locSrc1_i2.y * srcStrideH;
     srcInterRowLoc_i2.y = locSrc2_i2.y * srcStrideH;
 
     int srcIdx1 = srcInterRowLoc_i2.x + locSrc1_i2.x;   // Top Left
-    int srcIdx2 = srcInterRowLoc_i2.x + locSrc2_i2.x;   // Top Right
+    int srcIdx2 = srcInterRowLoc_i2.x + locSrc2_i2.x ;   // Top Right
     printf("\n TL %d",srcIdx1);
-    printf("\n TR %d",srcIdx2);
+    // printf("\n TR %d",srcIdx2);
     src_u2.x = *(uint *)&srcPtr[srcIdx1];
     src_u2.y = *(uint *)&srcPtr[srcIdx2];
     srcNeighborhood_f4->x = rpp_hip_unpack0(src_u2.x);
     srcNeighborhood_f4->y = rpp_hip_unpack0(src_u2.y);
     srcIdx1 = srcInterRowLoc_i2.y + locSrc1_i2.x;   // Bottom left
     srcIdx2 = srcInterRowLoc_i2.y + locSrc2_i2.x;   // Bottom right
-    printf("\n BL %d",srcIdx1);
-    printf("\n BR %d",srcIdx2);
+    // printf("\n BL %d",srcIdx1);
+    // printf("\n BR %d",srcIdx2);
     src_u2.x = *(uint *)&srcPtr[srcIdx1];
     src_u2.y = *(uint *)&srcPtr[srcIdx2];
     srcNeighborhood_f4->z = rpp_hip_unpack0(src_u2.x);
     srcNeighborhood_f4->w = rpp_hip_unpack0(src_u2.y);
+    // float srcNeighX = srcNeighborhood_f4->x;
+    // float srcNeighY = srcNeighborhood_f4->y;
+    // float srcNeighZ = srcNeighborhood_f4->w;
+    // float srcNeighW = srcNeighborhood_f4->z;
+    // printf("\n SnX %f",srcNeighX);
+    // printf("\n SnY %f",srcNeighY);
+    // printf("\n SnZ %f",srcNeighZ);
+    // printf("\n SnW %f",srcNeighW);
 }
 
 // F32 loads for bilinear interpolation (4 F32 pixels)
@@ -2119,9 +2131,16 @@ __device__ __forceinline__ void rpp_hip_interpolate1_bilinear_pln1(T *srcPtr, ui
     float2 locSrcFloor_f2, weightedWH_f2, oneMinusWeightedWH_f2;
     locSrcFloor_f2.x = floorf(locSrcX);
     locSrcFloor_f2.y = floorf(locSrcY);
-    printf("\n After floor");
-            printf("\n srcY : %0.10f ", static_cast<float>(locSrcFloor_f2.y));
-         printf("\n srcX : %0.10f ", static_cast<float>(locSrcFloor_f2.x));
+    // float floorf2Y = locSrcFloor_f2.y;
+    // float floorf2X = locSrcFloor_f2.x;
+    // printf("\n After floor");
+    //         printf("\n srcY : %0.10f ", floorf2Y);
+    //      printf("\n srcX : %0.10f ", floorf2X);
+    // int roiX = roiPtrSrc_i4->x;
+    // int roiY = roiPtrSrc_i4->y;
+    // int roiW = roiPtrSrc_i4->w;
+    // int roiZ = roiPtrSrc_i4->z;
+    //  printf("\n  roi %d %d %d %d ", roiX, roiY, roiW, roiZ);
     if (checkRange && ((locSrcFloor_f2.x < roiPtrSrc_i4->x) || (locSrcFloor_f2.y < roiPtrSrc_i4->y) || (locSrcFloor_f2.x > roiPtrSrc_i4->z) || (locSrcFloor_f2.y > roiPtrSrc_i4->w)))
     {
         *dst = 0.0f;

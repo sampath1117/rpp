@@ -345,9 +345,9 @@ inline void set_descriptor_dims_and_strides(RpptDescPtr descPtr, int noOfImages,
     else if(descPtr->layout == RpptLayout::NCHW)
     {
         descPtr->strides.nStride = descPtr->c * descPtr->w * descPtr->h;
-        descPtr->strides.cStride = descPtr->w * descPtr->h;
-        descPtr->strides.hStride = descPtr->w;
-        descPtr->strides.wStride = 1;
+        
+ descPtr->strides.cStride = descPtr->w * descPtr->h;
+        descPtr->strides.hStride = descPtr->w;       descPtr->strides.wStride = 1;
     }
 }
 
@@ -870,7 +870,7 @@ void compare_pln(Rpp8u* output, Rpp8u* refOutput, RpptDescPtr dstDescPtr, RpptIm
                     if(diff <= CUTOFF)
                         matched_idx++;
                     else
-                        std::cerr<<"\n mismatches "<<i<<" "<<j<<" "<<(int)*outVal<<" "<<(int)*outRefVal<<" "<<diff;
+                        std::cerr<<"\n mismatches "<<i<<" "<<j<<" "<<(int)*outVal<<" "<<(int)*outRefVal<<" "<<diff <<" "<<imageCnt;
                 }
             }
         }

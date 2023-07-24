@@ -79,8 +79,8 @@ __global__ void warp_affine_bilinear_pln_tensor(T *srcPtr,
     {
         return;
     }
-    if ((id_y == 0) && (id_x == 32))
-    {
+    // if ((id_y == 0) && (id_x == 32))
+    // {
     uint srcIdx = (id_z * srcStridesNCH.x);
     uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + id_x;
 
@@ -91,14 +91,14 @@ __global__ void warp_affine_bilinear_pln_tensor(T *srcPtr,
 
     // if(id_x == 32)
     // {
-        for (int ct = 0; ct < 8; ct++)
-        {
-            printf("\n srcY : %0.10f ", locSrc_f16.f8[1].f1[ct]);
-        }
-        for (int ct = 0; ct < 8; ct++)
-        {
-            printf("\n srcX : %0.10f ", locSrc_f16.f8[0].f1[ct]);
-        }
+        // for (int ct = 0; ct < 8; ct++)
+        // {
+        //     printf("\n srcY : %0.10f ", locSrc_f16.f8[1].f1[ct]);
+        // }
+        // for (int ct = 0; ct < 8; ct++)
+        // {
+        //     printf("\n srcX : %0.10f ", locSrc_f16.f8[0].f1[ct]);
+        // }
     // }
 
     d_float8 dst_f8;
@@ -119,7 +119,7 @@ __global__ void warp_affine_bilinear_pln_tensor(T *srcPtr,
         rpp_hip_interpolate8_bilinear_pln1(srcPtr + srcIdx, srcStridesNCH.z, &locSrc_f16, &srcRoi_i4, &dst_f8);
         rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &dst_f8);
     }
-    }
+    // }
 }
 
 template <typename T>
