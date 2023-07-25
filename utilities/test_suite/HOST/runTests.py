@@ -31,8 +31,8 @@ timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 os.environ["TIMESTAMP"] = timestamp
 
 cwd = os.getcwd()
-inFilePath1 = os.path.join(os.path.dirname(cwd), 'TEST_IMAGES', 'single_image')
-inFilePath2 = os.path.join(os.path.dirname(cwd), 'TEST_IMAGES', 'single_image')
+inFilePath1 = os.path.join(os.path.dirname(cwd), 'TEST_IMAGES', 'three_images_mixed_src1')
+inFilePath2 = os.path.join(os.path.dirname(cwd), 'TEST_IMAGES', 'three_images_mixed_src1')
 qaInputFile = os.path.join(os.path.dirname(cwd), 'TEST_IMAGES', 'three_images_mixed_src1')
 
 def validate_path(input_path):

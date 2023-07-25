@@ -345,7 +345,7 @@ inline void set_descriptor_dims_and_strides(RpptDescPtr descPtr, int noOfImages,
     else if(descPtr->layout == RpptLayout::NCHW)
     {
         descPtr->strides.nStride = descPtr->c * descPtr->w * descPtr->h;
-        
+
  descPtr->strides.cStride = descPtr->w * descPtr->h;
         descPtr->strides.hStride = descPtr->w;       descPtr->strides.wStride = 1;
     }
@@ -833,7 +833,7 @@ void compare_pkd(Rpp8u* output, Rpp8u* refOutput, RpptDescPtr dstDescPtr, RpptIm
                 if(diff <= CUTOFF)
                     matched_idx++;
                 else
-                    std::cerr<<"\n mismatches "<<i<<" "<<j<<" "<<(int)*outVal<<" "<<(int)*outRefVal<<" "<<diff<<" "<<imageCnt;
+                    std::cerr<<"\n refVal, outVal, i, j, imageNum: "<<(int)*outRefVal<<", "<<(int)*outVal<<", "<<i<<", "<<j<<", "<<imageCnt;
             }
         }
         if(matched_idx == (height * width) && matched_idx !=0)
@@ -846,6 +846,7 @@ void compare_pln(Rpp8u* output, Rpp8u* refOutput, RpptDescPtr dstDescPtr, RpptIm
     Rpp8u *rowTemp, *rowTempRef, *outVal, *outRefVal, *outputTemp, *outputTempRef, *outputTempChn, *outputTempRefChn;
     for(int imageCnt = 0; imageCnt < dstDescPtr->n; imageCnt++)
     {
+        std::cerr<<"\ncomparing for image: "<<imageCnt;
         outputTemp = output + imageCnt * dstDescPtr->strides.nStride;
         outputTempRef = refOutput + imageCnt * refOutputSize;
         int height = dstImgSizes[imageCnt].height;
@@ -856,6 +857,7 @@ void compare_pln(Rpp8u* output, Rpp8u* refOutput, RpptDescPtr dstDescPtr, RpptIm
 
         for(int c = 0; c < dstDescPtr->c; c++)
         {
+            std::cerr<<"\ncomparing channel: "<<c;
             outputTempChn = outputTemp + c * dstDescPtr->strides.cStride;
             outputTempRefChn = outputTempRef + c * refOutputCstride;
             for(int i = 0; i < height; i++)
@@ -865,12 +867,13 @@ void compare_pln(Rpp8u* output, Rpp8u* refOutput, RpptDescPtr dstDescPtr, RpptIm
                 for(int j = 0; j < width; j++)
                 {
                     outVal = rowTemp + j;
-                    outRefVal = rowTempRef + j ;
+                    outRefVal = rowTempRef + j;
                     int diff = abs(*outVal - *outRefVal);
                     if(diff <= CUTOFF)
                         matched_idx++;
                     else
-                        std::cerr<<"\n mismatches "<<i<<" "<<j<<" "<<(int)*outVal<<" "<<(int)*outRefVal<<" "<<diff <<" "<<imageCnt;
+                        std::cerr<<"\n refVal, outVal, i, j, imageNum: "<<(int)*outRefVal<<", "<<(int)*outVal<<", "<<i<<", "<<j<<", "<<imageCnt;
+
                 }
             }
         }

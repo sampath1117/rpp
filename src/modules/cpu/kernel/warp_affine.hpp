@@ -879,8 +879,8 @@ RppStatus warp_affine_bilinear_u8_u8_host_tensor(Rpp8u *srcPtr,
 {
     RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
 
-// omp_set_dynamic(0);
-// #pragma omp parallel for num_threads(dstDescPtr->n)
+omp_set_dynamic(0);
+#pragma omp parallel for num_threads(dstDescPtr->n)
     for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
         RpptROI roi, roiLTRB;
@@ -1052,50 +1052,76 @@ RppStatus warp_affine_bilinear_u8_u8_host_tensor(Rpp8u *srcPtr,
             dstPtrRowG = dstPtrRowR + dstDescPtr->strides.cStride;
             dstPtrRowB = dstPtrRowG + dstDescPtr->strides.cStride;
 
-            for(int i = 0; i < dstDescPtr->h; i++)
+            for(int i = 0; i < roi.xywhROI.roiHeight; i++)
             {
                 Rpp8u *dstPtrTempR, *dstPtrTempG, *dstPtrTempB;
                 dstPtrTempR = dstPtrRowR;
-                dstPtrTempG = dstPtrRowG;
-                dstPtrTempB = dstPtrRowB;
+                dstPtrTempG = dstPtrTempR + dstDescPtr->strides.cStride;
+                dstPtrTempB = dstPtrTempG + dstDescPtr->strides.cStride;
 
                 int vectorLoopCount = 0;
-                Rpp32f srcX, srcY;
+                Rpp32f srcX = 0, srcY = 0;
                 __m256 pSrcX, pSrcY;
+                pSrcX = avx_p0;
+                pSrcY = avx_p0;
                 compute_warp_affine_src_loc(i, vectorLoopCount, srcY, srcX, affineMatrix_f6, roiHalfHeight, roiHalfWidth);
                 pSrcY = _mm256_add_ps(_mm256_set1_ps(srcY), pAffineMatrixTerm3);
                 pSrcX = _mm256_add_ps(_mm256_set1_ps(srcX), pAffineMatrixTerm0);
-                // for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannel)
-                // {
-                //     // __m256 pSrc[12], pDst[3];
-                //     // compute_generic_bilinear_srclocs_3c_avx(pSrcY, pSrcX, srcLocs, pBilinearCoeffs, pSrcStrideH, pxSrcStridesCHW, srcDescPtr->c, pRoiLTRB, false);
-                //     // rpp_simd_load(rpp_generic_bilinear_load_3c_avx<Rpp8u>, srcPtrChannel, srcDescPtr, srcLocs, pSrcY, pSrcX, pRoiLTRB, pSrc);  // Load input pixels required for bilinear interpolation
-                //     // compute_bilinear_interpolation_3c_avx(pSrc, pBilinearCoeffs, pDst); // Compute Bilinear interpolation
-                //     // rpp_simd_store(rpp_store24_f32pln3_to_u8pln3_avx, dstPtrTempR, dstPtrTempG, dstPtrTempB, pDst); // Store dst pixels
-                //     // compute_warp_affine_src_loc_next_term_avx(pSrcY, pSrcX, pAffineMatrixTerm3Incr, pAffineMatrixTerm0Incr);
-                //     // dstPtrTempR += vectorIncrementPerChannel;
-                //     // dstPtrTempG += vectorIncrementPerChannel;
-                //     // dstPtrTempB += vectorIncrementPerChannel;
-                //     __m256 pSrc[4], pDst;
-                //     compute_generic_bilinear_srclocs_1c_avx(pSrcY, pSrcX, srcLocs, pBilinearCoeffs, pSrcStrideH, pxSrcStridesCHW, pRoiLTRB);
-                //     rpp_simd_load(rpp_generic_bilinear_load_1c_avx<Rpp8u>, srcPtrChannel, srcDescPtr, srcLocs, pSrcY, pSrcX, pRoiLTRB, pSrc);  // Load input pixels required for bilinear interpolation
-                //     compute_bilinear_interpolation_1c_avx(pSrc, pBilinearCoeffs, pDst); // Compute Bilinear interpolation
-                //     rpp_simd_store(rpp_store8_f32pln1_to_u8pln1_avx, dstPtrTempR, pDst); // Store dst pixels
+                for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannel)
+                {
+                    __m256 pSrc[12], pDst[3];
+                    compute_generic_bilinear_srclocs_3c_avx(pSrcY, pSrcX, srcLocs, pBilinearCoeffs, pSrcStrideH, pxSrcStridesCHW, srcDescPtr->c, pRoiLTRB, false);
+                    // if(i == 0 && vectorLoopCount == 16)
+                    // {
+                    //     std::cerr<<"\nprinting source x, y values: ";
+                    //     rpp_mm256_print_ps(pSrcX);
+                    //     rpp_mm256_print_ps(pSrcY);
 
-                //     compute_generic_bilinear_srclocs_1c_avx(pSrcY, pSrcX, srcLocs, pBilinearCoeffs, pSrcStrideH, pxSrcStridesCHW, pRoiLTRB);
-                //     rpp_simd_load(rpp_generic_bilinear_load_1c_avx<Rpp8u>, srcPtrChannel + srcDescPtr->strides.cStride, srcDescPtr, srcLocs, pSrcY, pSrcX, pRoiLTRB, pSrc);  // Load input pixels required for bilinear interpolation
-                //     compute_bilinear_interpolation_1c_avx(pSrc, pBilinearCoeffs, pDst); // Compute Bilinear interpolation
-                //     rpp_simd_store(rpp_store8_f32pln1_to_u8pln1_avx, dstPtrTempG, pDst); // Store dst pixels
+                    //     std::cerr<<"\nprinting ROI values:";
+                    //     rpp_mm256_print_ps(pRoiLTRB[0]);
+                    //     rpp_mm256_print_ps(pRoiLTRB[1]);
+                    //     rpp_mm256_print_ps(_mm256_add_ps(pRoiLTRB[2], avx_p1));
+                    //     rpp_mm256_print_ps(_mm256_add_ps(pRoiLTRB[3], avx_p1));
 
-                //     compute_generic_bilinear_srclocs_1c_avx(pSrcY, pSrcX, srcLocs, pBilinearCoeffs, pSrcStrideH, pxSrcStridesCHW, pRoiLTRB);
-                //     rpp_simd_load(rpp_generic_bilinear_load_1c_avx<Rpp8u>, srcPtrChannel + srcDescPtr->strides.cStride * 2, srcDescPtr, srcLocs, pSrcY, pSrcX, pRoiLTRB, pSrc);  // Load input pixels required for bilinear interpolation
-                //     compute_bilinear_interpolation_1c_avx(pSrc, pBilinearCoeffs, pDst); // Compute Bilinear interpolation
-                //     rpp_simd_store(rpp_store8_f32pln1_to_u8pln1_avx, dstPtrTempB, pDst); // Store dst pixels
-                //     dstPtrTempR += vectorIncrementPerChannel;
-                //     dstPtrTempG += vectorIncrementPerChannel;
-                //     dstPtrTempB += vectorIncrementPerChannel;
-                //     compute_warp_affine_src_loc_next_term_avx(pSrcY, pSrcX, pAffineMatrixTerm3Incr, pAffineMatrixTerm0Incr);
-                // }
+                    //     Rpp32s invalidLoadMask[8];
+                    //     _mm256_storeu_si256((__m256i*) invalidLoadMask, _mm256_cvtps_epi32(_mm256_or_ps(                                    // Vectorized ROI boundary check for 8 locations
+                    //     _mm256_or_ps(_mm256_cmp_ps(pSrcX, pRoiLTRB[0], _CMP_LT_OQ), _mm256_cmp_ps(pSrcY, pRoiLTRB[1], _CMP_LT_OQ)),
+                    //     _mm256_or_ps(_mm256_cmp_ps(pSrcX, _mm256_add_ps(pRoiLTRB[2],avx_p1), _CMP_GT_OQ), _mm256_cmp_ps(pSrcY, _mm256_add_ps(pRoiLTRB[3],avx_p1), _CMP_GT_OQ))
+                    // )));
+                    //     std::cerr<<"\noutput mask values: ";
+                    //     for(int tmp = 0; tmp < 8; tmp++)
+                    //         std::cerr<<invalidLoadMask[tmp]<<", ";
+                    // }
+
+                    rpp_simd_load(rpp_generic_bilinear_load_3c_avx<Rpp8u>, srcPtrChannel, srcDescPtr, srcLocs, pSrcY, pSrcX, pRoiLTRB, pSrc);  // Load input pixels required for bilinear interpolation
+                    compute_bilinear_interpolation_3c_avx(pSrc, pBilinearCoeffs, pDst); // Compute Bilinear interpolation
+                    rpp_simd_store(rpp_store24_f32pln3_to_u8pln3_avx, dstPtrTempR, dstPtrTempG, dstPtrTempB, pDst); // Store dst pixels
+                    if(i == 0 && vectorLoopCount == 16)
+                    {
+                        std::cerr<<"\nprinting 16 position output values: ";
+                        rpp_mm256_print_ps(pDst[0]);
+                        rpp_mm256_print_ps(pDst[1]);
+                        rpp_mm256_print_ps(pDst[2]);
+                    }
+                    compute_warp_affine_src_loc_next_term_avx(pSrcY, pSrcX, pAffineMatrixTerm3Incr, pAffineMatrixTerm0Incr);
+                    if(i == 0 && vectorLoopCount == 24)
+                    {
+                        std::cerr<<"\nprinting values of 16 at 24th iteration: ";
+                        Rpp8u *tempR = dstPtrTempR - 8;
+                        Rpp8u *tempG = dstPtrTempG - 8;
+                        Rpp8u *tempB = dstPtrTempB - 8;
+                        for(int tmp = 0; tmp < 8; tmp++)
+                        {
+                            std::cerr<<(int)*tempR<<", "<<(int)*tempG<<", "<<(int)*tempB<<std::endl;
+                            tempR++;
+                            tempG++;
+                            tempB++;
+                        }
+                    }
+                    dstPtrTempR += vectorIncrementPerChannel;
+                    dstPtrTempG += vectorIncrementPerChannel;
+                    dstPtrTempB += vectorIncrementPerChannel;
+                }
                 srcY += (affineMatrix_f6->data[3] * vectorLoopCount);
                 srcX += (affineMatrix_f6->data[0] * vectorLoopCount);
                 for (; vectorLoopCount < dstDescPtr->w; vectorLoopCount++)

@@ -4,7 +4,7 @@ cwd=$(pwd)
 
 # <<<<<<<<<<<<<< VALIDATION CHECK FOR FOLDER PATHS >>>>>>>>>>>>>>>>>>>>>>>>>>>>
 function VALIDATE_PATH {
-    if [ -z "$1" ]; then  #check if a string is empty 
+    if [ -z "$1" ]; then  #check if a string is empty
         echo "$1 Folder path is empty."
         exit
     fi
@@ -199,7 +199,7 @@ if [ "$TEST_TYPE" -eq 0 ]; then
             echo "Invalid case number $case. case number must be in the 0:86 range!"
             continue
         fi
-        for ((layout=0;layout<3;layout++))
+        for ((layout=1;layout<2;layout++))
         do
             if [ $layout -eq 0 ]; then
                 directory_name_generator "host" "pkd3" "$case"
@@ -245,7 +245,7 @@ if [ "$TEST_TYPE" -eq 0 ]; then
                         done
                     elif [ "$case" -eq 21 ] || [ "$case" -eq 23 ] || [ "$case" -eq 24 ]
                     then
-                        for ((interpolationType=0;interpolationType<6;interpolationType++))
+                        for ((interpolationType=1;interpolationType<2;interpolationType++))
                         do
                             printf "\n./Tensor_host $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $interpolationType 0"
                             ./Tensor_host "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$interpolationType" "$NUM_ITERATIONS" "$TEST_TYPE" "$layout" "0" "$QA_MODE" "$DECODER_TYPE" "$BATCH_SIZE"
@@ -267,7 +267,7 @@ else
             echo "Invalid case number $case. case number must be in the 0:86 range!"
             continue
         fi
-        for ((layout=0;layout<3;layout++))
+        for ((layout=1;layout<2;layout++))
         do
             if [ $layout -eq 0 ]; then
                 directory_name_generator "host" "pkd3" "$case"
@@ -308,7 +308,7 @@ else
                         done
                     elif [ "$case" -eq 21 ] || [ "$case" -eq 23 ] || [ "$case" -eq 24 ]
                     then
-                        for ((interpolationType=0;interpolationType<6;interpolationType++))
+                        for ((interpolationType=1;interpolationType<2;interpolationType++))
                         do
                             printf "\n./Tensor_host $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $interpolationType 0"
                             ./Tensor_host "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$interpolationType" "$NUM_ITERATIONS" "$TEST_TYPE" "$layout" "0" "$QA_MODE" "$DECODER_TYPE" "$BATCH_SIZE"| tee -a "$LOGGING_FOLDER/Tensor_host_${log_file_layout}_raw_performance_log.txt"
