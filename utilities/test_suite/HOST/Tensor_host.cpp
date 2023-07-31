@@ -590,18 +590,6 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    if(srcDescPtr->c == 3 && srcDescPtr->layout == RpptLayout::NCHW && dstDescPtr->layout == RpptLayout::NCHW)
-                    {
-                        Rpp8u *outR, *outG, *outB;
-                        outR = (Rpp8u*)output;
-                        outG = outR + dstDescPtr->strides.cStride;
-                        outB = outG + dstDescPtr->strides.cStride;
-                        std::cerr<<"\nprinting values from test suite"<<std::endl;
-                        for(int i = 16; i < 24; i++)
-                        {
-                            std::cerr<<(int)outR[i]<<", "<<(int)outG[i]<<", "<<(int)outB[i]<<std::endl;
-                        }
-                    }
                     break;
                 }
                 case 24:
