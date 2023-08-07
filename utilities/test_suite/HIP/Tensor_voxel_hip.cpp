@@ -496,8 +496,8 @@ int main(int argc, char * argv[])
                 for (int i = 0; i < batchSize; i++)
                 {
                     horizontalTensor[i] = 1;
-                    verticalTensor[i] = 1;
-                    depthTensor[i] = 1;
+                    verticalTensor[i] = 0;
+                    depthTensor[i] = 0;
                 }
 
                 startWallTime = omp_get_wtime();
@@ -533,6 +533,7 @@ int main(int argc, char * argv[])
             }
         }
 
+        hipDeviceSynchronize();
         endWallTime = omp_get_wtime();
         wallTime = endWallTime - startWallTime;
         maxWallTime = std::max(maxWallTime, wallTime);
