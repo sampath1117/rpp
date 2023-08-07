@@ -2293,13 +2293,12 @@ inline void rpp_generic_nn_load_f32pln1(Rpp32f *srcPtrChanel, Rpp32s *srcLoc, Rp
 
 inline void rpp_generic_nn_load_f32pln1_avx(Rpp32f *srcPtrChannel, Rpp32s *srcLoc, Rpp32s *invalidLoad, __m256 &p)
 {
-    Rpp32f buffer[8] = {0};
-    for(int i = 0; i < 8; i++)
-    {
-        if(!(invalidLoad[i]))
-            buffer[i] = *(srcPtrChannel + srcLoc[i]);
-    }
-    p = _mm256_loadu_ps(buffer);
+    __m256i pxLoadMask = _mm256_setr_epi32((!invalidLoad[0]) ? 0x80000000 : 0, (!invalidLoad[1]) ? 0x80000000 : 0,
+                                          (!invalidLoad[2]) ? 0x80000000 : 0, (!invalidLoad[3]) ? 0x80000000 : 0,
+                                          (!invalidLoad[4]) ? 0x80000000 : 0, (!invalidLoad[5]) ? 0x80000000 : 0,
+                                          (!invalidLoad[6]) ? 0x80000000 : 0, (!invalidLoad[7]) ? 0x80000000 : 0);
+    __m256i pSrcLoc = avx_pDstLocInit;
+    p = _mm256_mask_i32gather_ps(avx_p0, srcPtrChannel, pSrcLoc, pxLoadMask, 4);
 }
 
 inline void rpp_generic_nn_load_i8pkd3(Rpp8s *srcPtrChannel, Rpp32s *srcLoc, Rpp32s *invalidLoad, __m128i &p)
