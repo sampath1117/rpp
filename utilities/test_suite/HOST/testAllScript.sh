@@ -210,7 +210,7 @@ if [ "$TEST_TYPE" -eq 0 ]; then
             echo "Invalid case number $case. case number must be in the 0:84 range!"
             continue
         fi
-        for ((layout=2;layout<3;layout++))
+        for ((layout=0;layout<1;layout++))
         do
             if [ $layout -eq 0 ]; then
                 directory_name_generator "host" "pkd3" "$case"
@@ -278,7 +278,7 @@ else
             echo "Invalid case number $case. case number must be in the 0:84 range!"
             continue
         fi
-        for ((layout=2;layout<3;layout++))
+        for ((layout=0;layout<1;layout++))
         do
             if [ $layout -eq 0 ]; then
                 directory_name_generator "host" "pkd3" "$case"
