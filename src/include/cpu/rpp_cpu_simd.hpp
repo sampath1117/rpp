@@ -2239,19 +2239,18 @@ inline void rpp_generic_nn_load_f32pkd3_to_f32pln3(Rpp32f *srcPtrChannel, Rpp32s
 
 inline void rpp_generic_nn_load_f32pkd3_to_f32pln3_avx(Rpp32f *srcPtrChannel, Rpp32s *srcLoc, Rpp32s *invalidLoad, __m256 *p)
 {
-    __m256i pxLoadMask = _mm256_setr_epi32((!invalidLoad[0]) ? 0x80000000 : 0, (!invalidLoad[1]) ? 0x80000000 : 0,
-                                          (!invalidLoad[2]) ? 0x80000000 : 0, (!invalidLoad[3]) ? 0x80000000 : 0,
-                                          (!invalidLoad[4]) ? 0x80000000 : 0, (!invalidLoad[5]) ? 0x80000000 : 0,
-                                          (!invalidLoad[6]) ? 0x80000000 : 0, (!invalidLoad[7]) ? 0x80000000 : 0);
-    __m256i pxSrcLocR = _mm256_loadu_si256((__m256i *)srcLoc);
-    __m256i pxSrcLocG =  _mm256_add_epi32(pxSrcLocR, avx_px1);
-    __m256i pxSrcLocB = _mm256_add_epi32(pxSrcLocR, avx_px2);
-    __m256 pSrcLocR = _mm256_castsi256_ps(pxSrcLocR);
-    __m256 pSrcLocG = _mm256_castsi256_ps(pxSrcLocG);
-    __m256 pSrcLocB = _mm256_castsi256_ps(pxSrcLocB);
-    p[0] = _mm256_mask_i32gather_ps(avx_p0, srcPtrChannel, pSrcLocR, pxLoadMask, 4);
-    p[1] = _mm256_mask_i32gather_ps(avx_p0, srcPtrChannel, pSrcLocG, pxLoadMask, 4);
-    p[2] = _mm256_mask_i32gather_ps(avx_p0, srcPtrChannel, pSrcLocB, pxLoadMask, 4);
+    p[0] = _mm256_setr_ps((!invalidLoad[0]) ? srcPtrChannel[srcLoc[0]]: 0, (!invalidLoad[1]) ? srcPtrChannel[srcLoc[1]]: 0,
+                          (!invalidLoad[2]) ? srcPtrChannel[srcLoc[2]]: 0, (!invalidLoad[3]) ? srcPtrChannel[srcLoc[3]]: 0,
+                          (!invalidLoad[4]) ? srcPtrChannel[srcLoc[4]]: 0, (!invalidLoad[5]) ? srcPtrChannel[srcLoc[5]]: 0,
+                          (!invalidLoad[6]) ? srcPtrChannel[srcLoc[6]]: 0, (!invalidLoad[7]) ? srcPtrChannel[srcLoc[7]]: 0);             
+    p[1] = _mm256_setr_ps((!invalidLoad[0]) ? srcPtrChannel[srcLoc[0] + 1]: 0, (!invalidLoad[1]) ? srcPtrChannel[srcLoc[1] + 1]: 0,
+                          (!invalidLoad[2]) ? srcPtrChannel[srcLoc[2] + 1]: 0, (!invalidLoad[3]) ? srcPtrChannel[srcLoc[3] + 1]: 0,
+                          (!invalidLoad[4]) ? srcPtrChannel[srcLoc[4] + 1]: 0, (!invalidLoad[5]) ? srcPtrChannel[srcLoc[5] + 1]: 0,
+                          (!invalidLoad[6]) ? srcPtrChannel[srcLoc[6] + 1]: 0, (!invalidLoad[7]) ? srcPtrChannel[srcLoc[7] + 1]: 0);
+    p[2] = _mm256_setr_ps((!invalidLoad[0]) ? srcPtrChannel[srcLoc[0] + 2]: 0, (!invalidLoad[1]) ? srcPtrChannel[srcLoc[1] + 2]: 0,
+                          (!invalidLoad[2]) ? srcPtrChannel[srcLoc[2] + 2]: 0, (!invalidLoad[3]) ? srcPtrChannel[srcLoc[3] + 2]: 0,
+                          (!invalidLoad[4]) ? srcPtrChannel[srcLoc[4] + 2]: 0, (!invalidLoad[5]) ? srcPtrChannel[srcLoc[5] + 2]: 0,
+                          (!invalidLoad[6]) ? srcPtrChannel[srcLoc[6] + 2]: 0, (!invalidLoad[7]) ? srcPtrChannel[srcLoc[7] + 2]: 0);
 }
 
 inline void rpp_generic_nn_load_f32pkd3_to_f32pkd3(Rpp32f *srcPtrChannel, Rpp32s *srcLoc, Rpp32s *invalidLoad, __m128 *p)
@@ -2264,27 +2263,18 @@ inline void rpp_generic_nn_load_f32pkd3_to_f32pkd3(Rpp32f *srcPtrChannel, Rpp32s
 
 inline void rpp_generic_nn_load_f32pkd3_to_f32pkd3_avx(Rpp32f *srcPtrChannel, Rpp32s *srcLoc, Rpp32s *invalidLoad, __m256 *p)
 {
-    Rpp32s maskBuffer[8] = {0};
-    for(int i = 0; i < 8; i++)
-    {
-        if(!invalidLoad[i])
-            maskBuffer[i] = 0x80000000;
-    }
-    __m256i pxLoadMask1 = _mm256_setr_epi32(maskBuffer[0], maskBuffer[0], maskBuffer[0], maskBuffer[1],
-                                            maskBuffer[1], maskBuffer[1], maskBuffer[2], maskBuffer[2]);
-    __m256i pxLoadMask2 = _mm256_setr_epi32(maskBuffer[2], maskBuffer[3], maskBuffer[3], maskBuffer[3],
-                                            maskBuffer[4], maskBuffer[4], maskBuffer[4], maskBuffer[5]);
-    __m256i pxLoadMask3 = _mm256_setr_epi32(maskBuffer[5], maskBuffer[5], maskBuffer[6], maskBuffer[6],
-                                            maskBuffer[6], maskBuffer[7], maskBuffer[7], maskBuffer[7]);
-    __m256i pxSrcLoc1 = _mm256_setr_epi32(srcLoc[0], srcLoc[0] + 1, srcLoc[0] + 2, srcLoc[1], srcLoc[1] + 1, srcLoc[1] + 2, srcLoc[2], srcLoc[2] + 1);
-    __m256i pxSrcLoc2 = _mm256_setr_epi32(srcLoc[2] + 2, srcLoc[3], srcLoc[3] + 1, srcLoc[3] + 2, srcLoc[4], srcLoc[4] + 1, srcLoc[4] + 2, srcLoc[5]);
-    __m256i pxSrcLoc3 =_mm256_setr_epi32(srcLoc[5] + 1, srcLoc[5] + 2, srcLoc[6], srcLoc[6] + 1, srcLoc[6] + 2, srcLoc[7], srcLoc[7] + 1, srcLoc[7] + 2);
-    __m256 pSrcLoc1 = _mm256_castsi256_ps(pxSrcLoc1);
-    __m256 pSrcLoc2 = _mm256_castsi256_ps(pxSrcLoc2);
-    __m256 pSrcLoc3 = _mm256_castsi256_ps(pxSrcLoc3);
-    p[0] = _mm256_mask_i32gather_ps(avx_p0, srcPtrChannel, pSrcLoc1, pxLoadMask1, 4);
-    p[1] = _mm256_mask_i32gather_ps(avx_p0, srcPtrChannel, pSrcLoc2, pxLoadMask2, 4);
-    p[2] = _mm256_mask_i32gather_ps(avx_p0, srcPtrChannel, pSrcLoc3, pxLoadMask3, 4);
+    p[0] = _mm256_setr_ps((!invalidLoad[0]) ? srcPtrChannel[srcLoc[0]]: 0, (!invalidLoad[0]) ? srcPtrChannel[srcLoc[0] + 1]: 0,
+                          (!invalidLoad[0]) ? srcPtrChannel[srcLoc[0] + 2]: 0, (!invalidLoad[1]) ? srcPtrChannel[srcLoc[1]]: 0,
+                          (!invalidLoad[1]) ? srcPtrChannel[srcLoc[1] + 1]: 0, (!invalidLoad[1]) ? srcPtrChannel[srcLoc[1] + 2]: 0,
+                          (!invalidLoad[2]) ? srcPtrChannel[srcLoc[2]]: 0, (!invalidLoad[2]) ? srcPtrChannel[srcLoc[2] + 1]: 0);                
+    p[1] = _mm256_setr_ps((!invalidLoad[2]) ? srcPtrChannel[srcLoc[2] + 2]: 0, (!invalidLoad[3]) ? srcPtrChannel[srcLoc[3]]: 0,
+                          (!invalidLoad[3]) ? srcPtrChannel[srcLoc[3] + 1]: 0, (!invalidLoad[3]) ? srcPtrChannel[srcLoc[3] + 2]: 0,
+                          (!invalidLoad[4]) ? srcPtrChannel[srcLoc[4]]: 0, (!invalidLoad[4]) ? srcPtrChannel[srcLoc[4] + 1]: 0,
+                          (!invalidLoad[4]) ? srcPtrChannel[srcLoc[4] + 2]: 0, (!invalidLoad[5]) ? srcPtrChannel[srcLoc[5]]: 0);
+    p[2] = _mm256_setr_ps((!invalidLoad[5]) ? srcPtrChannel[srcLoc[5] + 1]: 0, (!invalidLoad[5]) ? srcPtrChannel[srcLoc[5] + 2]: 0,
+                          (!invalidLoad[6]) ? srcPtrChannel[srcLoc[6]]: 0, (!invalidLoad[6]) ? srcPtrChannel[srcLoc[6] + 1]: 0,
+                          (!invalidLoad[6]) ? srcPtrChannel[srcLoc[6] + 2]: 0, (!invalidLoad[7]) ? srcPtrChannel[srcLoc[7]]: 0,
+                          (!invalidLoad[7]) ? srcPtrChannel[srcLoc[7] + 1]: 0, (!invalidLoad[7]) ? srcPtrChannel[srcLoc[7] + 2]: 0);
 }
 
 inline void rpp_generic_nn_load_f32pln1(Rpp32f *srcPtrChanel, Rpp32s *srcLoc, Rpp32s *invalidLoad, __m128 &p)
