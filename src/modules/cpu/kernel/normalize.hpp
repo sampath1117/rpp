@@ -224,7 +224,6 @@ RppStatus normalize_audio_host_tensor(Rpp32f* srcPtr,
                                       Rpp32f shift,
                                       Rpp32f epsilon,
                                       Rpp32s ddof,
-                                      Rpp32u numOfDims,
                                       rpp::Handle& handle)
 {
 	Rpp32u numThreads = handle.GetNumThreads();
@@ -240,7 +239,7 @@ RppStatus normalize_audio_host_tensor(Rpp32f* srcPtr,
         for(int cnt = 0; cnt < dstDescPtr->strides.nStride; cnt++)
             dstPtrTemp[cnt] = 0.0f;
 
-        Rpp32u srcAudioDims[numOfDims], srcReductionDims[numOfDims], srcStride[numOfDims], paramStride[numOfDims];
+        Rpp32u srcAudioDims[2], srcReductionDims[2], srcStride[2], paramStride[2];
         srcAudioDims[0] = srcLengthTensor[batchCount];
         srcAudioDims[1] = channelsTensor[batchCount];
         if (axis_mask == 3) {

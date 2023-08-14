@@ -312,7 +312,6 @@ RppStatus rppt_normalize_audio_host(RppPtr_t srcPtr,
                                     Rpp32f shift,
                                     Rpp32f epsilon,
                                     Rpp32s ddof,
-                                    Rpp32s numOfDims,
                                     rppHandle_t rppHandle)
 {
     if ((srcDescPtr->dataType == RpptDataType::F32) && (dstDescPtr->dataType == RpptDataType::F32))
@@ -330,7 +329,6 @@ RppStatus rppt_normalize_audio_host(RppPtr_t srcPtr,
                                     shift,
                                     epsilon,
                                     ddof,
-                                    numOfDims,
                                     rpp::deref(rppHandle));
 
         return RPP_SUCCESS;
