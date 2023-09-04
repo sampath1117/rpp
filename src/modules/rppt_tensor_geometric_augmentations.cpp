@@ -1002,18 +1002,15 @@ RppStatus rppt_flip_voxel_host(RppPtr_t srcPtr,
     return RPP_SUCCESS;
 }
 
-/******************** flip_voxel ********************/
+/******************** transpose_voxel ********************/
 
-RppStatus rppt_flip_voxel_host(RppPtr_t srcPtr,
-                               RpptGenericDescPtr srcGenericDescPtr,
-                               RppPtr_t dstPtr,
-                               RpptGenericDescPtr dstGenericDescPtr,
-                               Rpp32u *horizontalTensor,
-                               Rpp32u *verticalTensor,
-                               Rpp32u *depthTensor,
-                               RpptROI3DPtr roiGenericPtrSrc,
-                               RpptRoi3DType roiType,
-                               rppHandle_t rppHandle)
+RppStatus rppt_transpose_generic_host(RppPtr_t srcPtr,
+                                      RpptGenericDescPtr srcGenericDescPtr,
+                                      RppPtr_t dstPtr,
+                                      RpptGenericDescPtr dstGenericDescPtr,
+                                      Rpp32u *permTensor,
+                                      Rpp32u *roiTensor,
+                                      rppHandle_t rppHandle)
 {
     RppLayoutParams layoutParams;
     if ((srcGenericDescPtr->layout == RpptLayout::NCDHW) && (dstGenericDescPtr->layout == RpptLayout::NCDHW))
@@ -1021,28 +1018,22 @@ RppStatus rppt_flip_voxel_host(RppPtr_t srcPtr,
     else if ((srcGenericDescPtr->layout == RpptLayout::NDHWC) && (dstGenericDescPtr->layout == RpptLayout::NDHWC))
         layoutParams = get_layout_params(srcGenericDescPtr->layout, srcGenericDescPtr->dims[4]);
 
-    if (srcGenericDescPtr->dataType != RpptDataType::F32) return RPP_ERROR_INVALID_SRC_DATATYPE;
-    if (dstGenericDescPtr->dataType != RpptDataType::F32) return RPP_ERROR_INVALID_DST_DATATYPE;
     if ((srcGenericDescPtr->layout != RpptLayout::NCDHW) && (srcGenericDescPtr->layout != RpptLayout::NDHWC)) return RPP_ERROR_INVALID_SRC_LAYOUT;
     if ((dstGenericDescPtr->layout != RpptLayout::NCDHW) && (dstGenericDescPtr->layout != RpptLayout::NDHWC)) return RPP_ERROR_INVALID_DST_LAYOUT;
     if (srcGenericDescPtr->layout != dstGenericDescPtr->layout) return RPP_ERROR_INVALID_ARGUMENTS;
 
     if ((srcGenericDescPtr->dataType == RpptDataType::F32) && (dstGenericDescPtr->dataType == RpptDataType::F32))
     {
-        flip_voxel_f32_f32_host_tensor((Rpp32f*) (static_cast<Rpp8u*>(srcPtr) + srcGenericDescPtr->offsetInBytes),
-                                       srcGenericDescPtr,
-                                       (Rpp32f*) (static_cast<Rpp8u*>(dstPtr) + dstGenericDescPtr->offsetInBytes),
-                                       dstGenericDescPtr,
-                                       horizontalTensor,
-                                       verticalTensor,
-                                       depthTensor,
-                                       roiGenericPtrSrc,
-                                       roiType,
-                                       layoutParams,
-                                       rpp::deref(rppHandle));
+        transpose_generic_f32_f32_host_tensor((Rpp32f*) (static_cast<Rpp8u*>(srcPtr) + srcGenericDescPtr->offsetInBytes),
+                                              srcGenericDescPtr,
+                                              (Rpp32f*) (static_cast<Rpp8u*>(dstPtr) + dstGenericDescPtr->offsetInBytes),
+                                              dstGenericDescPtr,
+                                              permTensor,
+                                              roiTensor,
+                                              layoutParams,
+                                              rpp::deref(rppHandle));
     }
-
-
+    
     return RPP_SUCCESS;
 }
 
