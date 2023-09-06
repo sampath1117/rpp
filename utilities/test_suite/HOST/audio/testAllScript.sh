@@ -67,7 +67,7 @@ for ((case=$CASE_START;case<=$CASE_END;case++))
 do
     if [ "$case" -eq 0 ]
     then
-        SRC_FOLDER="$cwd/../../TEST_AUDIO_FILES/three_samples_single_channel_src1/"
+        SRC_FOLDER="$cwd/../../TEST_AUDIO_FILES/eight_samples_single_channel_src1/"
     elif [ "$case" -eq 3 ]
     then
         SRC_FOLDER="$cwd/../../TEST_AUDIO_FILES/single_sample_multi_channel_src1/"
