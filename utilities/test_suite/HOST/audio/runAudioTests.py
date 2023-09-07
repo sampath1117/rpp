@@ -88,16 +88,6 @@ def get_log_file_list(preserveOutput):
         "../../OUTPUT_AUDIO_PERFORMANCE_LOGS_HOST_" + timestamp + "/Tensor_host_audio_raw_performance_log.txt",
     ]
 
- # Generate a directory name based on certain parameters
-def directory_name_generator(qaMode, affinity, layoutType, case, path):
-    if qaMode == 0:
-        functionality_group = func_group_finder(int(case))
-        dst_folder_temp = "{}/rpp_{}_{}_{}".format(path, affinity, layoutType, functionality_group)
-    else:
-        dst_folder_temp = path
-
-    return dst_folder_temp
-
 def run_unit_test(srcPath, case, numRuns, testType, bitDepth, batchSize):
     print("\n\n\n\n")
     print("--------------------------------")
@@ -109,10 +99,10 @@ def run_unit_test(srcPath, case, numRuns, testType, bitDepth, batchSize):
 
     print("------------------------------------------------------------------------------------------")
 
-def run_performance_test_cmd(loggingFolder, log_file_layout, srcPath1, srcPath2, dstPath, bitDepth, outputFormatToggle, case, additionalParam, numRuns, testType, layout, qaMode, decoderType, batchSize, roiList):
-    with open("{}/Tensor_host_audio_{}_raw_performance_log.txt".format(loggingFolder, log_file_layout), "a") as log_file:
-        print(f"./Tensor_host_audio {srcPath1} {srcPath2} {dstPath} {bitDepth} {outputFormatToggle} {case} {additionalParam} 0 ")
-        process = subprocess.Popen(["./Tensor_host_audio", srcPath1, srcPath2, dstPath, str(bitDepth), str(outputFormatToggle), str(case), str(additionalParam), str(numRuns), str(testType), str(layout), "0", str(qaMode), str(decoderType), str(batchSize)] + roiList, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)    # nosec
+def run_performance_test_cmd(loggingFolder, srcPath, bitDepth, case, numRuns, testType, batchSize):
+    with open("{}/Tensor_host_audio_raw_performance_log.txt".format(loggingFolder), "a") as log_file:
+        print(f"./Tensor_host_audio {srcPath} {bitDepth} {case} {numRuns} {testType} {numRuns} {batchSize} ")
+        process = subprocess.Popen(["./Tensor_host_audio", srcPath, str(bitDepth), str(case), str(testType), str(numRuns), str(batchSize)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)    # nosec
         while True:
             output = process.stdout.readline()
             if not output and process.poll() is not None:
@@ -120,12 +110,12 @@ def run_performance_test_cmd(loggingFolder, log_file_layout, srcPath1, srcPath2,
             print(output.strip())
             log_file.write(output)
 
-def run_performance_test(loggingFolder, log_file_layout, srcPath1, srcPath2, dstPath, case, numRuns, testType, layout, qaMode, decoderType, batchSize, roiList):
+def run_performance_test(loggingFolder, srcPath, case, numRuns, testType, bitDepth, batchSize):
     print("\n\n\n\n")
     print("--------------------------------")
     print("Running a New Functionality...")
     print("--------------------------------")
-    run_performance_test_cmd(loggingFolder, log_file_layout, srcPath1, srcPath2, dstPath, bitDepth, outputFormatToggle, case, "0", numRuns, testType, layout, qaMode, decoderType, batchSize, roiList)
+    run_performance_test_cmd(loggingFolder, srcPath, bitDepth, case, numRuns, testType, batchSize)
     print("------------------------------------------------------------------------------------------")
 
 # Parse and validate command-line arguments for the RPP test suite
@@ -252,7 +242,7 @@ else:
             print(f"Invalid case number {case}. Case number must be in the range of 0 to 8!")
             continue
 
-            run_performance_test(loggingFolder, log_file_layout, srcPath, dstPath, case, numRuns, testType, bitDepth, batchSize)
+        run_performance_test(loggingFolder, srcPath, case, numRuns, testType, bitDepth, batchSize)
 
 # Performance tests
 if (testType == 1):

@@ -367,7 +367,7 @@ int main(int argc, char **argv)
 
     // Other initializations
     int missingFuncFlag = 0;
-    int i = 0, j = 0;
+    int i = 0, j = 0, fileCnt = 0;
     int maxChannels = 0;
     int maxSrcWidth = 0, maxSrcHeight = 0;
     int maxDstWidth = 0, maxDstHeight = 0;
@@ -398,10 +398,10 @@ int main(int argc, char **argv)
     }
 
     // Initialize the AudioPatch for source
-    Rpp32s *srcLengthTensor = (Rpp32s *) calloc(batchSize, sizeof(Rpp32s));
-    Rpp32s *channelsTensor = (Rpp32s *) calloc(batchSize, sizeof(Rpp32s));
-    RpptImagePatch *srcDims = (RpptImagePatch *) calloc(batchSize, sizeof(RpptImagePatch));
-    RpptImagePatch *dstDims = (RpptImagePatch *) calloc(batchSize, sizeof(RpptImagePatch));
+    Rpp32s *srcLengthTensor = (Rpp32s *) calloc(noOfAudioFiles, sizeof(Rpp32s));
+    Rpp32s *channelsTensor = (Rpp32s *) calloc(noOfAudioFiles, sizeof(Rpp32s));
+    RpptImagePatch *srcDims = (RpptImagePatch *) calloc(noOfAudioFiles, sizeof(RpptImagePatch));
+    RpptImagePatch *dstDims = (RpptImagePatch *) calloc(noOfAudioFiles, sizeof(RpptImagePatch));
 
     // Set Height as 1 for src, dst
     maxSrcHeight = 1;
@@ -436,6 +436,7 @@ int main(int argc, char **argv)
         // Close input
         sf_close (infile);
         count++;
+
     }
 
 
@@ -529,7 +530,7 @@ int main(int argc, char **argv)
             for(int cnt = 0; cnt < batchSize; cnt++)
             {
                 Rpp32f *input_temp_f32;
-                input_temp_f32 = inputf32 + (i * srcDescPtr->strides.nStride);
+                input_temp_f32 = inputf32 + (cnt * srcDescPtr->strides.nStride);
 
                 SNDFILE	*infile;
                 SF_INFO sfinfo;
@@ -537,7 +538,7 @@ int main(int argc, char **argv)
 
                 // The SF_INFO struct must be initialized before using it
                 memset (&sfinfo, 0, sizeof (sfinfo));
-                if (!(infile = sf_open (audioFilePath[cnt].c_str(), SFM_READ, &sfinfo)))
+                if (!(infile = sf_open (audioFilePath[fileCnt].c_str(), SFM_READ, &sfinfo)))
                 {
                     sf_close (infile);
                     continue;
@@ -550,7 +551,7 @@ int main(int argc, char **argv)
                     if(readcount != bufferLength)
                         std::cerr<<"F32 Unable to read audio file completely"<<std::endl;
                 }
-                i++;
+                fileCnt++;
                 count++;
 
                 // Close input
@@ -896,7 +897,7 @@ int main(int argc, char **argv)
                 cout <<"CPU Backend Wall Time: "<< wallTime <<" ms/batch"<< endl;
 
                 // If DEBUG_MODE is set to 1 dump the outputs to csv files for debugging
-                if(DEBUG_MODE && iterCount == 0)
+                if(DEBUG_MODE && iterCount == 0 && testCase != 0)
                 {
                     std::ofstream refFile;
                     refFile.open(func + ".csv");
