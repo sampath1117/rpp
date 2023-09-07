@@ -3,7 +3,6 @@
 #include <string.h>
 #include <iostream>
 #include "rpp.h"
-#include "../../rpp_test_suite_common.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -25,6 +24,36 @@ using half_float::half;
 
 typedef half Rpp16f;
 
+#define DEBUG_MODE 0
+
+std::map<int, string> audioAugmentationMap =
+{
+    {0, "non_silent_region_detection"},
+    {1, "to_decibels"},
+    {2, "pre_emphasis_filter"},
+    {3, "down_mixing"},
+    {4, "slice"},
+    {5, "mel_filter_bank"},
+    {6, "spectrogram"},
+    {7, "resample"},
+    {8, "normalize"},
+};
+
+void replicate_last_file_to_fill_batch(const string& lastFilePath, vector<string>& audioFilesPath, vector<string>& audioNames, const string& lastFileName, int noOfAudioFiles, int batchCount)
+{
+    int remainingAudioFiles = batchCount - (noOfAudioFiles % batchCount);
+    std::string filePath = lastFilePath;
+    std::string fileName = lastFileName;
+    if (noOfAudioFiles > 0 && ( noOfAudioFiles < batchCount || noOfAudioFiles % batchCount != 0 ))
+    {
+        for (int i = 0; i < remainingAudioFiles; i++)
+        {
+            audioFilesPath.push_back(filePath);
+            audioNames.push_back(fileName);
+        }
+    }
+}
+
 void remove_substring(string &str, string &pattern)
 {
     std::string::size_type i = str.find(pattern);
@@ -35,7 +64,7 @@ void remove_substring(string &str, string &pattern)
    }
 }
 
-void verify_output(Rpp32f *dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dstDims, string test_case, vector<string> audioNames)
+void verify_output(Rpp32f *dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dstDims, string testCase, vector<string> audioNames)
 {
     fstream ref_file;
     string ref_path = get_current_dir_name();
@@ -48,7 +77,7 @@ void verify_output(Rpp32f *dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dst
         string current_file_name = audioNames[batchcount];
         size_t last_index = current_file_name.find_last_of(".");
         current_file_name = current_file_name.substr(0, last_index);  // Remove extension from file name
-        string out_file = ref_path + test_case + "/" + test_case + "_ref_" + current_file_name + ".txt";
+        string out_file = ref_path + testCase + "/" + testCase + "_ref_" + current_file_name + ".txt";
         ref_file.open(out_file, ios::in);
         if(!ref_file.is_open())
         {
@@ -77,7 +106,7 @@ void verify_output(Rpp32f *dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dst
             file_match++;
     }
 
-    std::cerr<<std::endl<<"Results for Test case: "<<test_case<<std::endl;
+    std::cerr<<std::endl<<"Results for Test case: "<<testCase<<std::endl;
     if(file_match == dstDescPtr->n)
         std::cerr<<"PASSED!"<<std::endl;
     else
@@ -123,7 +152,7 @@ void verify_non_silent_region_detection(float *detectedIndex, float *detectionLe
         std::cerr<<"FAILED! "<<file_match<<"/"<<bs<<" outputs are matching with reference outputs"<<std::endl;
 }
 
-void read_from_text_files(Rpp32f *srcPtr, RpptDescPtr srcDescPtr, RpptImagePatch *srcDims, string test_case, int read_type, vector<string> audioNames)
+void read_from_text_files(Rpp32f *srcPtr, RpptDescPtr srcDescPtr, RpptImagePatch *srcDims, string testCase, int read_type, vector<string> audioNames)
 {
     fstream ref_file;
     string ref_path = get_current_dir_name();
@@ -142,7 +171,7 @@ void read_from_text_files(Rpp32f *srcPtr, RpptDescPtr srcDescPtr, RpptImagePatch
         string current_file_name = audioNames[batchcount];
         size_t last_index = current_file_name.find_last_of(".");
         current_file_name = current_file_name.substr(0, last_index);  // Remove extension from file name
-        string out_file = ref_path + test_case + "/" + test_case + read_type_str + current_file_name + ".txt";
+        string out_file = ref_path + testCase + "/" + testCase + read_type_str + current_file_name + ".txt";
         ref_file.open(out_file, ios::in);
         if(!ref_file.is_open())
         {
@@ -274,43 +303,54 @@ int main(int argc, char **argv)
 
     char *src = argv[1];
     int ip_bitDepth = atoi(argv[2]);
-    int test_case = atoi(argv[3]);
+    int testCase = atoi(argv[3]);
+    int testType = atoi(argv[4]);
+    int numRuns = atoi(argv[5]);
+    int batchSize = atoi(argv[6]);
 
     // Set case names
-    char funcName[1000];
-    switch (test_case)
+    string funcName = audioAugmentationMap[testCase];
+    if (funcName.empty())
     {
-        case 0:
-            strcpy(funcName, "non_silent_region_detection");
-            break;
-        case 1:
-            strcpy(funcName, "to_decibels");
-            break;
-        case 2:
-            strcpy(funcName, "pre_emphasis_filter");
-            break;
-        case 3:
-            strcpy(funcName, "down_mixing");
-            break;
-        case 4:
-            strcpy(funcName, "slice");
-            break;
-        case 5:
-            strcpy(funcName, "mel_filter_bank");
-            break;
-        case 6:
-            strcpy(funcName, "spectrogram");
-            break;
-        case 7:
-            strcpy(funcName, "resample");
-            break;
-        case 8:
-            strcpy(funcName, "normalize");
-            break;
-        default:
-            strcpy(funcName, "test_case");
-            break;
+        if (testType == 0)
+            printf("\ncase %d is not supported\n", testCase);
+
+        return -1;
     }
+    // char funcName[1000];
+    // switch (testCase)
+    // {
+    //     case 0:
+    //         strcpy(funcName, "non_silent_region_detection");
+    //         break;
+    //     case 1:
+    //         strcpy(funcName, "to_decibels");
+    //         break;
+    //     case 2:
+    //         strcpy(funcName, "pre_emphasis_filter");
+    //         break;
+    //     case 3:
+    //         strcpy(funcName, "down_mixing");
+    //         break;
+    //     case 4:
+    //         strcpy(funcName, "slice");
+    //         break;
+    //     case 5:
+    //         strcpy(funcName, "mel_filter_bank");
+    //         break;
+    //     case 6:
+    //         strcpy(funcName, "spectrogram");
+    //         break;
+    //     case 7:
+    //         strcpy(funcName, "resample");
+    //         break;
+    //     case 8:
+    //         strcpy(funcName, "normalize");
+    //         break;
+    //     default:
+    //         strcpy(funcName, "testCase");
+    //         break;
+    // }
 
     // Initialize tensor descriptors
     RpptDesc srcDesc, dstDesc;
@@ -341,9 +381,8 @@ int main(int argc, char **argv)
     strcpy(src1, src);
     strcat(src1, "/");
 
-    char func[1000];
-    strcpy(func, funcName);
-    printf("\nRunning %s...", func);
+    string func = funcName;
+    std::cout << "\nRunning %s..." << func;
 
     // Get number of audio files
     vector<string> audioNames;
@@ -354,7 +393,7 @@ int main(int argc, char **argv)
 
     if(noOfAudioFiles < batchSize || ((noOfAudioFiles % batchSize) != 0))
     {
-        replicate_last_image_to_fill_batch(audioFilePath[noOfAudioFiles - 1], audioFilePath, audioNames, audioNames[noOfAudioFiles - 1], noOfAudioFiles, batchSize);
+        replicate_last_file_to_fill_batch(audioFilePath[noOfAudioFiles - 1], audioFilePath, audioNames, audioNames[noOfAudioFiles - 1], noOfAudioFiles, batchSize);
         noOfAudioFiles = audioNames.size();
     }
 
@@ -407,8 +446,8 @@ int main(int argc, char **argv)
     srcDescPtr->offsetInBytes = 0;
     dstDescPtr->offsetInBytes = 0;
 
-    srcDescPtr->n = noOfAudioFiles;
-    dstDescPtr->n = noOfAudioFiles;
+    srcDescPtr->n = batchSize;
+    dstDescPtr->n = batchSize;
 
     srcDescPtr->h = maxSrcHeight;
     dstDescPtr->h = maxDstHeight;
@@ -417,7 +456,7 @@ int main(int argc, char **argv)
     dstDescPtr->w = maxDstWidth;
 
     srcDescPtr->c = maxChannels;
-    if(test_case == 3)
+    if(testCase == 3)
         dstDescPtr->c = 1;
     else
         dstDescPtr->c = maxChannels;
@@ -445,36 +484,36 @@ int main(int argc, char **argv)
     Rpp32f *inputf32 = (Rpp32f *)calloc(iBufferSize, sizeof(Rpp32f));
     Rpp32f *outputf32 = (Rpp32f *)calloc(oBufferSize, sizeof(Rpp32f));
 
-    for(int cnt = 0; cnt < noOfAudioFiles; cnt++)
-    {
-        Rpp32f *input_temp_f32;
-        input_temp_f32 = inputf32 + (i * srcDescPtr->strides.nStride);
+    // for(int cnt = 0; cnt < noOfAudioFiles; cnt++)
+    // {
+    //     Rpp32f *input_temp_f32;
+    //     input_temp_f32 = inputf32 + (i * srcDescPtr->strides.nStride);
 
-        SNDFILE	*infile;
-        SF_INFO sfinfo;
-        int	readcount;
+    //     SNDFILE	*infile;
+    //     SF_INFO sfinfo;
+    //     int	readcount;
 
-        // The SF_INFO struct must be initialized before using it
-        memset (&sfinfo, 0, sizeof (sfinfo));
-        if (!(infile = sf_open (audioFilePath[cnt].c_str(), SFM_READ, &sfinfo)))
-        {
-            sf_close (infile);
-            continue;
-        }
+    //     // The SF_INFO struct must be initialized before using it
+    //     memset (&sfinfo, 0, sizeof (sfinfo));
+    //     if (!(infile = sf_open (audioFilePath[cnt].c_str(), SFM_READ, &sfinfo)))
+    //     {
+    //         sf_close (infile);
+    //         continue;
+    //     }
 
-        int bufferLength = sfinfo.frames * sfinfo.channels;
-        if(ip_bitDepth == 2)
-        {
-            readcount = (int) sf_read_float (infile, input_temp_f32, bufferLength);
-            if(readcount != bufferLength)
-                std::cerr<<"F32 Unable to read audio file completely"<<std::endl;
-        }
-        i++;
-        count++;
+    //     int bufferLength = sfinfo.frames * sfinfo.channels;
+    //     if(ip_bitDepth == 2)
+    //     {
+    //         readcount = (int) sf_read_float (infile, input_temp_f32, bufferLength);
+    //         if(readcount != bufferLength)
+    //             std::cerr<<"F32 Unable to read audio file completely"<<std::endl;
+    //     }
+    //     i++;
+    //     count++;
 
-        // Close input
-        sf_close (infile);
-    }
+    //     // Close input
+    //     sf_close (infile);
+    // }
 
     // Run case-wise RPP API and measure time
     rppHandle_t handle;
@@ -482,25 +521,57 @@ int main(int argc, char **argv)
     int noOfIterations = (int)audioNames.size() / batchSize;
     double maxWallTime = 0, minWallTime = 500, avgWallTime = 0;
     double cpuTime, wallTime;
-    string testCaseName
+    string testCaseName;
     for (int perfRunCount = 0; perfRunCount < numRuns; perfRunCount++)
     {
         for(int iterCount = 0; iterCount < noOfIterations; iterCount++)
         {
-            switch (test_case)
+            for(int cnt = 0; cnt < batchSize; cnt++)
+            {
+                Rpp32f *input_temp_f32;
+                input_temp_f32 = inputf32 + (i * srcDescPtr->strides.nStride);
+
+                SNDFILE	*infile;
+                SF_INFO sfinfo;
+                int	readcount;
+
+                // The SF_INFO struct must be initialized before using it
+                memset (&sfinfo, 0, sizeof (sfinfo));
+                if (!(infile = sf_open (audioFilePath[cnt].c_str(), SFM_READ, &sfinfo)))
+                {
+                    sf_close (infile);
+                    continue;
+                }
+
+                int bufferLength = sfinfo.frames * sfinfo.channels;
+                if(ip_bitDepth == 2)
+                {
+                    readcount = (int) sf_read_float (infile, input_temp_f32, bufferLength);
+                    if(readcount != bufferLength)
+                        std::cerr<<"F32 Unable to read audio file completely"<<std::endl;
+                }
+                i++;
+                count++;
+
+                // Close input
+                sf_close (infile);
+            }
+            clock_t startCpuTime, endCpuTime;
+            double startWallTime, endWallTime;
+            switch (testCase)
             {
                 case 0:
                 {
                     testCaseName = "non_silent_region_detection";
-                    Rpp32f detectedIndex[noOfAudioFiles];
-                    Rpp32f detectionLength[noOfAudioFiles];
+                    Rpp32f detectedIndex[batchSize];
+                    Rpp32f detectionLength[batchSize];
                     Rpp32f cutOffDB = -60.0;
                     Rpp32s windowLength = 2048;
                     Rpp32f referencePower = 0.0f;
                     Rpp32s resetInterval = 8192;
 
-                    start_omp = omp_get_wtime();
-                    start = clock();
+                    startWallTime = omp_get_wtime();
+                    startCpuTime= clock();
                     if (ip_bitDepth == 2)
                     {
                         rppt_non_silent_region_detection_host(inputf32, srcDescPtr, srcLengthTensor, detectedIndex, detectionLength, cutOffDB, windowLength, referencePower, resetInterval, handle);
@@ -508,24 +579,24 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    verify_non_silent_region_detection(detectedIndex, detectionLength, test_case_name, noOfAudioFiles, audioNames);
+                    verify_non_silent_region_detection(detectedIndex, detectionLength, testCaseName, batchSize, audioNames);
                     break;
                 }
                 case 1:
                 {
-                    test_case_name = "to_decibels";
+                    testCaseName = "to_decibels";
                     Rpp32f cutOffDB = std::log(1e-20);
                     Rpp32f multiplier = std::log(10);
                     Rpp32f referenceMagnitude = 1.0f;
 
-                    for (i = 0; i < noOfAudioFiles; i++)
+                    for (i = 0; i < batchSize; i++)
                     {
                         srcDims[i].height = srcLengthTensor[i];
                         srcDims[i].width = 1;
                     }
 
-                    start_omp = omp_get_wtime();
-                    start = clock();
+                    startWallTime = omp_get_wtime();
+                    startCpuTime= clock();
                     if (ip_bitDepth == 2)
                     {
                         rppt_to_decibels_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcDims, cutOffDB, multiplier, referenceMagnitude, handle);
@@ -533,19 +604,19 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    verify_output(outputf32, dstDescPtr, dstDims, test_case_name, audioNames);
+                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames);
                     break;
                 }
                 case 2:
                 {
-                    test_case_name = "pre_emphasis_filter";
-                    Rpp32f coeff[noOfAudioFiles];
-                    for (i = 0; i < noOfAudioFiles; i++)
+                    testCaseName = "pre_emphasis_filter";
+                    Rpp32f coeff[batchSize];
+                    for (i = 0; i < batchSize; i++)
                         coeff[i] = 0.97;
                     RpptAudioBorderType borderType = RpptAudioBorderType::CLAMP;
 
-                    start_omp = omp_get_wtime();
-                    start = clock();
+                    startWallTime = omp_get_wtime();
+                    startCpuTime= clock();
                     if (ip_bitDepth == 2)
                     {
                         rppt_pre_emphasis_filter_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcLengthTensor, coeff, borderType, handle);
@@ -553,16 +624,16 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    verify_output(outputf32, dstDescPtr, dstDims, test_case_name, audioNames);
+                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames);
                     break;
                 }
                 case 3:
                 {
-                    test_case_name = "down_mixing";
+                    testCaseName = "down_mixing";
                     bool normalizeWeights = false;
 
-                    start_omp = omp_get_wtime();
-                    start = clock();
+                    startWallTime = omp_get_wtime();
+                    startCpuTime= clock();
                     if (ip_bitDepth == 2)
                     {
                         rppt_down_mixing_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcLengthTensor, channelsTensor, normalizeWeights, handle);
@@ -570,20 +641,20 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    verify_output(outputf32, dstDescPtr, dstDims, test_case_name, audioNames);
+                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames);
                     break;
                 }
                 case 4:
                 {
-                    test_case_name = "slice";
+                    testCaseName = "slice";
 
-                    Rpp32f fillValues[noOfAudioFiles];
-                    Rpp32s srcDimsTensor[noOfAudioFiles * 2];
-                    Rpp32f anchor[noOfAudioFiles];
-                    Rpp32f shape[noOfAudioFiles];
+                    Rpp32f fillValues[batchSize];
+                    Rpp32s srcDimsTensor[batchSize * 2];
+                    Rpp32f anchor[batchSize];
+                    Rpp32f shape[batchSize];
 
                     // 1D slice arguments
-                    for (i = 0, j = i * 2; i < noOfAudioFiles; i++, j += 2)
+                    for (i = 0, j = i * 2; i < batchSize; i++, j += 2)
                     {
                         srcDimsTensor[j] = srcLengthTensor[i];
                         srcDimsTensor[j + 1] = 1;
@@ -592,8 +663,8 @@ int main(int argc, char **argv)
                     }
                     fillValues[0] = 0.0f;
 
-                    start_omp = omp_get_wtime();
-                    start = clock();
+                    startWallTime = omp_get_wtime();
+                    startCpuTime= clock();
                     if (ip_bitDepth == 2)
                     {
                         rppt_slice_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcDimsTensor, anchor, shape, fillValues, handle);
@@ -601,12 +672,12 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    verify_output(outputf32, dstDescPtr, dstDims, test_case_name, audioNames);
+                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames);
                     break;
                 }
                 case 5:
                 {
-                    test_case_name = "mel_filter_bank";
+                    testCaseName = "mel_filter_bank";
 
                     Rpp32f sampleRate = 16000;
                     Rpp32f minFreq = 0.0;
@@ -622,7 +693,7 @@ int main(int argc, char **argv)
                     maxDstWidth = 0;
                     maxSrcHeight = 0;
                     maxSrcWidth = 0;
-                    for(int i = 0; i < noOfAudioFiles; i++)
+                    for(int i = 0; i < batchSize; i++)
                     {
                         maxSrcHeight = std::max(maxSrcHeight, (int)srcDims[i].height);
                         maxSrcWidth = std::max(maxSrcWidth, (int)srcDims[i].width);
@@ -656,8 +727,8 @@ int main(int argc, char **argv)
                     // Read source data
                     read_from_text_files(inputf32, srcDescPtr, srcDims, "spectrogram", 0, audioNames);
 
-                    start_omp = omp_get_wtime();
-                    start = clock();
+                    startWallTime = omp_get_wtime();
+                    startCpuTime= clock();
                     if (ip_bitDepth == 2)
                     {
                         rppt_mel_filter_bank_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcDims, maxFreq, minFreq, melFormula, numFilter, sampleRate, normalize, handle);
@@ -665,12 +736,12 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    verify_output(outputf32, dstDescPtr, dstDims, test_case_name, audioNames);
+                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames);
                     break;
                 }
                 case 6:
                 {
-                    test_case_name = "spectrogram";
+                    testCaseName = "spectrogram";
 
                     bool centerWindows = true;
                     bool reflectPadding = true;
@@ -689,7 +760,7 @@ int main(int argc, char **argv)
                     maxDstHeight = 0;
                     if(layout == RpptSpectrogramLayout::FT)
                     {
-                        for(int i = 0; i < noOfAudioFiles; i++)
+                        for(int i = 0; i < batchSize; i++)
                         {
                             dstDims[i].height = nfft / 2 + 1;
                             dstDims[i].width = ((srcLengthTensor[i] - windowOffset) / windowStep) + 1;
@@ -699,7 +770,7 @@ int main(int argc, char **argv)
                     }
                     else
                     {
-                        for(int i = 0; i < noOfAudioFiles; i++)
+                        for(int i = 0; i < batchSize; i++)
                         {
                             dstDims[i].height = ((srcLengthTensor[i] - windowOffset) / windowStep) + 1;
                             dstDims[i].width = nfft / 2 + 1;
@@ -720,8 +791,8 @@ int main(int argc, char **argv)
                     unsigned long long spectrogramBufferSize = (unsigned long long)dstDescPtr->h * (unsigned long long)dstDescPtr->w * (unsigned long long)dstDescPtr->c * (unsigned long long)dstDescPtr->n;
                     outputf32 = (Rpp32f *)realloc(outputf32, spectrogramBufferSize * sizeof(Rpp32f));
 
-                    start_omp = omp_get_wtime();
-                    start = clock();
+                    startWallTime = omp_get_wtime();
+                    startCpuTime= clock();
                     if (ip_bitDepth == 2)
                     {
                         rppt_spectrogram_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcLengthTensor, centerWindows, reflectPadding, windowFn, nfft, power, windowLength, windowStep, layout, handle);
@@ -729,18 +800,18 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    verify_output(outputf32, dstDescPtr, dstDims, test_case_name, audioNames);
+                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames);
                     break;
                 }
                 case 7:
                 {
-                    test_case_name = "resample";
+                    testCaseName = "resample";
 
-                    Rpp32f inRateTensor[noOfAudioFiles];
-                    Rpp32f outRateTensor[noOfAudioFiles];
+                    Rpp32f inRateTensor[batchSize];
+                    Rpp32f outRateTensor[batchSize];
 
                     maxDstWidth = 0;
-                    for(int i = 0; i < noOfAudioFiles; i++)
+                    for(int i = 0; i < batchSize; i++)
                     {
                         inRateTensor[i] = 16000;
                         outRateTensor[i] = 16000 * 1.15f;
@@ -762,8 +833,8 @@ int main(int argc, char **argv)
                     // Initialize host buffers for output
                     outputf32 = (Rpp32f *)realloc(outputf32, sizeof(Rpp32f) * resampleBufferSize);
 
-                    start_omp = omp_get_wtime();
-                    start = clock();
+                    startWallTime = omp_get_wtime();
+                    startCpuTime= clock();
                     if (ip_bitDepth == 2)
                     {
                         rppt_resample_host(inputf32, srcDescPtr, outputf32, dstDescPtr, inRateTensor, outRateTensor, srcLengthTensor, channelsTensor, quality, handle);
@@ -771,20 +842,20 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    verify_output(outputf32, dstDescPtr, dstDims, test_case_name, audioNames);
+                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames);
                     break;
                 }
                 case 8:
                 {
-                    test_case_name = "normalize";
+                    testCaseName = "normalize";
                     Rpp32s axis_mask = 1;
                     Rpp32f mean, std_dev, scale, shift, epsilon;
                     mean = std_dev = scale = shift = epsilon = 0.0f;
                     Rpp32s ddof = 0;
                     Rpp32s num_of_dims = 2;
 
-                    start_omp = omp_get_wtime();
-                    start = clock();
+                    startWallTime = omp_get_wtime();
+                    startCpuTime= clock();
                     if (ip_bitDepth == 2)
                     {
                         rppt_normalize_audio_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcLengthTensor, channelsTensor, axis_mask,
@@ -793,7 +864,7 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    verify_output(outputf32, dstDescPtr, dstDims, test_case_name, audioNames);
+                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames);
                     break;
                 }
                 default:
@@ -802,26 +873,54 @@ int main(int argc, char **argv)
                     break;
                 }
             }
+            endCpuTime = clock();
+            endWallTime = omp_get_wtime();
+            cpuTime = ((double)(endCpuTime - startCpuTime)) / CLOCKS_PER_SEC;
+            wallTime = endWallTime - startWallTime;
+            if (missingFuncFlag == 1)
+            {
+                printf("\nThe functionality %s doesn't yet exist in RPP\n", func.c_str());
+                return -1;
+            }
+
+            maxWallTime = std::max(maxWallTime, wallTime);
+            minWallTime = std::min(minWallTime, wallTime);
+            avgWallTime += wallTime;
+            cpuTime *= 1000;
+            wallTime *= 1000;
+
+            if (testType == 0)
+            {
+                cout <<"\n\n";
+                cout <<"CPU Backend Clock Time: "<< cpuTime <<" ms/batch"<< endl;
+                cout <<"CPU Backend Wall Time: "<< wallTime <<" ms/batch"<< endl;
+
+                // If DEBUG_MODE is set to 1 dump the outputs to csv files for debugging
+                if(DEBUG_MODE && iterCount == 0)
+                {
+                    std::ofstream refFile;
+                    refFile.open(func + ".csv");
+                    for (int i = 0; i < oBufferSize; i++)
+                        refFile << static_cast<int>(*(outputf32 + i)) << ",";
+                    refFile.close();
+                }
+            }
         }
     }
 
-    end = clock();
-    end_omp = omp_get_wtime();
+    rppDestroyHost(handle);
 
-    if (missingFuncFlag == 1)
+    if(testType == 1)
     {
-        printf("\nThe functionality %s doesn't yet exist in RPP\n", func);
-        return -1;
+        // Display measured times
+        maxWallTime *= 1000;
+        minWallTime *= 1000;
+        avgWallTime *= 1000;
+        avgWallTime /= (numRuns * noOfIterations);
+        cout << fixed << "\nmax,min,avg wall times in ms/batch = " << maxWallTime << "," << minWallTime << "," << avgWallTime;
     }
 
-    // Display measured times
-    cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-    omp_time_used = end_omp - start_omp;
-    cout << "\nCPU Time - Tensor: " << cpu_time_used;
-    cout << "\nOMP Time - Tensor: " << omp_time_used;
-    printf("\n");
-
-    rppDestroyHost(handle);
+    cout<<endl;
 
     // Free memory
     free(srcLengthTensor);
