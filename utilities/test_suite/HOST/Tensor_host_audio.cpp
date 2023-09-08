@@ -3,6 +3,7 @@
 #include <string.h>
 #include <iostream>
 #include "rpp.h"
+#include "../rpp_test_suite_common.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -26,51 +27,14 @@ typedef half Rpp16f;
 
 #define DEBUG_MODE 0
 
-std::map<int, string> audioAugmentationMap =
-{
-    {0, "non_silent_region_detection"},
-    {1, "to_decibels"},
-    {2, "pre_emphasis_filter"},
-    {3, "down_mixing"},
-    {4, "slice"},
-    {5, "mel_filter_bank"},
-    {6, "spectrogram"},
-    {7, "resample"},
-    {8, "normalize"},
-};
-
-void replicate_last_file_to_fill_batch(const string& lastFilePath, vector<string>& audioFilesPath, vector<string>& audioNames, const string& lastFileName, int noOfAudioFiles, int batchCount)
-{
-    int remainingAudioFiles = batchCount - (noOfAudioFiles % batchCount);
-    std::string filePath = lastFilePath;
-    std::string fileName = lastFileName;
-    if (noOfAudioFiles > 0 && ( noOfAudioFiles < batchCount || noOfAudioFiles % batchCount != 0 ))
-    {
-        for (int i = 0; i < remainingAudioFiles; i++)
-        {
-            audioFilesPath.push_back(filePath);
-            audioNames.push_back(fileName);
-        }
-    }
-}
-
-void remove_substring(string &str, string &pattern)
-{
-    std::string::size_type i = str.find(pattern);
-    while (i != std::string::npos)
-    {
-        str.erase(i, pattern.length());
-        i = str.find(pattern, i);
-   }
-}
-
-void verify_output(Rpp32f *dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dstDims, string testCase, vector<string> audioNames)
+void verify_output(Rpp32f *dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dstDims, string testCase, vector<string> audioNames, string dst)
 {
     fstream ref_file;
     string ref_path = get_current_dir_name();
-    string pattern = "HOST/audio/build";
+    string pattern = "HOST/build";
     remove_substring(ref_path, pattern);
     ref_path = ref_path + "REFERENCE_OUTPUTS_AUDIO/";
+    std::cerr<<"\n "<<ref_path;
     int file_match = 0;
     for (int batchcount = 0; batchcount < dstDescPtr->n; batchcount++)
     {
@@ -105,19 +69,32 @@ void verify_output(Rpp32f *dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dst
         if(matched_indices == (dstDims[batchcount].width * dstDims[batchcount].height) && matched_indices !=0)
             file_match++;
     }
-
+    std::string status = testCase + ": ";
     std::cerr<<std::endl<<"Results for Test case: "<<testCase<<std::endl;
     if(file_match == dstDescPtr->n)
+    {
         std::cerr<<"PASSED!"<<std::endl;
+        status += "PASSED";
+    }
     else
+    {
         std::cerr<<"FAILED! "<<file_match<<"/"<<dstDescPtr->n<<" outputs are matching with reference outputs"<<std::endl;
+        status += "FAILED";
+    }
+    std::string qaResultsPath = dst + "/QA_results.txt";
+    std:: ofstream qaResults(qaResultsPath, ios_base::app);
+    if (qaResults.is_open())
+    {
+        qaResults << status << std::endl;
+        qaResults.close();
+    }
 }
 
-void verify_non_silent_region_detection(float *detectedIndex, float *detectionLength, string testCase, int bs, vector<string> audioNames)
+void verify_non_silent_region_detection(float *detectedIndex, float *detectionLength, string testCase, int bs, vector<string> audioNames, string dst)
 {
     fstream ref_file;
     string ref_path = get_current_dir_name();
-    string pattern = "HOST/audio/build";
+    string pattern = "HOST/build";
     remove_substring(ref_path, pattern);
     ref_path = ref_path + "REFERENCE_OUTPUTS_AUDIO/";
     int file_match = 0;
@@ -158,7 +135,7 @@ void read_from_text_files(Rpp32f *srcPtr, RpptDescPtr srcDescPtr, RpptImagePatch
     string ref_path = get_current_dir_name();
     string pattern = "HOST/audio/build";
     remove_substring(ref_path, pattern);
-    ref_path = ref_path + "REFERENCE_OUTPUTS_AUDIO/";
+    ref_path = ref_path + "/../../REFERENCE_OUTPUTS_AUDIO/";
 
     string read_type_str;
     if(read_type == 0)
@@ -207,88 +184,6 @@ void read_from_text_files(Rpp32f *srcPtr, RpptDescPtr srcDescPtr, RpptImagePatch
     }
 }
 
-// Opens a folder and recursively search for .wav files
-void open_folder(const string& folderPath, vector<string>& audioNames, vector<string>& audioNamesPath)
-{
-    auto src_dir = opendir(folderPath.c_str());
-    struct dirent* entity;
-    std::string fileName = " ";
-
-    if (src_dir == nullptr)
-        std::cerr << "\n ERROR: Failed opening the directory at " <<folderPath;
-
-    while((entity = readdir(src_dir)) != nullptr)
-    {
-        string entry_name(entity->d_name);
-        if (entry_name == "." || entry_name == "..")
-            continue;
-        fileName = entity->d_name;
-        std::string filePath = folderPath;
-        filePath.append("/");
-        filePath.append(entity->d_name);
-        fs::path pathObj(filePath);
-        if(fs::exists(pathObj) && fs::is_directory(pathObj))
-            open_folder(filePath, audioNames, audioNamesPath);
-
-        if (fileName.size() > 4 && fileName.substr(fileName.size() - 4) == ".wav")
-        {
-            audioNamesPath.push_back(filePath);
-            audioNames.push_back(entity->d_name);
-        }
-    }
-    if(audioNames.empty())
-        std::cerr << "\n Did not load any file from " << folderPath;
-
-    closedir(src_dir);
-}
-
-// Searches for .wav files in input folders
-void search_wav_files(const string& folder_path, vector<string>& audioNames, vector<string>& audioNamesPath)
-{
-    vector<string> entry_list;
-    string full_path = folder_path;
-    auto sub_dir = opendir(folder_path.c_str());
-    if (!sub_dir)
-    {
-        std::cerr << "ERROR: Failed opening the directory at "<< folder_path << std::endl;
-        exit(0);
-    }
-
-    struct dirent* entity;
-    while ((entity = readdir(sub_dir)) != nullptr)
-    {
-        string entry_name(entity->d_name);
-        if (entry_name == "." || entry_name == "..")
-            continue;
-        entry_list.push_back(entry_name);
-    }
-    closedir(sub_dir);
-
-    for (unsigned dir_count = 0; dir_count < entry_list.size(); ++dir_count)
-    {
-        string subfolder_path = full_path + "/" + entry_list[dir_count];
-        fs::path pathObj(subfolder_path);
-        if (fs::exists(pathObj) && fs::is_regular_file(pathObj))
-        {
-            // ignore files with extensions .tar, .zip, .7z
-            auto file_extension_idx = subfolder_path.find_last_of(".");
-            if (file_extension_idx != std::string::npos)
-            {
-                std::string file_extension = subfolder_path.substr(file_extension_idx+1);
-                if ((file_extension == "tar") || (file_extension == "zip") || (file_extension == "7z") || (file_extension == "rar"))
-                    continue;
-            }
-            if (entry_list[dir_count].size() > 4 && entry_list[dir_count].substr(entry_list[dir_count].size() - 4) == ".wav")
-            {
-                audioNames.push_back(entry_list[dir_count]);
-                audioNamesPath.push_back(subfolder_path);
-            }
-        }
-        else if (fs::exists(pathObj) && fs::is_directory(pathObj))
-            open_folder(subfolder_path, audioNames, audioNamesPath);
-    }
-}
-
 int main(int argc, char **argv)
 {
     // Handle inputs
@@ -307,6 +202,8 @@ int main(int argc, char **argv)
     int testType = atoi(argv[4]);
     int numRuns = atoi(argv[5]);
     int batchSize = atoi(argv[6]);
+    int qaFlag = atoi(argv[7]);
+    char *dst = argv[8];
 
     // Set case names
     string funcName = audioAugmentationMap[testCase];
@@ -317,40 +214,6 @@ int main(int argc, char **argv)
 
         return -1;
     }
-    // char funcName[1000];
-    // switch (testCase)
-    // {
-    //     case 0:
-    //         strcpy(funcName, "non_silent_region_detection");
-    //         break;
-    //     case 1:
-    //         strcpy(funcName, "to_decibels");
-    //         break;
-    //     case 2:
-    //         strcpy(funcName, "pre_emphasis_filter");
-    //         break;
-    //     case 3:
-    //         strcpy(funcName, "down_mixing");
-    //         break;
-    //     case 4:
-    //         strcpy(funcName, "slice");
-    //         break;
-    //     case 5:
-    //         strcpy(funcName, "mel_filter_bank");
-    //         break;
-    //     case 6:
-    //         strcpy(funcName, "spectrogram");
-    //         break;
-    //     case 7:
-    //         strcpy(funcName, "resample");
-    //         break;
-    //     case 8:
-    //         strcpy(funcName, "normalize");
-    //         break;
-    //     default:
-    //         strcpy(funcName, "testCase");
-    //         break;
-    // }
 
     // Initialize tensor descriptors
     RpptDesc srcDesc, dstDesc;
@@ -382,13 +245,13 @@ int main(int argc, char **argv)
     strcat(src1, "/");
 
     string func = funcName;
-    std::cout << "\nRunning %s..." << func;
+    std::cout << "\nRunning " << func;
 
     // Get number of audio files
     vector<string> audioNames;
     vector<string> audioFilePath;
 
-    search_wav_files(src, audioNames, audioFilePath);
+    search_files_recursive(src, audioNames, audioFilePath, ".wav");
     noOfAudioFiles = audioNames.size();
 
     if(noOfAudioFiles < batchSize || ((noOfAudioFiles % batchSize) != 0))
@@ -485,37 +348,6 @@ int main(int argc, char **argv)
     Rpp32f *inputf32 = (Rpp32f *)calloc(iBufferSize, sizeof(Rpp32f));
     Rpp32f *outputf32 = (Rpp32f *)calloc(oBufferSize, sizeof(Rpp32f));
 
-    // for(int cnt = 0; cnt < noOfAudioFiles; cnt++)
-    // {
-    //     Rpp32f *input_temp_f32;
-    //     input_temp_f32 = inputf32 + (i * srcDescPtr->strides.nStride);
-
-    //     SNDFILE	*infile;
-    //     SF_INFO sfinfo;
-    //     int	readcount;
-
-    //     // The SF_INFO struct must be initialized before using it
-    //     memset (&sfinfo, 0, sizeof (sfinfo));
-    //     if (!(infile = sf_open (audioFilePath[cnt].c_str(), SFM_READ, &sfinfo)))
-    //     {
-    //         sf_close (infile);
-    //         continue;
-    //     }
-
-    //     int bufferLength = sfinfo.frames * sfinfo.channels;
-    //     if(ip_bitDepth == 2)
-    //     {
-    //         readcount = (int) sf_read_float (infile, input_temp_f32, bufferLength);
-    //         if(readcount != bufferLength)
-    //             std::cerr<<"F32 Unable to read audio file completely"<<std::endl;
-    //     }
-    //     i++;
-    //     count++;
-
-    //     // Close input
-    //     sf_close (infile);
-    // }
-
     // Run case-wise RPP API and measure time
     rppHandle_t handle;
     rppCreateWithBatchSize(&handle, srcDescPtr->n, 8);
@@ -580,7 +412,9 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    verify_non_silent_region_detection(detectedIndex, detectionLength, testCaseName, batchSize, audioNames);
+                    if((testType == 0 || qaFlag ==1) && batchSize == 8)
+                        verify_non_silent_region_detection(detectedIndex, detectionLength, testCaseName, batchSize, audioNames, dst);
+
                     break;
                 }
                 case 1:
@@ -605,7 +439,6 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames);
                     break;
                 }
                 case 2:
@@ -625,7 +458,6 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames);
                     break;
                 }
                 case 3:
@@ -642,7 +474,6 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames);
                     break;
                 }
                 case 4:
@@ -673,7 +504,6 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames);
                     break;
                 }
                 case 5:
@@ -737,7 +567,6 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames);
                     break;
                 }
                 case 6:
@@ -801,7 +630,6 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames);
                     break;
                 }
                 case 7:
@@ -843,7 +671,6 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames);
                     break;
                 }
                 case 8:
@@ -865,7 +692,6 @@ int main(int argc, char **argv)
                     else
                         missingFuncFlag = 1;
 
-                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames);
                     break;
                 }
                 default:
@@ -892,6 +718,9 @@ int main(int argc, char **argv)
 
             if (testType == 0)
             {
+                if ((qaFlag == 1 || testType == 0) && ((testCase == 3 && batchSize == 1) || (testCase != 3 && batchSize == 8) && (testCase !=0)))
+                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames, dst);
+
                 cout <<"\n\n";
                 cout <<"CPU Backend Clock Time: "<< cpuTime <<" ms/batch"<< endl;
                 cout <<"CPU Backend Wall Time: "<< wallTime <<" ms/batch"<< endl;
@@ -907,6 +736,7 @@ int main(int argc, char **argv)
                 }
             }
         }
+        fileCnt = 0;
     }
 
     rppDestroyHost(handle);

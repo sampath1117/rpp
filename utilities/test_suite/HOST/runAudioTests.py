@@ -29,7 +29,7 @@ import shutil
 timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 cwd = os.getcwd()
-inFilePath = os.path.join(os.path.dirname(cwd), '../', 'TEST_AUDIO_FILES', 'eight_samples_single_channel_src1')
+inFilePath = os.path.join(os.path.dirname(cwd), 'TEST_AUDIO_FILES', 'eight_samples_single_channel_src1')
 
 # Checks if the folder path is empty, or is it a root folder, or if it exists, and remove its contents
 def validate_and_remove_files(path):
@@ -88,34 +88,34 @@ def get_log_file_list(preserveOutput):
         "../../OUTPUT_AUDIO_PERFORMANCE_LOGS_HOST_" + timestamp + "/Tensor_host_audio_raw_performance_log.txt",
     ]
 
-def run_unit_test(srcPath, case, numRuns, testType, bitDepth, batchSize):
+def run_unit_test(srcPath, case, numRuns, testType, bitDepth, batchSize, qaMode, outFilePath):
     print("\n\n\n\n")
     print("--------------------------------")
     print("Running a New Functionality...")
     print("--------------------------------")
-    print(f"./Tensor_host_audio {srcPath} {bitDepth} {case} {numRuns} {testType} {numRuns} {batchSize} ")
-    result = subprocess.run(["./Tensor_host_audio", srcPath, str(bitDepth), str(case), str(testType), str(numRuns), str(batchSize)], stdout=subprocess.PIPE)    # nosec
+    print(f"./Tensor_host_audio {srcPath} {bitDepth} {case} {numRuns} {testType} {numRuns} {batchSize} {qaMode}")
+    result = subprocess.run(["./Tensor_host_audio", srcPath, str(bitDepth), str(case), str(testType), str(numRuns), str(batchSize), str(qaMode), outFilePath], stdout=subprocess.PIPE)    # nosec
     print(result.stdout.decode())
+    file_path = os.path.join(outFilePath, "results.txt")
+    with open(file_path, 'a') as file:
+        file.write(result.stdout.decode())
 
     print("------------------------------------------------------------------------------------------")
 
-def run_performance_test_cmd(loggingFolder, srcPath, bitDepth, case, numRuns, testType, batchSize):
+def run_performance_test(loggingFolder, srcPath, case, numRuns, testType, bitDepth, batchSize, qaMode, outFilePath):
+    print("\n\n\n\n")
+    print("--------------------------------")
+    print("Running a New Functionality...")
+    print("--------------------------------")
     with open("{}/Tensor_host_audio_raw_performance_log.txt".format(loggingFolder), "a") as log_file:
-        print(f"./Tensor_host_audio {srcPath} {bitDepth} {case} {numRuns} {testType} {numRuns} {batchSize} ")
-        process = subprocess.Popen(["./Tensor_host_audio", srcPath, str(bitDepth), str(case), str(testType), str(numRuns), str(batchSize)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)    # nosec
+        print(f"./Tensor_host_audio {srcPath} {bitDepth} {case} {numRuns} {testType} {numRuns} {batchSize} {qaMode}")
+        process = subprocess.Popen(["./Tensor_host_audio", srcPath, str(bitDepth), str(case), str(testType), str(numRuns), str(batchSize), str(qaMode), outFilePath], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)    # nosec
         while True:
             output = process.stdout.readline()
             if not output and process.poll() is not None:
                 break
             print(output.strip())
             log_file.write(output)
-
-def run_performance_test(loggingFolder, srcPath, case, numRuns, testType, bitDepth, batchSize):
-    print("\n\n\n\n")
-    print("--------------------------------")
-    print("Running a New Functionality...")
-    print("--------------------------------")
-    run_performance_test_cmd(loggingFolder, srcPath, bitDepth, case, numRuns, testType, batchSize)
     print("------------------------------------------------------------------------------------------")
 
 # Parse and validate command-line arguments for the RPP test suite
@@ -129,6 +129,8 @@ def rpp_test_suite_parser_and_validator():
     parser.add_argument('--num_runs', type = int, default = 1, help = "Specifies the number of runs for running the performance tests")
     parser.add_argument('--preserve_output', type = int, default = 1, help = "preserves the output of the program - (0 = override output / 1 = preserve output )" )
     parser.add_argument('--batch_size', type = int, default = 1, help = "Specifies the batch size to use for running tests. Default is 1.")
+    parser.add_argument('--qa_mode', type = int, default = 0, help = "Run with qa_mode? Outputs from tests will be compared with golden outputs - (0 / 1)", required = False)
+
     args = parser.parse_args()
 
     # check if the folder exists
@@ -153,6 +155,9 @@ def rpp_test_suite_parser_and_validator():
     elif args.batch_size <= 0:
         print("Batch size must be greater than 0. Aborting!")
         exit(0)
+    elif args.qa_mode < 0 or args.qa_mode > 1:
+        print("QA mode must be in the 0 / 1. Aborting!")
+        exit(0)
     elif args.preserve_output < 0 or args.preserve_output > 1:
         print("Preserve Output must be in the 0/1 (0 = override / 1 = preserve). Aborting")
         exit(0)
@@ -176,21 +181,26 @@ caseEnd = args.case_end
 testType = args.test_type
 caseList = args.case_list
 numRuns = args.num_runs
+qaMode = args.qa_mode
 preserveOutput = args.preserve_output
 batchSize = args.batch_size
 bitDepth = 2
+outFilePath = " "
 
 if preserveOutput == 0:
-    validate_and_remove_folders(cwd, "OUTPUT_IMAGES_HOST")
+    validate_and_remove_folders(cwd, "AUDIO_OUTPUT_HOST")
     validate_and_remove_folders(cwd, "OUTPUT_AUDIO_PERFORMANCE_LOGS_HOST")
 
 if(testType == 0):
-    outFilePath = os.path.join(os.path.dirname(cwd), 'OUTPUT_IMAGES_HOST_' + timestamp)
+    if qaMode:
+        outFilePath = os.path.join(os.path.dirname(cwd), 'QA_AUDIO_RESULTS_HOST_' + timestamp)
+    else:
+        outFilePath = os.path.join(os.path.dirname(cwd), 'OUTPUT_AUDIO_HOST_' + timestamp)
     numRuns = 1
 elif(testType == 1):
     if "--num_runs" not in sys.argv:
         numRuns = 100#default numRuns for running performance tests
-    outFilePath = os.path.join(os.path.dirname(cwd), 'OUTPUT_PERFORMANCE_LOGS_HOST_' + timestamp)
+    outFilePath = os.path.join(os.path.dirname(cwd), 'OUTPUT_AUDIO_PERFORMANCE_LOGS_HOST_' + timestamp)
 else:
     print("Invalid TEST_TYPE specified. TEST_TYPE should be 0/1 (0 = Unittests / 1 = Performancetests)")
     exit()
@@ -215,34 +225,46 @@ subprocess.run(["make", "-j16"], cwd=".")    # nosec
 if testType == 0:
     for case in caseList:
         if "--case_list" not in sys.argv:
-            if case == 0:
-                srcPath = os.path.join(os.path.dirname(cwd), "../TEST_AUDIO_FILES/eight_samples_single_channel_src1/")
-            elif case == 3:
-                srcPath = os.path.join(os.path.dirname(cwd), "../TEST_AUDIO_FILES/single_sample_multi_channel_src1/")
-            else:
-                srcPath = os.path.join(os.path.dirname(cwd), "../TEST_AUDIO_FILES/eight_samples_single_channel_src1/")
+            if case == "3":
+                srcPath = os.path.join(os.path.dirname(cwd), "TEST_AUDIO_FILES/single_sample_multi_channel_src1/")
+        if qaMode and case != "3" and batchSize != 8:
+            print("QA mode can only run with a batch size of 8.")
+            exit(0)
+        if qaMode and case == "3" and batchSize != 1:
+            print("QA mode can only run with a batch size of 1.")
+            exit(0)
         if int(case) < 0 or int(case) > 8:
             print(f"Invalid case number {case}. Case number must be in the range of 0 to 8!")
             continue
-
-            # if not os.path.isdir(dstPathTemp):
-            #     os.mkdir(dstPathTemp)
-
-        run_unit_test(srcPath, case, numRuns, testType, bitDepth, batchSize)
+ 
+        run_unit_test(srcPath, case, numRuns, testType, bitDepth, batchSize, qaMode, outFilePath)
 else:
     for case in caseList:
         if "--case_list" not in sys.argv:
-            if case == 0:
-                srcPath = os.path.join(os.path.dirname(cwd), "../TEST_AUDIO_FILES/eight_samples_single_channel_src1/")
-            elif case == 3:
-                srcPath = os.path.join(os.path.dirname(cwd), "../TEST_AUDIO_FILES/single_sample_multi_channel_src1/")
-            else:
-                srcPath = os.path.join(os.path.dirname(cwd), "../TEST_AUDIO_FILES/eight_samples_single_channel_src1/")
+            if case == "3":
+                srcPath = os.path.join(os.path.dirname(cwd), "TEST_AUDIO_FILES/single_sample_multi_channel_src1/")
         if int(case) < 0 or int(case) > 8:
             print(f"Invalid case number {case}. Case number must be in the range of 0 to 8!")
             continue
 
-        run_performance_test(loggingFolder, srcPath, case, numRuns, testType, bitDepth, batchSize)
+        run_performance_test(loggingFolder, srcPath, case, numRuns, testType, bitDepth, batchSize, qaMode, outFilePath)
+
+# print the results of qa tests
+supportedCaseList = ['0', '1', '2', '3', '4', '5', '6', '7', '8']
+supportedCases = 0
+for num in caseList:
+    if num in supportedCaseList:
+        supportedCases += 1
+caseInfo = "Tests are run for " + str(supportedCases) + " supported cases out of the " + str(len(caseList)) + " cases requested"
+if qaMode and testType == 0:
+    qaFilePath = os.path.join(outFilePath, "QA_results.txt")
+    f = open(qaFilePath, 'r+')
+    print("---------------------------------- Results of QA Test ----------------------------------\n")
+    for line in f:
+        sys.stdout.write(line)
+        sys.stdout.flush()
+    f.write(caseInfo)
+print("\n-------------- " + caseInfo + " --------------")
 
 # Performance tests
 if (testType == 1):
@@ -268,7 +290,7 @@ if (testType == 1):
 
         # Loop over each line
         for line in f:
-            functions.extend([" ", functionality_group, " "])
+            functions.extend([" ", " "])
             frames.extend([" ", " ", " "])
             maxVals.extend([" ", " ", " "])
             minVals.extend([" ", " ", " "])
@@ -288,7 +310,6 @@ if (testType == 1):
                     minVals.append(stats[1])
                     avgVals.append(stats[2])
                     funcCount += 1
-
             if line != "\n":
                 prevLine = line
 
@@ -301,7 +322,7 @@ if (testType == 1):
             maxCharLength = len(max(functions, key = len))
             functions = [x + (' ' * (maxCharLength - len(x))) for x in functions]
             for i, func in enumerate(functions):
-                print(func + "\t" + str(frames[i]) + "\t\t" + str(maxVals[i]) + "\t" + str(minVals[i]) + "\t" + str(avgVals[i]))
+                print(func.replace('\n', '') + "\t\t\t\t\t" + str(frames[i + 3]) + "\t\t" + str(maxVals[i + 3]) + "\t" + str(minVals[i + 3]) + "\t" + str(avgVals[i + 3]))
         else:
             print("No variants under this category")
 
