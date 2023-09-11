@@ -25,162 +25,179 @@ using half_float::half;
 
 typedef half Rpp16f;
 
-#define DEBUG_MODE 0
-
-void verify_output(Rpp32f *dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dstDims, string testCase, vector<string> audioNames, string dst)
+void verify_output(Rpp32f *dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dstDims, string testCase, vector<string> audioNames, string dst, int qaFlag)
 {
-    fstream ref_file;
-    string ref_path = get_current_dir_name();
+    fstream refFile;
+    string refPath = get_current_dir_name();
     string pattern = "HOST/build";
-    remove_substring(ref_path, pattern);
-    ref_path = ref_path + "REFERENCE_OUTPUTS_AUDIO/";
-    std::cerr<<"\n "<<ref_path;
-    int file_match = 0;
-    for (int batchcount = 0; batchcount < dstDescPtr->n; batchcount++)
+    remove_substring(refPath, pattern);
+    refPath = refPath + "REFERENCE_OUTPUTS_AUDIO/";
+    int fileMatch = 0;
+    for (int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
     {
-        string current_file_name = audioNames[batchcount];
-        size_t last_index = current_file_name.find_last_of(".");
-        current_file_name = current_file_name.substr(0, last_index);  // Remove extension from file name
-        string out_file = ref_path + testCase + "/" + testCase + "_ref_" + current_file_name + ".txt";
-        ref_file.open(out_file, ios::in);
-        if(!ref_file.is_open())
+        string currentFileName = audioNames[batchCount];
+        size_t lastIndex = currentFileName.find_last_of(".");
+        currentFileName = currentFileName.substr(0, lastIndex);  // Remove extension from file name
+        string outFile = refPath + testCase + "/" + testCase + "_ref_" + currentFileName + ".txt";
+        refFile.open(outFile, ios::in);
+        if (!refFile.is_open())
         {
-            cerr<<"Unable to open the file specified! Please check the path of the file given as input"<<endl;
+            cout << "\n Unable to open the file specified! Please check the path of the file given as input" << endl;
             break;
         }
-        int matched_indices = 0;
-        Rpp32f ref_val, out_val;
-        Rpp32f *dstPtrCurrent = dstPtr + batchcount * dstDescPtr->strides.nStride;
+        int matchedIndices = 0;
+        Rpp32f refVal, outVal;
+        Rpp32f *dstPtrCurrent = dstPtr + batchCount * dstDescPtr->strides.nStride;
         Rpp32f *dstPtrRow = dstPtrCurrent;
-        for(int i = 0; i < dstDims[batchcount].height; i++)
+        for (int i = 0; i < dstDims[batchCount].height; i++)
         {
             Rpp32f *dstPtrTemp = dstPtrRow;
-            for(int j = 0; j < dstDims[batchcount].width; j++)
+            for (int j = 0; j < dstDims[batchCount].width; j++)
             {
-                ref_file>>ref_val;
-                out_val = dstPtrTemp[j];
-                bool invalid_comparision = ((out_val == 0.0f) && (ref_val != 0.0f));
-                if(!invalid_comparision && abs(out_val - ref_val) < 1e-20)
-                    matched_indices += 1;
+                refFile >> refVal;
+                outVal = dstPtrTemp[j];
+                bool invalidComparision = ((outVal == 0.0f) && (refVal != 0.0f));
+                if (!invalidComparision && abs(outVal - refVal) < 1e-20)
+                    matchedIndices += 1;
             }
             dstPtrRow += dstDescPtr->strides.hStride;
         }
-        ref_file.close();
-        if(matched_indices == (dstDims[batchcount].width * dstDims[batchcount].height) && matched_indices !=0)
-            file_match++;
+        refFile.close();
+        if (matchedIndices == (dstDims[batchCount].width * dstDims[batchCount].height) && matchedIndices !=0)
+            fileMatch++;
     }
     std::string status = testCase + ": ";
-    std::cerr<<std::endl<<"Results for Test case: "<<testCase<<std::endl;
-    if(file_match == dstDescPtr->n)
+    cout << std::endl << "Results for Test case: " << testCase << std::endl;
+    if (fileMatch == dstDescPtr->n)
     {
-        std::cerr<<"PASSED!"<<std::endl;
+        cout << "PASSED!" << std::endl;
         status += "PASSED";
     }
     else
     {
-        std::cerr<<"FAILED! "<<file_match<<"/"<<dstDescPtr->n<<" outputs are matching with reference outputs"<<std::endl;
+        cout << "FAILED! " << fileMatch << "/" << dstDescPtr->n << " outputs are matching with reference outputs" << std::endl;
         status += "FAILED";
     }
-    std::string qaResultsPath = dst + "/QA_results.txt";
-    std:: ofstream qaResults(qaResultsPath, ios_base::app);
-    if (qaResults.is_open())
+    if(qaFlag)
     {
-        qaResults << status << std::endl;
-        qaResults.close();
+        std::string qaResultsPath = dst + "/QA_results.txt";
+        std:: ofstream qaResults(qaResultsPath, ios_base::app);
+        if (qaResults.is_open())
+        {
+            qaResults << status << std::endl;
+            qaResults.close();
+        }
     }
 }
 
-void verify_non_silent_region_detection(float *detectedIndex, float *detectionLength, string testCase, int bs, vector<string> audioNames, string dst)
+void verify_non_silent_region_detection(float *detectedIndex, float *detectionLength, string testCase, int bs, vector<string> audioNames, string dst, int qaFlag)
 {
-    fstream ref_file;
-    string ref_path = get_current_dir_name();
+    fstream refFile;
+    string refPath = get_current_dir_name();
     string pattern = "HOST/build";
-    remove_substring(ref_path, pattern);
-    ref_path = ref_path + "REFERENCE_OUTPUTS_AUDIO/";
-    int file_match = 0;
+    remove_substring(refPath, pattern);
+    refPath = refPath + "REFERENCE_OUTPUTS_AUDIO/";
+    int fileMatch = 0;
     for (int i = 0; i < bs; i++)
     {
-        string current_file_name = audioNames[i];
-        size_t last_index = current_file_name.find_last_of(".");
-        current_file_name = current_file_name.substr(0, last_index);  // Remove extension from file name
-        string out_file = ref_path + testCase + "/" + testCase + "_ref_" + current_file_name + ".txt";
-        ref_file.open(out_file, ios::in);
-        if(!ref_file.is_open())
+        string currentFileName = audioNames[i];
+        size_t lastIndex = currentFileName.find_last_of(".");
+        currentFileName = currentFileName.substr(0, lastIndex);  // Remove extension from file name
+        string outFile = refPath + testCase + "/" + testCase + "_ref_" + currentFileName + ".txt";
+        refFile.open(outFile, ios::in);
+        if (!refFile.is_open())
         {
-            cerr<<"Unable to open the file specified! Please check the path of the file given as input"<<endl;
+            cout << "\n Unable to open the file specified! Please check the path of the file given as input" << endl;
             break;
         }
 
-        Rpp32s ref_index, ref_length;
-        Rpp32s out_index, out_length;
-        ref_file>>ref_index;
-        ref_file>>ref_length;
-        out_index = detectedIndex[i];
-        out_length = detectionLength[i];
+        Rpp32s refIndex, refLength;
+        Rpp32s outIndex, outLength;
+        refFile >> refIndex;
+        refFile >> refLength;
+        outIndex = detectedIndex[i];
+        outLength = detectionLength[i];
 
-        if((out_index == ref_index) && (out_length == ref_length))
-            file_match += 1;
-        ref_file.close();
+        if ((outIndex == refIndex) && (outLength == refLength))
+            fileMatch += 1;
+        refFile.close();
     }
-    std::cerr<<std::endl<<"Results for Test case: "<<testCase<<std::endl;
-    if(file_match == bs)
-        std::cerr<<"PASSED!"<<std::endl;
+    std::string status = testCase + ": ";
+    cout << std::endl << "Results for Test case: " << testCase << std::endl;
+    if (fileMatch == bs)
+    {
+        cout << "PASSED!" << std::endl;
+        status += "PASSED";
+    }
     else
-        std::cerr<<"FAILED! "<<file_match<<"/"<<bs<<" outputs are matching with reference outputs"<<std::endl;
+    {
+        cout << "FAILED! "<< fileMatch << "/" << bs << " outputs are matching with reference outputs" << std::endl;
+        status += "FAILED";
+    }
+    if(qaFlag)
+    {
+        std::string qaResultsPath = dst + "/QA_results.txt";
+        std:: ofstream qaResults(qaResultsPath, ios_base::app);
+        if (qaResults.is_open())
+        {
+            qaResults << status << std::endl;
+            qaResults.close();
+        }
+    }
 }
 
-void read_from_text_files(Rpp32f *srcPtr, RpptDescPtr srcDescPtr, RpptImagePatch *srcDims, string testCase, int read_type, vector<string> audioNames)
+void read_from_text_files(Rpp32f *srcPtr, RpptDescPtr srcDescPtr, RpptImagePatch *srcDims, string testCase, int readType, vector<string> audioNames)
 {
-    fstream ref_file;
-    string ref_path = get_current_dir_name();
-    string pattern = "HOST/audio/build";
-    remove_substring(ref_path, pattern);
-    ref_path = ref_path + "/../../REFERENCE_OUTPUTS_AUDIO/";
+    fstream refFile;
+    string refPath = get_current_dir_name();
+    string pattern = "HOST/build";
+    remove_substring(refPath, pattern);
+    refPath = refPath + "REFERENCE_OUTPUTS_AUDIO/";
 
-    string read_type_str;
-    if(read_type == 0)
-        read_type_str = "_ref_";
+    string readTypeStr;
+    if (readType == 0)
+        readTypeStr = "_ref_";
     else
-        read_type_str = "_info_";
+        readTypeStr = "_info_";
 
-    for (int batchcount = 0; batchcount < srcDescPtr->n; batchcount++)
+    for (int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
     {
-        string current_file_name = audioNames[batchcount];
-        size_t last_index = current_file_name.find_last_of(".");
-        current_file_name = current_file_name.substr(0, last_index);  // Remove extension from file name
-        string out_file = ref_path + testCase + "/" + testCase + read_type_str + current_file_name + ".txt";
-        ref_file.open(out_file, ios::in);
-        if(!ref_file.is_open())
+        string currentFileName = audioNames[batchCount];
+        size_t lastIndex = currentFileName.find_last_of(".");
+        currentFileName = currentFileName.substr(0, lastIndex);  // Remove extension from file name
+        string outFile = refPath + testCase + "/" + testCase + readTypeStr + currentFileName + ".txt";
+        refFile.open(outFile, ios::in);
+        if (!refFile.is_open())
         {
-            cerr<<"Unable to open the file specified! Please check the path of the file given as input"<<endl;
+            cout << "\n Unable to open the file specified! Please check the path of the file given as input" << endl;
             break;
         }
 
-        if(read_type == 0)
+        if (readType == 0)
         {
-            Rpp32f ref_val;
-            Rpp32f *srcPtrCurrent = srcPtr + batchcount * srcDescPtr->strides.nStride;
+            Rpp32f refVal;
+            Rpp32f *srcPtrCurrent = srcPtr + batchCount * srcDescPtr->strides.nStride;
             Rpp32f *srcPtrRow = srcPtrCurrent;
-            for(int i = 0; i < srcDims[batchcount].height; i++)
+            for (int i = 0; i < srcDims[batchCount].height; i++)
             {
                 Rpp32f *srcPtrTemp = srcPtrRow;
-                for(int j = 0; j < srcDims[batchcount].width; j++)
+                for (int j = 0; j < srcDims[batchCount].width; j++)
                 {
-                    ref_file>>ref_val;
-                    srcPtrTemp[j] = ref_val;
+                    refFile>>refVal;
+                    srcPtrTemp[j] = refVal;
                 }
                 srcPtrRow += srcDescPtr->strides.hStride;
             }
         }
         else
         {
-            Rpp32s ref_height, ref_width;
-            ref_file>>ref_height;
-            ref_file>>ref_width;
-            srcDims[batchcount].height = ref_height;
-            srcDims[batchcount].width = ref_width;
+            Rpp32s refHeight, refWidth;
+            refFile >> refHeight;
+            refFile >> refWidth;
+            srcDims[batchCount].height = refHeight;
+            srcDims[batchCount].width = refWidth;
         }
-        ref_file.close();
+        refFile.close();
     }
 }
 
@@ -197,7 +214,7 @@ int main(int argc, char **argv)
     }
 
     char *src = argv[1];
-    int ip_bitDepth = atoi(argv[2]);
+    int inputBitDepth = atoi(argv[2]);
     int testCase = atoi(argv[3]);
     int testType = atoi(argv[4]);
     int numRuns = atoi(argv[5]);
@@ -222,7 +239,7 @@ int main(int argc, char **argv)
     dstDescPtr = &dstDesc;
 
     // Set src/dst data types in tensor descriptors
-    if (ip_bitDepth == 2)
+    if (inputBitDepth == 2)
     {
         srcDescPtr->dataType = RpptDataType::F32;
         dstDescPtr->dataType = RpptDataType::F32;
@@ -245,7 +262,7 @@ int main(int argc, char **argv)
     strcat(src1, "/");
 
     string func = funcName;
-    std::cout << "\nRunning " << func;
+    cout << "\nRunning " << func;
 
     // Get number of audio files
     vector<string> audioNames;
@@ -254,7 +271,7 @@ int main(int argc, char **argv)
     search_files_recursive(src, audioNames, audioFilePath, ".wav");
     noOfAudioFiles = audioNames.size();
 
-    if(noOfAudioFiles < batchSize || ((noOfAudioFiles % batchSize) != 0))
+    if (noOfAudioFiles < batchSize || ((noOfAudioFiles % batchSize) != 0))
     {
         replicate_last_file_to_fill_batch(audioFilePath[noOfAudioFiles - 1], audioFilePath, audioNames, audioNames[noOfAudioFiles - 1], noOfAudioFiles, batchSize);
         noOfAudioFiles = audioNames.size();
@@ -270,7 +287,7 @@ int main(int argc, char **argv)
     maxSrcHeight = 1;
     maxDstHeight = 1;
 
-    for(int cnt = 0; cnt < noOfAudioFiles ; cnt++)
+    for (int cnt = 0; cnt < noOfAudioFiles ; cnt++)
     {
         SNDFILE	*infile;
         SF_INFO sfinfo;
@@ -320,7 +337,7 @@ int main(int argc, char **argv)
     dstDescPtr->w = maxDstWidth;
 
     srcDescPtr->c = maxChannels;
-    if(testCase == 3)
+    if (testCase == 3)
         dstDescPtr->c = 1;
     else
         dstDescPtr->c = maxChannels;
@@ -357,12 +374,12 @@ int main(int argc, char **argv)
     string testCaseName;
     for (int perfRunCount = 0; perfRunCount < numRuns; perfRunCount++)
     {
-        for(int iterCount = 0; iterCount < noOfIterations; iterCount++)
+        for (int iterCount = 0; iterCount < noOfIterations; iterCount++)
         {
-            for(int cnt = 0; cnt < batchSize; cnt++)
+            for (int cnt = 0; cnt < batchSize; cnt++)
             {
-                Rpp32f *input_temp_f32;
-                input_temp_f32 = inputf32 + (cnt * srcDescPtr->strides.nStride);
+                Rpp32f *inputTempF32;
+                inputTempF32 = inputf32 + (cnt * srcDescPtr->strides.nStride);
 
                 SNDFILE	*infile;
                 SF_INFO sfinfo;
@@ -377,11 +394,11 @@ int main(int argc, char **argv)
                 }
 
                 int bufferLength = sfinfo.frames * sfinfo.channels;
-                if(ip_bitDepth == 2)
+                if (inputBitDepth == 2)
                 {
-                    readcount = (int) sf_read_float (infile, input_temp_f32, bufferLength);
-                    if(readcount != bufferLength)
-                        std::cerr<<"F32 Unable to read audio file completely"<<std::endl;
+                    readcount = (int) sf_read_float (infile, inputTempF32, bufferLength);
+                    if (readcount != bufferLength)
+                        cout << "F32 Unable to read audio file completely" << std::endl;
                 }
                 fileCnt++;
                 count++;
@@ -405,15 +422,15 @@ int main(int argc, char **argv)
 
                     startWallTime = omp_get_wtime();
                     startCpuTime= clock();
-                    if (ip_bitDepth == 2)
+                    if (inputBitDepth == 2)
                     {
                         rppt_non_silent_region_detection_host(inputf32, srcDescPtr, srcLengthTensor, detectedIndex, detectionLength, cutOffDB, windowLength, referencePower, resetInterval, handle);
                     }
                     else
                         missingFuncFlag = 1;
 
-                    if((testType == 0 || qaFlag ==1) && batchSize == 8)
-                        verify_non_silent_region_detection(detectedIndex, detectionLength, testCaseName, batchSize, audioNames, dst);
+                    if ((testType == 0 || qaFlag == 1) && batchSize == 8)
+                        verify_non_silent_region_detection(detectedIndex, detectionLength, testCaseName, batchSize, audioNames, dst, qaFlag);
 
                     break;
                 }
@@ -432,7 +449,7 @@ int main(int argc, char **argv)
 
                     startWallTime = omp_get_wtime();
                     startCpuTime= clock();
-                    if (ip_bitDepth == 2)
+                    if (inputBitDepth == 2)
                     {
                         rppt_to_decibels_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcDims, cutOffDB, multiplier, referenceMagnitude, handle);
                     }
@@ -451,7 +468,7 @@ int main(int argc, char **argv)
 
                     startWallTime = omp_get_wtime();
                     startCpuTime= clock();
-                    if (ip_bitDepth == 2)
+                    if (inputBitDepth == 2)
                     {
                         rppt_pre_emphasis_filter_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcLengthTensor, coeff, borderType, handle);
                     }
@@ -467,7 +484,7 @@ int main(int argc, char **argv)
 
                     startWallTime = omp_get_wtime();
                     startCpuTime= clock();
-                    if (ip_bitDepth == 2)
+                    if (inputBitDepth == 2)
                     {
                         rppt_down_mixing_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcLengthTensor, channelsTensor, normalizeWeights, handle);
                     }
@@ -497,7 +514,7 @@ int main(int argc, char **argv)
 
                     startWallTime = omp_get_wtime();
                     startCpuTime= clock();
-                    if (ip_bitDepth == 2)
+                    if (inputBitDepth == 2)
                     {
                         rppt_slice_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcDimsTensor, anchor, shape, fillValues, handle);
                     }
@@ -524,7 +541,7 @@ int main(int argc, char **argv)
                     maxDstWidth = 0;
                     maxSrcHeight = 0;
                     maxSrcWidth = 0;
-                    for(int i = 0; i < batchSize; i++)
+                    for (int i = 0; i < batchSize; i++)
                     {
                         maxSrcHeight = std::max(maxSrcHeight, (int)srcDims[i].height);
                         maxSrcWidth = std::max(maxSrcWidth, (int)srcDims[i].width);
@@ -560,7 +577,7 @@ int main(int argc, char **argv)
 
                     startWallTime = omp_get_wtime();
                     startCpuTime= clock();
-                    if (ip_bitDepth == 2)
+                    if (inputBitDepth == 2)
                     {
                         rppt_mel_filter_bank_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcDims, maxFreq, minFreq, melFormula, numFilter, sampleRate, normalize, handle);
                     }
@@ -583,14 +600,14 @@ int main(int argc, char **argv)
                     RpptSpectrogramLayout layout = RpptSpectrogramLayout::FT;
 
                     int windowOffset = 0;
-                    if(!centerWindows)
+                    if (!centerWindows)
                         windowOffset = windowLength;
 
                     maxDstWidth = 0;
                     maxDstHeight = 0;
-                    if(layout == RpptSpectrogramLayout::FT)
+                    if (layout == RpptSpectrogramLayout::FT)
                     {
-                        for(int i = 0; i < batchSize; i++)
+                        for (int i = 0; i < batchSize; i++)
                         {
                             dstDims[i].height = nfft / 2 + 1;
                             dstDims[i].width = ((srcLengthTensor[i] - windowOffset) / windowStep) + 1;
@@ -600,7 +617,7 @@ int main(int argc, char **argv)
                     }
                     else
                     {
-                        for(int i = 0; i < batchSize; i++)
+                        for (int i = 0; i < batchSize; i++)
                         {
                             dstDims[i].height = ((srcLengthTensor[i] - windowOffset) / windowStep) + 1;
                             dstDims[i].width = nfft / 2 + 1;
@@ -623,7 +640,7 @@ int main(int argc, char **argv)
 
                     startWallTime = omp_get_wtime();
                     startCpuTime= clock();
-                    if (ip_bitDepth == 2)
+                    if (inputBitDepth == 2)
                     {
                         rppt_spectrogram_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcLengthTensor, centerWindows, reflectPadding, windowFn, nfft, power, windowLength, windowStep, layout, handle);
                     }
@@ -640,7 +657,7 @@ int main(int argc, char **argv)
                     Rpp32f outRateTensor[batchSize];
 
                     maxDstWidth = 0;
-                    for(int i = 0; i < batchSize; i++)
+                    for (int i = 0; i < batchSize; i++)
                     {
                         inRateTensor[i] = 16000;
                         outRateTensor[i] = 16000 * 1.15f;
@@ -664,7 +681,7 @@ int main(int argc, char **argv)
 
                     startWallTime = omp_get_wtime();
                     startCpuTime= clock();
-                    if (ip_bitDepth == 2)
+                    if (inputBitDepth == 2)
                     {
                         rppt_resample_host(inputf32, srcDescPtr, outputf32, dstDescPtr, inRateTensor, outRateTensor, srcLengthTensor, channelsTensor, quality, handle);
                     }
@@ -677,17 +694,17 @@ int main(int argc, char **argv)
                 {
                     testCaseName = "normalize";
                     Rpp32s axis_mask = 1;
-                    Rpp32f mean, std_dev, scale, shift, epsilon;
-                    mean = std_dev = scale = shift = epsilon = 0.0f;
+                    Rpp32f mean, stdDev, scale, shift, epsilon;
+                    mean = stdDev = scale = shift = epsilon = 0.0f;
                     Rpp32s ddof = 0;
-                    Rpp32s num_of_dims = 2;
+                    Rpp32s numOfDims = 2;
 
                     startWallTime = omp_get_wtime();
                     startCpuTime= clock();
-                    if (ip_bitDepth == 2)
+                    if (inputBitDepth == 2)
                     {
                         rppt_normalize_audio_host(inputf32, srcDescPtr, outputf32, dstDescPtr, srcLengthTensor, channelsTensor, axis_mask,
-                                                mean, std_dev, scale, shift, epsilon, ddof, handle);
+                                                  mean, stdDev, scale, shift, epsilon, ddof, handle);
                     }
                     else
                         missingFuncFlag = 1;
@@ -718,20 +735,20 @@ int main(int argc, char **argv)
 
             if (testType == 0)
             {
-                if ((qaFlag == 1 || testType == 0) && ((testCase == 3 && batchSize == 1) || (testCase != 3 && batchSize == 8) && (testCase !=0)))
-                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames, dst);
+                if ((qaFlag == 1 || testType == 0) && (batchSize == 8 && testCase !=0))
+                    verify_output(outputf32, dstDescPtr, dstDims, testCaseName, audioNames, dst, qaFlag);
 
                 cout <<"\n\n";
                 cout <<"CPU Backend Clock Time: "<< cpuTime <<" ms/batch"<< endl;
                 cout <<"CPU Backend Wall Time: "<< wallTime <<" ms/batch"<< endl;
 
                 // If DEBUG_MODE is set to 1 dump the outputs to csv files for debugging
-                if(DEBUG_MODE && iterCount == 0 && testCase != 0)
+                if (DEBUG_MODE && iterCount == 0 && testCase != 0)
                 {
                     std::ofstream refFile;
                     refFile.open(func + ".csv");
                     for (int i = 0; i < oBufferSize; i++)
-                        refFile << static_cast<int>(*(outputf32 + i)) << ",";
+                        refFile << *(outputf32 + i) << "\n";
                     refFile.close();
                 }
             }
@@ -741,7 +758,7 @@ int main(int argc, char **argv)
 
     rppDestroyHost(handle);
 
-    if(testType == 1)
+    if (testType == 1)
     {
         // Display measured times
         maxWallTime *= 1000;
