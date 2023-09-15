@@ -759,6 +759,7 @@ int main(int argc, char * argv[])
             }
         }
 
+        hipDeviceSynchronize();
         endWallTime = omp_get_wtime();
         wallTime = endWallTime - startWallTime;
         maxWallTime = std::max(maxWallTime, wallTime);
