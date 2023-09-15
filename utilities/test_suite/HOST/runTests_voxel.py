@@ -243,7 +243,7 @@ if(testType == 0):
             print("Running a New Functionality...")
             print("--------------------------------")
             print(f"./Tensor_voxel_host {headerPath} {dataPath} {dstPathTemp} {layout} {case} {numRuns} {testType} {qaMode}")
-            subprocess.run(["./Tensor_voxel_host", headerPath, dataPath, dstPath, str(layout), str(case), str(numRuns), str(testType), str(qaMode)])
+            subprocess.run(["./Tensor_voxel_host", headerPath, dataPath, dstPathTemp, str(layout), str(case), str(numRuns), str(testType), str(qaMode)])
 
             print("------------------------------------------------------------------------------------------")
     layoutDict = {0:"PKD3", 1:"PLN3", 2:"PLN1"}
@@ -263,8 +263,8 @@ else:
             print("--------------------------------")
 
             with open(f"{loggingFolder}/Tensor_voxel_host_{log_file_layout}_raw_performance_log.txt", "a") as log_file:
-                print(f"./Tensor_voxel_host {headerPath} {dataPath} {dstPath} {bitDepth} {outputFormatToggle} {case} 0 {numRuns} {testType} {layout} 0")
-                process = subprocess.Popen(["./Tensor_voxel_host", headerPath, dataPath, dstPath, str(layout), str(case), str(numRuns), str(testType), str(qaMode)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                print(f"./Tensor_voxel_host {headerPath} {dataPath} {dstPathTemp} {bitDepth} {outputFormatToggle} {case} 0 {numRuns} {testType} {layout} 0")
+                process = subprocess.Popen(["./Tensor_voxel_host", headerPath, dataPath, dstPathTemp, str(layout), str(case), str(numRuns), str(testType), str(qaMode)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
                 while True:
                     output = process.stdout.readline()
                     if not output and process.poll() is not None:

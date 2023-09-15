@@ -53,7 +53,7 @@ void open_folder(const string& folderPath, vector<string>& niiFileNames, vector<
     std::string fileName = " ";
 
     if (src_dir == nullptr)
-        std::cerr << "\n ERROR: Failed opening the directory at " <<folderPath;
+        std::cout << "\n ERROR: Failed opening the directory at " <<folderPath;
 
     while((entity = readdir(src_dir)) != nullptr)
     {
@@ -75,7 +75,7 @@ void open_folder(const string& folderPath, vector<string>& niiFileNames, vector<
         }
     }
     if(niiFileNames.empty())
-        std::cerr << "\n Did not load any file from " << folderPath;
+        std::cout << "\n Did not load any file from " << folderPath;
 
     closedir(src_dir);
 }
@@ -88,7 +88,7 @@ void search_nii_files(const string& folder_path, vector<string>& niiFileNames, v
     auto sub_dir = opendir(folder_path.c_str());
     if (!sub_dir)
     {
-        std::cerr << "ERROR: Failed opening the directory at "<< folder_path << std::endl;
+        std::cout << "ERROR: Failed opening the directory at "<< folder_path << std::endl;
         exit(0);
     }
 
@@ -183,16 +183,16 @@ inline void compare_output(Rpp32f* output, Rpp64u oBufferSize, string func, int 
         if(refOutput[i] != output[i])
             mismatches++;
     }
-    std::cerr << std::endl << "Results for " << func << " :" << std::endl;
+    std::cout << std::endl << "Results for " << func << " :" << std::endl;
     std::string status = func + ": ";
     if(mismatches <= (TOLERANCE * oBufferSize))
     {
-        std::cerr << "PASSED!" << std::endl;
+        std::cout << "PASSED!" << std::endl;
         status += "PASSED";
     }
     else
     {
-        std::cerr << "FAILED! ";
+        std::cout << "FAILED! ";
         status += "FAILED";
     }
     free(refOutput);
@@ -293,7 +293,7 @@ inline void read_nifti_data_file(char* const data_file, nifti_1_header *niftiHea
     fclose(fp);
 }
 
-inline void write_nifti_file(nifti_1_header *niftiHeader, NIFTI_DATATYPE *niftiData, int batchCount)
+inline void write_nifti_file(nifti_1_header *niftiHeader, NIFTI_DATATYPE *niftiData, int batchCount, int chn)
 {
     nifti_1_header hdr = *niftiHeader;
     // nifti1_extender pad = {0,0,0,0};
@@ -301,7 +301,7 @@ inline void write_nifti_file(nifti_1_header *niftiHeader, NIFTI_DATATYPE *niftiD
     int ret, i;
 
     // write first hdr.vox_offset bytes of header
-    string niiOutputString = std::to_string(batchCount)+"_nifti_output.nii";
+    string niiOutputString = std::to_string(batchCount) + "_chn_" + std::to_string(chn)+"_nifti_output.nii";
     const char *niiOutputFile = niiOutputString.c_str();
     fp = fopen(niiOutputFile,"w");
     if (fp == NULL)
@@ -382,18 +382,14 @@ inline void write_image_from_nifti_opencv(uchar *niftiDataXYFrameU8, int niftiHe
 template<typename T>
 inline void convert_input_niftitype_to_Rpp32f_generic(T **niftyInput, nifti_1_header headerData[], Rpp32f *inputF32, RpptGenericDescPtr descriptorPtr3D)
 {
-     bool replicateToAllChannels = false;
-    // nifti_1_header headerData[] = niftiHeader;
+    bool replicateToAllChannels = false;
     Rpp32u depthStride, rowStride, channelStride, channelIncrement;
-    // Rpp32u niftyStride = headerData.dim[1] * headerData.dim[2] * headerData.dim[3];
     if (descriptorPtr3D->layout == RpptLayout::NCDHW)
     {
         depthStride = descriptorPtr3D->strides[2];
         rowStride = descriptorPtr3D->strides[3];
         channelStride = descriptorPtr3D->strides[1];
         channelIncrement = 1;
-        // niftyStride = niftyStride * descriptorPtr3D->dims[1];
-        // replicateToAllChannels = (descriptorPtr3D->dims[1] == 3 && headerData.dim[4] == 1);
         if(descriptorPtr3D->dims[1] == 3)
             replicateToAllChannels = true;                            //temporary chnage to replicate the data for pln3 using pln1 data
     }
@@ -403,8 +399,6 @@ inline void convert_input_niftitype_to_Rpp32f_generic(T **niftyInput, nifti_1_he
         rowStride = descriptorPtr3D->strides[2];
         channelStride = 1;
         channelIncrement = 3;
-        // niftyStride = niftyStride * descriptorPtr3D->dims[4];
-        // replicateToAllChannels = (descriptorPtr3D->dims[4] == 3 && headerData.dim[4] == 1);
         replicateToAllChannels = true;
     }
     if (replicateToAllChannels)
@@ -805,7 +799,7 @@ int main(int argc, char * argv[])
                 // Convert RpptDataType::F32 strided buffer to default NIFTI_DATATYPE unstrided buffer
                 Rpp64u increment;
                 if (descriptorPtr3D->layout == RpptLayout::NCDHW)
-                    increment = ((Rpp64u)descriptorPtr3D->strides[1] * (Rpp64u)descriptorPtr3D->dims[0]);
+                    increment = (Rpp64u)descriptorPtr3D->strides[1];
                 else
                     increment = 1;
                 convert_output_Rpp32f_to_niftitype_generic(outputTemp + i * increment, descriptorPtr3D, niftiDataArray[batchCount], &niftiHeader[batchCount]);
@@ -827,21 +821,21 @@ int main(int argc, char * argv[])
                     niftiDataU8Temp += xyFrameSize;
                 }
 
-                write_nifti_file(&niftiHeader[batchCount], niftiDataArray[batchCount], batchCount);
+                write_nifti_file(&niftiHeader[batchCount], niftiDataArray[batchCount], batchCount, i);
 
                 if(i == 0)
                 {
-                    std::string command = "convert -delay 10 -loop 0 $(ls -v | grep jpg | grep chn_0_) niftiOutput_"+ std::to_string(batchCount) +"_chn" + std::to_string(i) + ".gif";
+                    std::string command = "convert -delay 10 -loop 0 $(ls -v | grep jpg | grep nifti_" + std::to_string(batchCount) + "_zPlane_chn_0_)" + dst_path + "/niftiOutput_" + std::to_string(batchCount) +"_chn" + std::to_string(i) + ".gif";
                     system(command.c_str());
                 }
                 if(i == 1)
                 {
-                    std::string command = "convert -delay 10 -loop 0 $(ls -v | grep jpg | grep chn_1_) niftiOutput_"+ std::to_string(batchCount) +"_chn" + std::to_string(i) + ".gif";
+                    std::string command = "convert -delay 10 -loop 0 $(ls -v | grep jpg | grep nifti_" + std::to_string(batchCount) + "_zPlane_chn_1_)" + dst_path + "/niftiOutput_" + std::to_string(batchCount) +"_chn" + std::to_string(i) + ".gif";
                     system(command.c_str());
                 }
                 if(i == 2)
                 {
-                    std::string command = "convert -delay 10 -loop 0 $(ls -v | grep jpg | grep chn_2_) niftiOutput_" + std::to_string(batchCount) +"_chn" + std::to_string(i) + ".gif";
+                    std::string command = "convert -delay 10 -loop 0 $(ls -v | grep jpg | grep nifti_" + std::to_string(batchCount) + "_zPlane_chn_2_)" + dst_path + "/niftiOutput_" + std::to_string(batchCount) +"_chn" + std::to_string(i) + ".gif";
                     system(command.c_str());
                 }
                 free(niftiDataU8);
