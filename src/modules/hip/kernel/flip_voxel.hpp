@@ -30,7 +30,10 @@ __global__ void flip_ncdhw_tensor(T *srcPtr,
         zFactor = (roiGenericPtrSrc->xyzwhdROI.roiDepth - 1 - id_z) * srcStridesCDH.y;
     if (mirrorXYZ.x)
     {
-        xFactor = (roiGenericPtrSrc->xyzwhdROI.xyz.x + roiGenericPtrSrc->xyzwhdROI.roiWidth - id_x - 8);
+        if((id_z == 0) && (id_y == 0) && (id_x + 8) > roiGenericPtrSrc->xyzwhdROI.roiWidth)
+            xFactor = roiGenericPtrSrc->xyzwhdROI.xyz.x;
+        else
+            xFactor = (roiGenericPtrSrc->xyzwhdROI.xyz.x + roiGenericPtrSrc->xyzwhdROI.roiWidth - id_x - 8);
         uint srcIdx = zFactor + yFactor + xFactor;
         d_float8 pix_f8;
         for(int c = 0; c < channels; c++)
@@ -83,7 +86,10 @@ __global__ void flip_ndhwc_tensor(T *srcPtr,
         zFactor = (roiGenericPtrSrc->xyzwhdROI.roiDepth - 1 - id_z) * srcStridesDH.x;
     if (mirrorXYZ.x)
     {
-        xFactor = (roiGenericPtrSrc->xyzwhdROI.xyz.x + roiGenericPtrSrc->xyzwhdROI.roiWidth - id_x - 8) * 3;
+        if((id_z == 0) && (id_y == 0) && (id_x + 8) > roiGenericPtrSrc->xyzwhdROI.roiWidth)
+            xFactor = roiGenericPtrSrc->xyzwhdROI.xyz.x;
+        else
+            xFactor = (roiGenericPtrSrc->xyzwhdROI.xyz.x + roiGenericPtrSrc->xyzwhdROI.roiWidth - id_x - 8) * 3;
         uint srcIdx = zFactor + yFactor + xFactor;
         d_float24 pix_f24;
         rpp_hip_load24_pkd3_and_unpack_to_float24_pln3_mirror(srcPtr + srcIdx, &pix_f24);
@@ -98,9 +104,10 @@ __global__ void flip_ndhwc_tensor(T *srcPtr,
     }
 }
 
-RppStatus hip_exec_flip_voxel_tensor(Rpp32f *srcPtr,
+template <typename T>
+RppStatus hip_exec_flip_voxel_tensor(T *srcPtr,
                                      RpptGenericDescPtr srcGenericDescPtr,
-                                     Rpp32f *dstPtr,
+                                     T *dstPtr,
                                      RpptGenericDescPtr dstGenericDescPtr,
                                      RpptROI3DPtr roiGenericPtrSrc,
                                      Rpp32u *horizontalTensor,

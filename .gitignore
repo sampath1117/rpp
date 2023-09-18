@@ -12,7 +12,7 @@ hip_build/
 OUTPUT_IMAGES*
 OUTPUT_PERFORMANCE*
 QA_RESULTS*
-
+OUTPUT_VOXEL*
 # documentation artifacts
 _build/
 _images/

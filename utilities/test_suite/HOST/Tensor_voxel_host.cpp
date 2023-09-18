@@ -43,7 +43,9 @@ typedef int16_t NIFTI_DATATYPE;
 #define MIN_HEADER_SIZE 348
 #define RPPRANGECHECK(value)     (value < -32768) ? -32768 : ((value < 32767) ? value : 32767)
 #define DEBUG_MODE 1
+#define CUTOFF 1
 #define TOLERANCE 0.01
+#define MAX_IMAGE_DUMP 100
 
 // Opens a folder and recursively search for .nii files
 void open_folder(const string& folderPath, vector<string>& niiFileNames, vector<string>& niiFilePath)
@@ -138,7 +140,88 @@ inline void remove_substring(string &str, string &pattern)
    }
 }
 
-inline void compare_output(Rpp32f* output, Rpp64u oBufferSize, string func, int layoutType)
+// compares the output of PKD3-PKD3 variants
+void compare_outputs_pkd(Rpp32f* output, Rpp32f* refOutput, int &fileMatch, RpptGenericDescPtr descriptorPtr3D, RpptRoiXyzwhd *roiGenericSrcPtr)
+{
+    Rpp32f *rowTemp, *rowTempRef, *outVal, *outRefVal, *outputTemp, *outputTempRef, *depthTemp, *depthTempRef;
+    for(int Cnt = 0; Cnt < descriptorPtr3D->dims[0]; Cnt++)
+    {
+        outputTemp = output + Cnt * descriptorPtr3D->strides[0];
+        outputTempRef = refOutput + Cnt * descriptorPtr3D->strides[0];
+        int height = roiGenericSrcPtr[Cnt].roiHeight;
+        int width = roiGenericSrcPtr[Cnt].roiWidth * descriptorPtr3D->dims[4];
+        int depth = roiGenericSrcPtr[Cnt].roiDepth;
+        int depthStride = descriptorPtr3D->strides[1];
+        int rowStride = descriptorPtr3D->strides[2];
+        int matched_idx = 0;
+        for(int d = 0; d < depth; d++)
+        {
+            depthTemp = outputTemp + d * depthStride;
+            depthTempRef = outputTempRef + d * depthStride;
+            for(int i = 0; i < height; i++)
+            {
+                rowTemp = depthTemp + i * rowStride;
+                rowTempRef = depthTempRef + i * rowStride;
+                for(int j = 0; j < width; j++)
+                {
+                    outVal = rowTemp + j;
+                    outRefVal = rowTempRef + j;
+                    int diff = abs(*outVal - *outRefVal);
+                    if(diff <= CUTOFF)
+                        matched_idx++;
+                }
+            }
+        }
+        if(matched_idx >= (1 - TOLERANCE) * (height * width * depth) && matched_idx !=0)
+            fileMatch++;
+    }
+}
+
+// compares the output of PLN3-PLN3 and PLN1-PLN1 variants
+void compare_outputs_pln(Rpp32f* output, Rpp32f* refOutput, int &fileMatch, RpptGenericDescPtr descriptorPtr3D, RpptRoiXyzwhd *roiGenericSrcPtr)
+{
+    Rpp32f *rowTemp, *rowTempRef, *outVal, *outRefVal, *outputTemp, *outputTempRef, *outputTempChn, *outputTempRefChn, *depthTemp, *depthTempRef;
+    for(int Cnt = 0; Cnt < descriptorPtr3D->dims[0]; Cnt++)
+    {
+        outputTemp = output + Cnt * descriptorPtr3D->strides[0];
+        outputTempRef = refOutput + Cnt * descriptorPtr3D->strides[0];
+        int height = roiGenericSrcPtr[Cnt].roiHeight;
+        int width = roiGenericSrcPtr[Cnt].roiWidth;
+        int depth = roiGenericSrcPtr[Cnt].roiDepth;
+        int depthStride = descriptorPtr3D->strides[2];
+        int rowStride = descriptorPtr3D->strides[3];
+        int channelStride = descriptorPtr3D->strides[1];
+        int matched_idx = 0;
+
+        for(int c = 0; c < descriptorPtr3D->dims[1]; c++)
+        {
+            outputTempChn = outputTemp + c * channelStride;
+            outputTempRefChn = outputTempRef + c * channelStride;
+            for(int d = 0; d < depth; d++)
+            {
+                depthTemp = outputTempChn + d * depthStride;
+                depthTempRef = outputTempRefChn + d * depthStride;
+                for(int i = 0; i < height; i++)
+                {
+                    rowTemp = depthTemp + i * rowStride;
+                    rowTempRef = depthTempRef + i * rowStride;
+                    for(int j = 0; j < width; j++)
+                    {
+                        outVal = rowTemp + j;
+                        outRefVal = rowTempRef + j ;
+                        int diff = abs(*outVal - *outRefVal);
+                        if(diff <= CUTOFF)
+                            matched_idx++;
+                    }
+                }
+            }
+        }
+        if(matched_idx >= (1 - TOLERANCE) * (height * width * descriptorPtr3D->dims[1] * depth) && matched_idx !=0)
+            fileMatch++;
+    }
+}
+
+inline void compare_output(Rpp32f* output, Rpp64u oBufferSize, string func, int layoutType, RpptGenericDescPtr descriptorPtr3D, RpptRoiXyzwhd *roiGenericSrcPtr, string dst)
 {
     string refPath = get_current_dir_name();
     string pattern = "/build";
@@ -154,8 +237,8 @@ inline void compare_output(Rpp32f* output, Rpp64u oBufferSize, string func, int 
     string refFile = refPath + "/../REFERENCE_OUTPUT_VOXEL/"+ func + "/" + csvName;
 
     ifstream file(refFile);
-    int *refOutput;
-    refOutput = (int *)malloc(oBufferSize * sizeof(Rpp32f));
+    float *refOutput;
+    refOutput = (float *)malloc(oBufferSize * sizeof(Rpp32f));
     string line,word;
     int index = 0;
     int mismatches = 0;
@@ -178,24 +261,34 @@ inline void compare_output(Rpp32f* output, Rpp64u oBufferSize, string func, int 
         cout<<"Could not open the reference output. Please check the path specified\n";
         return;
     }
-    for(int i = 0; i < oBufferSize; i++)
-    {
-        if(refOutput[i] != output[i])
-            mismatches++;
-    }
+
+    int fileMatch = 0;
+    if(layoutType == 0)
+        compare_outputs_pkd(output, refOutput, fileMatch, descriptorPtr3D, roiGenericSrcPtr);
+    else
+        compare_outputs_pln(output, refOutput, fileMatch, descriptorPtr3D, roiGenericSrcPtr);
+
     std::cout << std::endl << "Results for " << func << " :" << std::endl;
     std::string status = func + ": ";
-    if(mismatches <= (TOLERANCE * oBufferSize))
+    if(fileMatch == descriptorPtr3D->dims[0])
     {
         std::cout << "PASSED!" << std::endl;
         status += "PASSED";
     }
     else
     {
-        std::cout << "FAILED! ";
+        std::cout << "FAILED! " << fileMatch << "/" << descriptorPtr3D->dims[0] << " outputs are matching with reference outputs" << std::endl;
         status += "FAILED";
     }
-    free(refOutput);
+
+    // Append the QA results to file
+    std::string qaResultsPath = dst + "/QA_results.txt";
+    std:: ofstream qaResults(qaResultsPath, ios_base::app);
+    if (qaResults.is_open())
+    {
+        qaResults << status << std::endl;
+        qaResults.close();
+    }
 }
 
 // sets generic descriptor dimensions and strides of src/dst
@@ -240,24 +333,24 @@ static int read_nifti_header_file(char* const header_file, nifti_1_header *nifti
     FILE *fp = fopen(header_file,"r");
     if (fp == NULL)
     {
-        fprintf(stderr, "\nError opening header file %s\n", header_file);
+        fprintf(stdout, "\nError opening header file %s\n", header_file);
         exit(1);
     }
     int ret = fread(&hdr, MIN_HEADER_SIZE, 1, fp);
     if (ret != 1)
     {
-        fprintf(stderr, "\nError reading header file %s\n", header_file);
+        fprintf(stdout, "\nError reading header file %s\n", header_file);
         exit(1);
     }
     fclose(fp);
 
     // print header information
-    fprintf(stderr, "\n%s header information:", header_file);
-    fprintf(stderr, "\nNIFTI1 XYZT dimensions: %d %d %d %d", hdr.dim[1], hdr.dim[2], hdr.dim[3], hdr.dim[4]);
-    fprintf(stderr, "\nNIFTI1 Datatype code and bits/pixel: %d %d", hdr.datatype, hdr.bitpix);
-    fprintf(stderr, "\nNIFTI1 Scaling slope and intercept: %.6f %.6f", hdr.scl_slope, hdr.scl_inter);
-    fprintf(stderr, "\nNIFTI1 Byte offset to data in datafile: %ld", (long)(hdr.vox_offset));
-    fprintf(stderr, "\n");
+    fprintf(stdout, "\n%s header information:", header_file);
+    fprintf(stdout, "\nNIFTI1 XYZT dimensions: %d %d %d %d", hdr.dim[1], hdr.dim[2], hdr.dim[3], hdr.dim[4]);
+    fprintf(stdout, "\nNIFTI1 Datatype code and bits/pixel: %d %d", hdr.datatype, hdr.bitpix);
+    fprintf(stdout, "\nNIFTI1 Scaling slope and intercept: %.6f %.6f", hdr.scl_slope, hdr.scl_inter);
+    fprintf(stdout, "\nNIFTI1 Byte offset to data in datafile: %ld", (long)(hdr.vox_offset));
+    fprintf(stdout, "\n");
 
     *niftiHeader = hdr;
 
@@ -274,26 +367,26 @@ inline void read_nifti_data_file(char* const data_file, nifti_1_header *niftiHea
     FILE *fp = fopen(data_file, "r");
     if (fp == NULL)
     {
-        fprintf(stderr, "\nError opening data file %s\n", data_file);
+        fprintf(stdout, "\nError opening data file %s\n", data_file);
         exit(1);
     }
     ret = fseek(fp, (long)(hdr.vox_offset), SEEK_SET);
     if (ret != 0)
     {
-        fprintf(stderr, "\nError doing fseek() to %ld in data file %s\n", (long)(hdr.vox_offset), data_file);
+        fprintf(stdout, "\nError doing fseek() to %ld in data file %s\n", (long)(hdr.vox_offset), data_file);
         exit(1);
     }
 
     ret = fread(data, sizeof(NIFTI_DATATYPE), hdr.dim[1] * hdr.dim[2] * hdr.dim[3], fp);
     if (ret != hdr.dim[1] * hdr.dim[2] * hdr.dim[3])
     {
-        fprintf(stderr, "\nError reading volume 1 from %s (%d)\n", data_file, ret);
+        fprintf(stdout, "\nError reading volume 1 from %s (%d)\n", data_file, ret);
         exit(1);
     }
     fclose(fp);
 }
 
-inline void write_nifti_file(nifti_1_header *niftiHeader, NIFTI_DATATYPE *niftiData, int batchCount, int chn)
+inline void write_nifti_file(nifti_1_header *niftiHeader, NIFTI_DATATYPE *niftiData, int batchCount, int chn, string dstPath, string func)
 {
     nifti_1_header hdr = *niftiHeader;
     // nifti1_extender pad = {0,0,0,0};
@@ -301,18 +394,18 @@ inline void write_nifti_file(nifti_1_header *niftiHeader, NIFTI_DATATYPE *niftiD
     int ret, i;
 
     // write first hdr.vox_offset bytes of header
-    string niiOutputString = std::to_string(batchCount) + "_chn_" + std::to_string(chn)+"_nifti_output.nii";
+    string niiOutputString = dstPath + "/" + std::to_string(batchCount) + "_" + func + "_chn_" + std::to_string(chn)+"_nifti_output.nii";
     const char *niiOutputFile = niiOutputString.c_str();
     fp = fopen(niiOutputFile,"w");
     if (fp == NULL)
     {
-        fprintf(stderr, "\nError opening header file %s for write\n",niiOutputFile);
+        fprintf(stdout, "\nError opening header file %s for write\n",niiOutputFile);
         exit(1);
     }
     ret = fwrite(&hdr, hdr.vox_offset, 1, fp);
     if (ret != 1)
     {
-        fprintf(stderr, "\nError writing header file %s\n",niiOutputFile);
+        fprintf(stdout, "\nError writing header file %s\n",niiOutputFile);
         exit(1);
     }
 
@@ -320,22 +413,25 @@ inline void write_nifti_file(nifti_1_header *niftiHeader, NIFTI_DATATYPE *niftiD
     // ret = fwrite(&pad, 4, 1, fp);
     if (ret != 1)
     {
-        fprintf(stderr, "\nError writing header file extension pad %s\n",niiOutputFile);
+        fprintf(stdout, "\nError writing header file extension pad %s\n",niiOutputFile);
         exit(1);
     }
 
     ret = fwrite(niftiData, (size_t)(hdr.bitpix/8), hdr.dim[1]*hdr.dim[2]*hdr.dim[3]*hdr.dim[4], fp);
     if (ret != hdr.dim[1]*hdr.dim[2]*hdr.dim[3]*hdr.dim[4])
     {
-        fprintf(stderr, "\nError writing data to %s\n",niiOutputFile);
+        fprintf(stdout, "\nError writing data to %s\n",niiOutputFile);
         exit(1);
     }
 
     fclose(fp);
 }
 
-inline void write_image_from_nifti_opencv(uchar *niftiDataXYFrameU8, int niftiHeaderImageWidth, RpptRoiXyzwhd *roiGenericSrcPtr, uchar *outputBufferOpenCV, int zPlane, int Channel, int batchCount)
+inline void write_image_from_nifti_opencv(uchar *niftiDataXYFrameU8, int niftiHeaderImageWidth, RpptRoiXyzwhd *roiGenericSrcPtr, uchar *outputBufferOpenCV, int zPlane, int Channel, int batchCount, string dst_path, string func)
 {
+    static int imageCount = 0;
+    if (imageCount < MAX_IMAGE_DUMP)
+        exit(0);
     uchar *outputBufferOpenCVRow = outputBufferOpenCV;
     uchar *niftiDataXYFrameU8Row = niftiDataXYFrameU8;
     for(int i = 0; i < roiGenericSrcPtr[batchCount].roiHeight; i++)
@@ -345,8 +441,9 @@ inline void write_image_from_nifti_opencv(uchar *niftiDataXYFrameU8, int niftiHe
         niftiDataXYFrameU8Row += niftiHeaderImageWidth;
     }
     cv::Mat matOutputImage = cv::Mat(roiGenericSrcPtr[batchCount].roiHeight, roiGenericSrcPtr[batchCount].roiWidth, CV_8UC1, outputBufferOpenCV);
-    string fileName = "nifti_" + std::to_string(batchCount) + "_zPlane_chn_"+ std::to_string(Channel)+ "_" + std::to_string(zPlane) + ".jpg";
+    string fileName = dst_path + "/" + func +"_nifti_" + std::to_string(batchCount) + "_zPlane_chn_"+ std::to_string(Channel) + "_" + std::to_string(zPlane) + ".jpg";
     cv::imwrite(fileName, matOutputImage);
+    imageCount++;
 
     // nifti_1_header hdr = *niftiHeader;
     // int xyFrameSize = hdr.dim[1] * hdr.dim[2];
@@ -530,7 +627,7 @@ int main(int argc, char * argv[])
 
     if (argc < 7)
     {
-        fprintf(stderr, "\nUsage: %s <header file> <data file> <layoutType = 0 - PKD3/ 1 - PLN3/ 2 - PLN1> <testCase = 0 to 1> <testType = 0 - unit test/ 1 - performance test>\n", argv[0]);
+        fprintf(stdout, "\nUsage: %s <header file> <data file> <layoutType = 0 - PKD3/ 1 - PLN3/ 2 - PLN1> <testCase = 0 to 1> <testType = 0 - unit test/ 1 - performance test>\n", argv[0]);
         exit(1);
     }
 
@@ -545,12 +642,12 @@ int main(int argc, char * argv[])
 
     if ((layoutType < 0) || (layoutType > 2))
     {
-        fprintf(stderr, "\nUsage: %s <header file> <data file> <layoutType = 0 - PKD3/ 1 - PLN3/ 2 - PLN1>\n", argv[0]);
+        fprintf(stdout, "\nUsage: %s <header file> <data file> <layoutType = 0 - PKD3/ 1 - PLN3/ 2 - PLN1>\n", argv[0]);
         exit(1);
     }
     if ((testCase < 0) || (testCase > 4))
     {
-        fprintf(stderr, "\nUsage: %s <header file> <data file> <layoutType = 0 for NCDHW / 1 for NDHWC>\n", argv[0]);
+        fprintf(stdout, "\nUsage: %s <header file> <data file> <layoutType = 0 for NCDHW / 1 for NDHWC>\n", argv[0]);
         exit(1);
     }
 
@@ -575,7 +672,7 @@ int main(int argc, char * argv[])
         niftiDataArray[i] = (NIFTI_DATATYPE *) calloc(dataSizeInBytes, 1);
         if (niftiDataArray[i] == NULL)
         {
-            fprintf(stderr, "\nError allocating data buffer for %s\n",data_file);
+            fprintf(stdout, "\nError allocating data buffer for %s\n",data_file);
             exit(1);
         }
         // read nifti data file
@@ -773,7 +870,14 @@ int main(int argc, char * argv[])
         if(DEBUG_MODE)
         {
             std::ofstream refFile;
-            refFile.open("nifti_single.csv");
+            std::string refFileName;
+            if(layoutType == 0)
+                refFileName = testCaseName + "_nifti_host_pkd3.csv";
+            else if(layoutType == 1)
+                refFileName = testCaseName + "_nifti_host_pln3.csv";
+            else
+                refFileName = testCaseName + "_nifti_host_pln1.csv";
+            refFile.open(refFileName);
             for (int i = 0; i < oBufferSize; i++)
                 refFile << *(outputF32 + i) << ",";
             refFile.close();
@@ -781,7 +885,7 @@ int main(int argc, char * argv[])
 
         if(qaFlag)
         {
-            compare_output(outputF32, oBufferSize, testCaseName, layoutType);
+            compare_output(outputF32, oBufferSize, testCaseName, layoutType, descriptorPtr3D, (RpptRoiXyzwhd *)roiGenericSrcPtr, dst_path);
         }
 
         for(int batchCount = 0; batchCount < batchSize; batchCount++)
@@ -817,25 +921,25 @@ int main(int argc, char * argv[])
                 uchar *niftiDataU8Temp = niftiDataU8;
                 for (int zPlane = roiGenericSrcPtr[batchCount].xyzwhdROI.xyz.z; zPlane < roiGenericSrcPtr[batchCount].xyzwhdROI.xyz.z + roiGenericSrcPtr[batchCount].xyzwhdROI.roiDepth; zPlane++)
                 {
-                    write_image_from_nifti_opencv(niftiDataU8Temp, niftiHeader[batchCount].dim[1], (RpptRoiXyzwhd *)roiGenericSrcPtr, outputBufferOpenCV, zPlane, i, batchCount);
+                    write_image_from_nifti_opencv(niftiDataU8Temp, niftiHeader[batchCount].dim[1], (RpptRoiXyzwhd *)roiGenericSrcPtr, outputBufferOpenCV, zPlane, i, batchCount, dst_path, testCaseName);
                     niftiDataU8Temp += xyFrameSize;
                 }
 
-                write_nifti_file(&niftiHeader[batchCount], niftiDataArray[batchCount], batchCount, i);
+                write_nifti_file(&niftiHeader[batchCount], niftiDataArray[batchCount], batchCount, i, dst_path, testCaseName);
 
                 if(i == 0)
                 {
-                    std::string command = "convert -delay 10 -loop 0 $(ls -v | grep jpg | grep nifti_" + std::to_string(batchCount) + "_zPlane_chn_0_)" + dst_path + "/niftiOutput_" + std::to_string(batchCount) +"_chn" + std::to_string(i) + ".gif";
+                    std::string command = "convert -delay 10 -loop 0 " + std::string(dst_path) + "/" + testCaseName + "_nifti_" + std::to_string(batchCount) + "_zPlane_chn_0_*.jpg " + std::string(dst_path) + "/" + testCaseName + "_niftiOutput_" + std::to_string(batchCount) + "_chn_" + std::to_string(i) + ".gif";
                     system(command.c_str());
                 }
                 if(i == 1)
                 {
-                    std::string command = "convert -delay 10 -loop 0 $(ls -v | grep jpg | grep nifti_" + std::to_string(batchCount) + "_zPlane_chn_1_)" + dst_path + "/niftiOutput_" + std::to_string(batchCount) +"_chn" + std::to_string(i) + ".gif";
+                    std::string command = "convert -delay 10 -loop 0 " + std::string(dst_path) + "/" + testCaseName + "_nifti_" + std::to_string(batchCount) + "_zPlane_chn_1_*.jpg " + std::string(dst_path) + "/" + testCaseName + "_niftiOutput_" + std::to_string(batchCount) + "_chn_" + std::to_string(i) + ".gif";
                     system(command.c_str());
                 }
                 if(i == 2)
                 {
-                    std::string command = "convert -delay 10 -loop 0 $(ls -v | grep jpg | grep nifti_" + std::to_string(batchCount) + "_zPlane_chn_2_)" + dst_path + "/niftiOutput_" + std::to_string(batchCount) +"_chn" + std::to_string(i) + ".gif";
+                    std::string command = "convert -delay 10 -loop 0 " + std::string(dst_path) + "/" + testCaseName + "_nifti_" + std::to_string(batchCount) + "_zPlane_chn_2_*.jpg " + std::string(dst_path) + "/" + testCaseName + "_niftiOutput_" + std::to_string(batchCount) + "_chn_" + std::to_string(i) + ".gif";
                     system(command.c_str());
                 }
                 free(niftiDataU8);

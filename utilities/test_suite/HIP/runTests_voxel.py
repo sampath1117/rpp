@@ -124,11 +124,11 @@ def create_layout_directories(dst_path, layout_dict):
         for folder in folder_list:
             os.rename(dst_path + '/' + folder, dst_path + '/' + current_layout +  '/' + folder)
 
-def get_log_file_list():
+def get_log_file_list(preserveOutput):
     return [
-        "../OUTPUT_PERFORMANCE_LOGS_HIP_" + timestamp + "/Tensor_voxel_hip_pkd3_raw_performance_log.txt",
-        "../OUTPUT_PERFORMANCE_LOGS_HIP_" + timestamp + "/Tensor_voxel_hip_pln3_raw_performance_log.txt",
-        "../OUTPUT_PERFORMANCE_LOGS_HIP_" + timestamp + "/Tensor_voxel_hip_pln1_raw_performance_log.txt"
+        "../../OUTPUT_PERFORMANCE_LOGS_HIP_VOXEL" + timestamp + "/Tensor_voxel_hip_pkd3_raw_performance_log.txt",
+        "../../OUTPUT_PERFORMANCE_LOGS_HIP_VOXEL" + timestamp + "/Tensor_voxel_hip_pln3_raw_performance_log.txt",
+        "../../OUTPUT_PERFORMANCE_LOGS_HIP_VOXEL" + timestamp + "/Tensor_voxel_hip_pln1_raw_performance_log.txt"
     ]
 
 # Functionality group finder
@@ -168,6 +168,8 @@ def rpp_test_suite_parser_and_validator():
     parser.add_argument('--profiling', type = str , default = 'NO', help = 'Run with profiler? - (YES/NO)', required = False)
     parser.add_argument('--qa_mode', type = int, default = 0, help = "Run with qa_mode? Output images from tests will be compared with golden outputs - (0 / 1)", required = False)
     parser.add_argument('--num_runs', type = int, default = 1, help = "Specifies the number of runs for running the performance tests")
+    parser.add_argument('--preserve_output', type = int, default = 1, help = "preserves the output of the program - (0 = override output / 1 = preserve output )" )
+    parser.add_argument('--batch_size', type = int, default = 1, help = "Specifies the batch size to use for running tests. Default is 1.")
     args = parser.parse_args()
 
     # check if the folder exists
@@ -197,6 +199,12 @@ def rpp_test_suite_parser_and_validator():
     elif args.profiling != 'YES' and args.profiling != 'NO':
         print("Profiling option value must be either 'YES' or 'NO'.")
         exit(0)
+    elif args.batch_size <= 0:
+        print("Batch size must be greater than 0. Aborting!")
+        exit(0)
+    elif args.preserve_output < 0 or args.preserve_output > 1:
+        print("Preserve Output must be in the 0/1 (0 = override / 1 = preserve). Aborting")
+        exit(0)
 
     if args.case_list is None:
         args.case_list = range(args.case_start, args.case_end + 1)
@@ -224,6 +232,8 @@ caseList = args.case_list
 profilingOption = args.profiling
 qaMode = args.qa_mode
 numRuns = args.num_runs
+preserveOutput = args.preserve_output
+batchSize = args.batch_size
 
 if qaMode and os.path.abspath(qaInputFile) != os.path.abspath(headerPath):
     print("QA mode should only run with the given Input path: ", qaInputFile)
@@ -233,15 +243,21 @@ if(testType == 0):
     if qaMode:
         outFilePath = os.path.join(os.path.dirname(cwd), 'QA_RESULTS_HIP_VOXEL' + timestamp)
     else:
-        outFilePath = os.path.join(os.path.dirname(cwd), 'OUTPUT_IMAGES_HIP_VOXEL' + timestamp)
+        outFilePath = os.path.join(os.path.dirname(cwd), 'OUTPUT_VOXEL_HIP' + timestamp)
     numRuns = 1
 elif(testType == 1):
-    if numRuns == 0:
+    if "--num_runs" not in sys.argv:
         numRuns = 100 #default numRuns for running performance tests
     outFilePath = os.path.join(os.path.dirname(cwd), 'OUTPUT_PERFORMANCE_LOGS_HIP_VOXEL' + timestamp)
 else:
     print("Invalid TEST_TYPE specified. TEST_TYPE should be 0/1 (0 = Unittests / 1 = Performancetests)")
     exit()
+
+if preserveOutput == 0:
+    validate_and_remove_folders(cwd, "OUTPUT_VOXEL_HIP")
+    validate_and_remove_folders(cwd, "QA_RESULTS_HIP_VOXEL")
+    validate_and_remove_folders(cwd, "OUTPUT_PERFORMANCE_LOGS_HIP_VOXEL")
+
 os.mkdir(outFilePath)
 loggingFolder = outFilePath
 dstPath = outFilePath
@@ -286,23 +302,20 @@ if(testType == 0):
             print("--------------------------------")
             print("Running a New Functionality...")
             print("--------------------------------")
-            print(f"./Tensor_hip {headerPath} {dataPath} {dstPathTemp} {layout} {case} {numRuns} {testType} {qaMode}")
-            subprocess.run(["./Tensor_voxel_hip", headerPath, dataPath, dstPath, str(layout), str(case), str(numRuns), str(testType), str(qaMode)])
+            print(f"./Tensor_hip {headerPath} {dataPath} {dstPathTemp} {layout} {case} {numRuns} {testType} {qaMode} {batchSize}")
+            result = subprocess.run(["./Tensor_voxel_hip", headerPath, dataPath, dstPath, str(layout), str(case), str(numRuns), str(testType), str(qaMode), str(batchSize)], stdout=subprocess.PIPE)
+            print(result.stdout.decode())
 
             print("------------------------------------------------------------------------------------------")
     layoutDict = {0:"PKD3", 1:"PLN3", 2:"PLN1"}
     if qaMode == 0:
         create_layout_directories(dstPath, layoutDict)
 else:
-    log_file_list = get_log_file_list()
+    log_file_list = get_log_file_list(preserveOutput)
 
     functionality_group_list = [
-    "color_augmentations",
-    "data_exchange_operations",
-    "effects_augmentations",
-    "filter_augmentations",
-    "geometric_augmentations",
-    "morphological_operations"
+    "arithmetic_exchange_operations",
+    "geometric_augmentations"
     ]
 
     if (testType == 1 and profilingOption == "NO"):
@@ -318,7 +331,7 @@ else:
                 print("Running a New Functionality...")
                 print("--------------------------------")
 
-                with open(f"{loggingFolder}/Tensor_hip_{log_file_layout}_raw_performance_log.txt", "a") as log_file:
+                with open(f"{loggingFolder}/Tensor_voxel_hip_{log_file_layout}_raw_performance_log.txt", "a") as log_file:
                     print(f"./Tensor_hip {headerPath} {dataPath} {dstPath} {layout} {case}{numRuns} {testType} {qaMode}")
                     process = subprocess.Popen(["./Tensor_voxel_hip", headerPath, dataPath, dstPath, str(layout), str(case), str(numRuns), str(testType), str(qaMode)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
                     while True:
@@ -464,3 +477,24 @@ else:
 
         except IOError:
             print("Unable to open results in " + RESULTS_DIR + "/consolidated_results_" + TYPE + ".stats.csv")
+
+# print the results of qa tests
+supportedCaseList = ['0', '1', '2', '3', '4']
+supportedCases = 0
+for num in caseList:
+    if qaMode == 1 and num in supportedCaseList:
+        supportedCases += 1
+    elif qaMode == 0 and num in supportedCaseList:
+        supportedCases += 1
+caseInfo = "Tests are run for " + str(supportedCases) + " supported cases out of the " + str(len(caseList)) + " cases requested"
+if qaMode and testType == 0:
+    qaFilePath = os.path.join(outFilePath, "QA_results.txt")
+    checkFile = os.path.isfile(qaFilePath)
+    if checkFile:
+        f = open(qaFilePath, 'r+')
+        print("---------------------------------- Results of QA Test ----------------------------------\n")
+        for line in f:
+            sys.stdout.write(line)
+            sys.stdout.flush()
+        f.write(caseInfo)
+print("\n-------------- " + caseInfo + " --------------")
