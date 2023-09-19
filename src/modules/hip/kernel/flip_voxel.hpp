@@ -87,7 +87,7 @@ __global__ void flip_ndhwc_tensor(T *srcPtr,
     if (mirrorXYZ.x)
     {
         if((id_z == 0) && (id_y == 0) && (id_x + 8) > roiGenericPtrSrc->xyzwhdROI.roiWidth)
-            xFactor = roiGenericPtrSrc->xyzwhdROI.xyz.x;
+            xFactor = roiGenericPtrSrc->xyzwhdROI.xyz.x * 3;
         else
             xFactor = (roiGenericPtrSrc->xyzwhdROI.xyz.x + roiGenericPtrSrc->xyzwhdROI.roiWidth - id_x - 8) * 3;
         uint srcIdx = zFactor + yFactor + xFactor;

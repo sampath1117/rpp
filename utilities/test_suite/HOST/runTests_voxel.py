@@ -177,6 +177,7 @@ def rpp_test_suite_parser_and_validator():
             if int(case) < 0 or int(case) > 4:
                  print("The case# must be in the 0:4 range!")
                  exit(0)
+
     # if QA mode is enabled overwrite the input folders with the folders used for generating golden outputs
     if args.qa_mode:
         args.header_path = headerFilePath
@@ -198,6 +199,10 @@ batchSize = args.batch_size
 
 if qaMode and os.path.abspath(qaInputFile) != os.path.abspath(headerPath):
     print("QA mode should only run with the given Input path: ", qaInputFile)
+    exit(0)
+
+if qaMode and batchSize != 3:
+    print("QA mode can only run with a batch size of 3.")
     exit(0)
 
 if(testType == 0):
