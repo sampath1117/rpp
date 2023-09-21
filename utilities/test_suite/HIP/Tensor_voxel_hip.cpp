@@ -570,6 +570,22 @@ int main(int argc, char * argv[])
                 rppt_subtract_scalar_gpu(d_inputF32, descriptorPtr3D, d_outputF32, descriptorPtr3D, subtractTensor, roiGenericSrcPtr, roiTypeSrc, handle);
                 break;
             }
+            case 5:
+            {
+                Rpp32f *meanTensor = reinterpret_cast<Rpp32f *>(pinnedMemArgs);
+                Rpp32f *stdDevTensor = meanTensor + batchSize;
+
+                Rpp32u seed = 1255459;
+                for (int i = 0; i < batchSize; i++)
+                {
+                    meanTensor[i] = 0;
+                    stdDevTensor[i] = 1;
+                }
+
+                startWallTime = omp_get_wtime();
+                rppt_gaussian_noise_3d_gpu(d_inputF32, descriptorPtr3D, d_outputF32, descriptorPtr3D, meanTensor, stdDevTensor, seed, roiGenericSrcPtr, handle);
+                break;
+            }
             default:
             {
                 missingFuncFlag = 1;
