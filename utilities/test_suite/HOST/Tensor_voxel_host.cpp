@@ -48,7 +48,7 @@ int main(int argc, char * argv[])
         fprintf(stdout, "\nUsage: %s <header file> <data file> <layoutType = 0 - PKD3/ 1 - PLN3/ 2 - PLN1>\n", argv[0]);
         exit(1);
     }
-    if ((testCase < 0) || (testCase > 1))
+    if ((testCase < 0) || (testCase > 2))
     {
         fprintf(stdout, "\nUsage: %s <header file> <data file> <layoutType = 0 for NCDHW / 1 for NDHWC>\n", argv[0]);
         exit(1);
@@ -216,6 +216,23 @@ int main(int argc, char * argv[])
                     testCaseName = "slice";
                     startWallTime = omp_get_wtime();
                     rppt_slice_host(inputF32, descriptorPtr3D, outputF32, descriptorPtr3D, roiGenericSrcPtr, roiTypeSrc, handle);
+                    break;
+                }
+                case 2:
+                {
+                    testCaseName = "gaussian_noise";
+
+                    Rpp32f meanTensor[batchSize];
+                    Rpp32f stdDevTensor[batchSize];
+                    Rpp32u seed = 1255459;
+                    for (int i = 0; i < batchSize; i++)
+                    {
+                        meanTensor[i] = 10.0f;
+                        stdDevTensor[i] = 5.0f;
+                    }
+
+                    startWallTime = omp_get_wtime();
+                    rppt_gaussian_noise_voxel_host(inputF32, descriptorPtr3D, outputF32, descriptorPtr3D, meanTensor, stdDevTensor, seed, roiGenericSrcPtr, roiTypeSrc, handle);
                     break;
                 }
                 default:

@@ -52,6 +52,7 @@ std::map<int, string> augmentationMap =
 {
     {0, "fmadd"},
     {1, "slice"},
+    {2, "gaussian_noise"}
 };
 
 void replicate_last_file_to_fill_batch(const string& lastFilePath, vector<string>& filePathVector, vector<string>& fileNamesVector, const string& lastFileName, int noOfFiles, int batchCount)

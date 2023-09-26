@@ -128,8 +128,8 @@ def rpp_test_suite_parser_and_validator():
     parser = argparse.ArgumentParser()
     parser.add_argument("--header_path", type = str, default = headerFilePath, help = "Path to the nii header")
     parser.add_argument("--data_path", type = str, default = dataFilePath, help = "Path to the nii data file")
-    parser.add_argument("--case_start", type = int, default = 0, help = "Testing range starting case # - (0:1)")
-    parser.add_argument("--case_end", type = int, default = 1, help = "Testing range ending case # - (0:1)")
+    parser.add_argument("--case_start", type = int, default = 0, help = "Testing range starting case # - (0:2)")
+    parser.add_argument("--case_end", type = int, default = 2, help = "Testing range ending case # - (0:2)")
     parser.add_argument('--test_type', type = int, default = 0, help = "Type of Test - (0 = Unit tests / 1 = Performance tests)")
     parser.add_argument('--case_list', nargs = "+", help = "List of case numbers to list", required = False)
     parser.add_argument('--qa_mode', type = int, default = 0, help = "Run with qa_mode? Output images from tests will be compared with golden outputs - (0 / 1)", required = False)
@@ -144,8 +144,8 @@ def rpp_test_suite_parser_and_validator():
     validate_path(qaInputFile)
 
     # validate the parameters passed by user
-    if ((args.case_start < 0 or args.case_start > 1) or (args.case_end < 0 or args.case_end > 1)):
-        print("Starting case# and Ending case# must be in the 0:1 range. Aborting!")
+    if ((args.case_start < 0 or args.case_start > 2) or (args.case_end < 0 or args.case_end > 2)):
+        print("Starting case# and Ending case# must be in the 0:2 range. Aborting!")
         exit(0)
     elif args.case_end < args.case_start:
         print("Ending case# must be greater than starting case#. Aborting!")
@@ -174,8 +174,8 @@ def rpp_test_suite_parser_and_validator():
         args.case_list = [str(x) for x in args.case_list]
     else:
         for case in args.case_list:
-            if int(case) < 0 or int(case) > 1:
-                 print("The case# must be in the 0:1 range!")
+            if int(case) < 0 or int(case) > 2:
+                 print("The case# must be in the 0:2 range!")
                  exit(0)
 
     # if QA mode is enabled overwrite the input folders with the folders used for generating golden outputs
@@ -249,7 +249,7 @@ print("#########################################################################
 
 if(testType == 0):
     for case in caseList:
-        if int(case) < 0 or int(case) > 1:
+        if int(case) < 0 or int(case) > 2:
             print(f"Invalid case number {case}. Case number must be in the range of 0 to 1!")
             continue
         for layout in range(3):
@@ -273,7 +273,7 @@ if(testType == 0):
         create_layout_directories(dstPath, layoutDict)
 else:
     for case in caseList:
-        if int(case) < 0 or int(case) > 1:
+        if int(case) < 0 or int(case) > 2:
             print(f"Invalid case number {case}. Case number must be in the range of 0 to 1!")
             continue
         for layout in range(3):
@@ -302,7 +302,7 @@ else:
         print("------------------------------------------------------------------------------------------")
 
 # print the results of qa tests
-supportedCaseList = ['0', '1']
+supportedCaseList = ['0', '1', '2']
 supportedCases = 0
 for num in caseList:
     if qaMode == 1 and num in supportedCaseList:
