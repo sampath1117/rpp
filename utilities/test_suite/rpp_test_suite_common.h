@@ -69,7 +69,10 @@ std::map<int, string> augmentationMap =
     {36, "color_twist"},
     {37, "crop"},
     {38, "crop_mirror_normalize"},
+    {49, "box_filter"},
+    {54, "gaussian_filter"},
     {84, "spatter"},
+    {87, "tensor_sum"}
 };
 
 template <typename T>
@@ -361,6 +364,39 @@ inline void  set_src_and_dst_roi(vector<string>::const_iterator imagePathsStart,
         dstImgSizes[i].height = roiTensorPtrDst[i].xywhROI.roiHeight;
     }
     tjDestroy(tjInstance);
+}
+
+// sets generic descriptor dimensions and strides of src/dst
+inline void set_generic_descriptor(RpptGenericDescPtr descriptorPtr3D, int noOfImages, int maxX, int maxY, int maxZ, int numChannels, int offsetInBytes, int layoutType)
+{
+    descriptorPtr3D->numDims = 5;
+    descriptorPtr3D->offsetInBytes = offsetInBytes;
+    descriptorPtr3D->dataType = RpptDataType::F32;
+
+    if (layoutType == 0)
+    {
+        descriptorPtr3D->layout = RpptLayout::NCDHW;
+        descriptorPtr3D->dims[0] = noOfImages;
+        descriptorPtr3D->dims[1] = numChannels;
+        descriptorPtr3D->dims[2] = maxZ;
+        descriptorPtr3D->dims[3] = maxY;
+        descriptorPtr3D->dims[4] = maxX;
+    }
+    else if (layoutType == 1)
+    {
+        descriptorPtr3D->layout = RpptLayout::NDHWC;
+        descriptorPtr3D->dims[0] = noOfImages;
+        descriptorPtr3D->dims[1] = maxZ;
+        descriptorPtr3D->dims[2] = maxY;
+        descriptorPtr3D->dims[3] = maxX;
+        descriptorPtr3D->dims[4] = numChannels;
+    }
+
+    descriptorPtr3D->strides[0] = descriptorPtr3D->dims[1] * descriptorPtr3D->dims[2] * descriptorPtr3D->dims[3] * descriptorPtr3D->dims[4];
+    descriptorPtr3D->strides[1] = descriptorPtr3D->dims[2] * descriptorPtr3D->dims[3] * descriptorPtr3D->dims[4];
+    descriptorPtr3D->strides[2] = descriptorPtr3D->dims[3] * descriptorPtr3D->dims[4];
+    descriptorPtr3D->strides[3] = descriptorPtr3D->dims[4];
+    descriptorPtr3D->strides[4] = 1;
 }
 
 // sets descriptor dimensions and strides of src/dst
@@ -781,7 +817,7 @@ inline void read_image_batch_turbojpeg(Rpp8u *input, RpptDescPtr descPtr, vector
                 std::cerr << "\n Jpeg image decode failed ";
         }
         // Copy the decompressed image buffer to the RPP input buffer
-        Rpp8u *inputTemp = input + (i * descPtr->strides.nStride);
+        Rpp8u *inputTemp = input + descPtr->offsetInBytes + (i * descPtr->strides.nStride);
         for (int j = 0; j < height; j++)
         {
             memcpy(inputTemp, rgbBuf + j * elementsInRow, elementsInRow * sizeof(Rpp8u));
@@ -1005,6 +1041,105 @@ inline void compare_output(T* output, string funcName, RpptDescPtr srcDescPtr, R
     else
     {
         std::cerr << "FAILED! " << fileMatch << "/" << dstDescPtr->n << " outputs are matching with reference outputs" << std::endl;
+        status += "FAILED";
+    }
+
+    // Append the QA results to file
+    std::string qaResultsPath = dst + "/QA_results.txt";
+    std:: ofstream qaResults(qaResultsPath, ios_base::app);
+    if (qaResults.is_open())
+    {
+        qaResults << status << std::endl;
+        qaResults.close();
+    }
+}
+
+inline void compare_reduction_output(Rpp64u* output, string funcName, RpptDescPtr srcDescPtr, int testCase, string dst)
+{
+    string func = funcName;
+    string refPath = get_current_dir_name();
+    string pattern = "/build";
+    string refFile = "";
+
+    remove_substring(refPath, pattern);
+    string dataType[4] = {"_u8_", "_f16_", "_f32_", "_i8_"};
+
+    func += dataType[srcDescPtr->dataType];
+
+    if(srcDescPtr->layout == RpptLayout::NHWC)
+        func += "Tensor_PKD3";
+    else
+    {
+        if (srcDescPtr->c == 3)
+            func += "Tensor_PLN3";
+        else
+            func += "Tensor_PLN1";
+    }
+
+    refFile = refPath + "/../REFERENCE_OUTPUT/" + funcName + "/"+ func + ".csv";
+
+    ifstream file(refFile);
+    Rpp64u *refOutput;
+    refOutput = (Rpp64u *)calloc(srcDescPtr->n * 4, sizeof(Rpp64u));
+    string line,word;
+    int index = 0;
+
+    // Load the refennce output values from files and store in vector
+    if(file.is_open())
+    {
+        while(getline(file, line))
+        {
+            stringstream str(line);
+            while(getline(str, word, ','))
+            {
+                refOutput[index] = stoi(word);
+                index++;
+            }
+        }
+    }
+    else
+    {
+        cout<<"Could not open the reference output. Please check the path specified\n";
+        return;
+    }
+
+    int fileMatch = 0;
+    int matched_values = 0;
+    if(srcDescPtr->c == 1)
+    {
+        for(int i = 0; i < srcDescPtr->n; i++)
+        {
+            int diff = output[i] - refOutput[i];
+            if(diff <= CUTOFF)
+                fileMatch++;
+        }
+    }
+    else
+    {
+        for(int i = 0; i < srcDescPtr->n; i++)
+        {
+            matched_values = 0;
+            for(int j = 0; j < 4; j++)
+            {
+                int diff = output[(i * 4) + j] - refOutput[(i * 4) + j];
+                if(diff <= CUTOFF)
+                    matched_values++;
+            }
+            if(matched_values == 4)
+                fileMatch++;
+        }
+    }
+
+    std::cerr << std::endl << "Results for " << func << " :" << std::endl;
+    std::string status = func + ": ";
+    if(fileMatch == srcDescPtr->n)
+    {
+        std::cerr << "PASSED!" << std::endl;
+        status += "PASSED";
+    }
+    else
+    {
+        std::cerr << "FAILED! " << fileMatch << "/" << srcDescPtr->n << " outputs are matching with reference outputs" << std::endl;
         status += "FAILED";
     }
 

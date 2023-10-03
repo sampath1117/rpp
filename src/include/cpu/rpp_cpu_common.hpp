@@ -222,6 +222,11 @@ inline Rpp32f rpp_host_math_exp_lim256approx(Rpp32f x)
   return x;
 }
 
+inline void rpp_host_math_fmadd8(__m256 *p, __m256 *pFmaddParams)
+{
+    p[0] = _mm256_fmadd_ps(p[0], pFmaddParams[0], pFmaddParams[1]);    // fmadd adjustment
+}
+
 template<Rpp32s STREAM_SIZE>
 inline void rpp_host_rng_xorwow_f32_initialize_multiseed_stream(RpptXorwowState *xorwowInitialState, Rpp32u seed)
 {
@@ -5913,6 +5918,30 @@ inline void compute_separable_horizontal_resample(Rpp32f *inputPtr, T *outputPtr
             }
         }
     }
+}
+
+inline void compute_sum_16_host(__m256i *p, __m256i *pSum)
+{
+    pSum[0] = _mm256_add_epi32(_mm256_add_epi32(p[0], p[1]), pSum[0]); //add 16 values to 8
+}
+
+inline void compute_sum_48_host(__m256i *p, __m256i *pSumR, __m256i *pSumG, __m256i *pSumB)
+{
+    pSumR[0] = _mm256_add_epi32(_mm256_add_epi32(p[0], p[1]), pSumR[0]); //add 16R values and bring it down to 8
+    pSumG[0] = _mm256_add_epi32(_mm256_add_epi32(p[2], p[3]), pSumG[0]); //add 16G values and bring it down to 8
+    pSumB[0] = _mm256_add_epi32(_mm256_add_epi32(p[4], p[5]), pSumB[0]); //add 16B values and bring it down to 8
+}
+
+inline void compute_sum_8_host(__m256d *p, __m256d *pSum)
+{
+    pSum[0] = _mm256_add_pd(_mm256_add_pd(p[0], p[1]), pSum[0]); //add 8 values and bring it down to 4
+}
+
+inline void compute_sum_24_host(__m256d *p, __m256d *pSumR, __m256d *pSumG, __m256d *pSumB)
+{
+    pSumR[0] = _mm256_add_pd(_mm256_add_pd(p[0], p[1]), pSumR[0]); //add 8R values and bring it down to 4
+    pSumG[0] = _mm256_add_pd(_mm256_add_pd(p[2], p[3]), pSumG[0]); //add 8G values and bring it down to 4
+    pSumB[0] = _mm256_add_pd(_mm256_add_pd(p[4], p[5]), pSumB[0]); //add 8B values and bring it down to 4
 }
 
 #endif //RPP_CPU_COMMON_H
