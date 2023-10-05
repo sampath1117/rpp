@@ -24,7 +24,7 @@ THE SOFTWARE.
 
 int main(int argc, char * argv[])
 {
-    int layoutType, testCase, testType, qaFlag, numRuns, batchSize, inputBitDepth = 2;
+    int layoutType, testCase, testType, qaFlag, numRuns, batchSize, inputBitDepth;
     char *header_file, *data_file, *dst_path;
 
     if (argc < 7)
@@ -42,6 +42,7 @@ int main(int argc, char * argv[])
     testType = atoi(argv[7]); // 0 - unit test / 1 - performance test
     qaFlag = atoi(argv[8]); //0 - QA disabled / 1 - QA enabled
     batchSize = atoi(argv[9]);
+    inputBitDepth = atoi(argv[10]);
 
     if ((layoutType < 0) || (layoutType > 2))
     {
@@ -146,6 +147,19 @@ int main(int argc, char * argv[])
     double maxWallTime = 0, minWallTime = 5000, avgWallTime = 0;
     int noOfIterations = (int)noOfFiles / batchSize;
     string testCaseName;
+
+    Rpp8u *inputU8 = NULL;
+    Rpp8u *outputU8 = NULL;
+    if(inputBitDepth == 0)
+    {
+        Rpp64u iBufferSizeU8 = iBufferSize * sizeof(Rpp8u) + descriptorPtr3D->offsetInBytes;
+        inputU8 = static_cast<Rpp8u *>(calloc(iBufferSizeU8, 1));
+        outputU8 = static_cast<Rpp8u *>(calloc(iBufferSizeU8, 1));
+
+        for(int i = 0; i < iBufferSizeU8; i++)
+            inputU8[i] = static_cast<unsigned char>(inputF32[i]);
+    }
+
     printf("\nRunning %s %d times (each time with a batch size of %d images) and computing mean statistics...", func.c_str(), numRuns, batchSize);
     for (int perfRunCount = 0; perfRunCount < numRuns; perfRunCount++)
     {
@@ -299,10 +313,17 @@ int main(int argc, char * argv[])
                     refFile.close();
                 }
 
-                if(qaFlag)
+                if(inputBitDepth == 0)
                 {
-                    compare_output(outputF32, oBufferSize, testCaseName, layoutType, descriptorPtr3D, (RpptRoiXyzwhd *)roiGenericSrcPtr, dst_path);
+                    Rpp64u bufferLength = iBufferSize * sizeof(Rpp8u) + descriptorPtr3D->offsetInBytes;
+
+                    // Copy U8 buffer to F32 buffer for display purposes
+                    for(int i = 0; i < bufferLength; i++)
+                        outputF32[i] = static_cast<float>(outputU8[i]);
                 }
+
+                if(qaFlag)
+                    compare_output(outputF32, oBufferSize, testCaseName, layoutType, descriptorPtr3D, (RpptRoiXyzwhd *)roiGenericSrcPtr, dst_path);
                 else
                 {
                     for(int batchCount = 0; batchCount < batchSize; batchCount++)
@@ -387,5 +408,13 @@ int main(int argc, char * argv[])
     free(outputF32);
     free(roiGenericSrcPtr);
     free(pinnedMemArgs);
+    if(inputBitDepth == 0)
+    {
+        if(inputU8 != NULL)
+            free(inputU8);
+        if(outputU8 != NULL)
+            free(outputU8);
+    }
+
     return(0);
 }
