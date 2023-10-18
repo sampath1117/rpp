@@ -102,7 +102,7 @@ def process_layout(layout, qaMode, case, dstPath):
     elif layout == 2:
         dstPathTemp = directory_name_generator(qaMode, "hip", "pln1", case, dstPath)
         log_file_layout = "pln1"
-    
+
     return dstPathTemp, log_file_layout
 
 # Validate if a path exists and is a directory
@@ -161,8 +161,8 @@ def rpp_test_suite_parser_and_validator():
     parser = argparse.ArgumentParser()
     parser.add_argument("--header_path", type = str, default = headerFilePath, help = "Path to the nii header")
     parser.add_argument("--data_path", type = str, default = dataFilePath, help = "Path to the nii data file")
-    parser.add_argument("--case_start", type = int, default = 0, help = "Testing range starting case # - (0:4)")
-    parser.add_argument("--case_end", type = int, default = 4, help = "Testing range ending case # - (0:4)")
+    parser.add_argument("--case_start", type = int, default = 0, help = "Testing range starting case # - (0:5)")
+    parser.add_argument("--case_end", type = int, default = 4, help = "Testing range ending case # - (0:5)")
     parser.add_argument('--test_type', type = int, default = 0, help = "Type of Test - (0 = Unit tests / 1 = Performance tests)")
     parser.add_argument('--case_list', nargs = "+", help = "List of case numbers to list", required = False)
     parser.add_argument('--profiling', type = str , default = 'NO', help = 'Run with profiler? - (YES/NO)', required = False)
@@ -176,8 +176,8 @@ def rpp_test_suite_parser_and_validator():
     validate_path(qaInputFile)
 
     # validate the parameters passed by user
-    if ((args.case_start < 0 or args.case_start > 4) or (args.case_end < 0 or args.case_end > 4)):
-        print("Starting case# and Ending case# must be in the 0:4 range. Aborting!")
+    if ((args.case_start < 0 or args.case_start > 5) or (args.case_end < 0 or args.case_end > 5)):
+        print("Starting case# and Ending case# must be in the 0:5 range. Aborting!")
         exit(0)
     elif args.case_end < args.case_start:
         print("Ending case# must be greater than starting case#. Aborting!")
@@ -203,8 +203,8 @@ def rpp_test_suite_parser_and_validator():
         args.case_list = [str(x) for x in args.case_list]
     else:
         for case in args.case_list:
-            if int(case) < 0 or int(case) > 4:
-                 print("The case# must be in the 0:4 range!")
+            if int(case) < 0 or int(case) > 5:
+                 print("The case# must be in the 0:5 range!")
                  exit(0)
 
     # if QA mode is enabled overwrite the input folders with the folders used for generating golden outputs
@@ -272,7 +272,7 @@ print("#########################################################################
 
 if(testType == 0):
     for case in caseList:
-        if int(case) < 0 or int(case) > 4:
+        if int(case) < 0 or int(case) > 5:
             print(f"Invalid case number {case}. Case number must be in the range of 0 to 4!")
             continue
         for layout in range(3):
@@ -307,7 +307,7 @@ else:
 
     if (testType == 1 and profilingOption == "NO"):
         for case in caseList:
-            if int(case) < 0 or int(case) > 4:
+            if int(case) < 0 or int(case) > 5:
                 print(f"Invalid case number {case}. Case number must be in the range of 0 to 4!")
                 continue
             for layout in range(3):
@@ -392,7 +392,7 @@ else:
             f.close()
     elif (testType == 1 and profilingOption == "YES"):
         for case in caseList:
-            if int(case) < 0 or int(case) > 4:
+            if int(case) < 0 or int(case) > 5:
                 print(f"Invalid case number {case}. Case number must be in the range of 0 to 4!")
                 continue
             for layout in range(3):

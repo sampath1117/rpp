@@ -52,47 +52,7 @@ static int read_nifti_header_file(char* const header_file, nifti_1_header *nifti
     FILE *fp = fopen(header_file,"r");
     if (fp == NULL)
     {
-        fprintf(stderr, "\nError opening header file %s\n", header_file);
-        exit(1);
-    }
-    int ret = fread(&hdr, MIN_HEADER_SIZE, 1, fp);
-    if (ret != 1)
-    {
-        fprintf(stderr, "\nError reading header file %s\n", header_file);
-        exit(1);
-    }
-    fclose(fp);
-
-    // print header information
-    fprintf(stderr, "\n%s header information:", header_file);
-    fprintf(stderr, "\nNIFTI1 XYZT dimensions: %d %d %d %d", hdr.dim[1], hdr.dim[2], hdr.dim[3], hdr.dim[4]);
-    fprintf(stderr, "\nNIFTI1 Datatype code and bits/pixel: %d %d", hdr.datatype, hdr.bitpix);
-    fprintf(stderr, "\nNIFTI1 Scaling slope and intercept: %.6f %.6f", hdr.scl_slope, hdr.scl_inter);
-    fprintf(stderr, "\nNIFTI1 Byte offset to data in datafile: %ld", (long)(hdr.vox_offset));
-    fprintf(stderr, "\n");
-
-    *niftiHeader = hdr;
-
-    return(0);
-}
-
-// reads nifti-1 data file
-inline void read_nifti_data_file(char* const data_file, nifti_1_header *niftiHeader, NIFTI_DATATYPE *data)
-{
-    nifti_1_header hdr = *niftiHeader;
-    int ret;
-
-    // open the datafile, jump to data offset
-    FILE *fp = fopen(data_file, "r");
-    if (fp == NULL)
-    {
-        fprintf(stderr, "\nError opening data file %s\n", data_file);
-        exit(1);
-    }
-    ret = fseek(fp, (long)(hdr.vox_offset), SEEK_SET);
-    if (ret != 0)
-    {
-        fprintf(stderr, "\nError doing fseek() to %ld in data file %s\n", (long)(hdr.vox_offset), data_file);
+        fprintf(stdout, "\nUsage: %s <header file> <data file> <layoutType = 0 - PKD3/ 1 - PLN3/ 2 - PLN1> <testCase = 0 to 2> <testType = 0 - unit test/ 1 - performance test>\n", argv[0]);
         exit(1);
     }
 
@@ -353,7 +313,7 @@ int main(int argc, char * argv[])
     data_file = argv[2];
     dst_path = argv[3];
     layoutType = atoi(argv[4]); // 0 for PKD3 // 1 for PLN3 // 2 for PLN1
-    testCase = atoi(argv[5]); // 0 to 1
+    testCase = atoi(argv[5]); // 0 to 2
     numRuns = atoi(argv[6]);
     testType = atoi(argv[7]); // 0 - unit test / 1 - performance test
     qaFlag = atoi(argv[8]); //0 - QA disabled / 1 - QA enabled
@@ -363,7 +323,7 @@ int main(int argc, char * argv[])
         fprintf(stderr, "\nUsage: %s <header file> <data file> <layoutType = 0 - PKD3/ 1 - PLN3/ 2 - PLN1>\n", argv[0]);
         exit(1);
     }
-    if ((testCase < 0) || (testCase > 4))
+    if ((testCase < 0) || (testCase > 2))
     {
         fprintf(stderr, "\nUsage: %s <header file> <data file> <layoutType = 0 for NCDHW / 1 for NDHWC>\n", argv[0]);
         exit(1);
@@ -479,7 +439,8 @@ int main(int argc, char * argv[])
 
     // set argument tensors
     void *pinnedMemArgs;
-    pinnedMemArgs = calloc(2 * batchSize , sizeof(Rpp32f));
+    hipHostMalloc(&pinnedMemArgs, 2 * noOfFiles, sizeof(Rpp32f));
+    // pinnedMemArgs = calloc(2 * noOfFiles , sizeof(Rpp32f));
 
     // Set the number of threads to be used by OpenMP pragma for RPP batch processing on host.
     // If numThreads value passed is 0, number of OpenMP threads used by RPP will be set to batch size
@@ -578,12 +539,12 @@ int main(int argc, char * argv[])
                 Rpp32u seed = 1255459;
                 for (int i = 0; i < batchSize; i++)
                 {
-                    meanTensor[i] = 0;
-                    stdDevTensor[i] = 1;
+                    meanTensor[i] = 1.4;
+                    stdDevTensor[i] = 0.6;
                 }
 
                 startWallTime = omp_get_wtime();
-                rppt_gaussian_noise_3d_gpu(d_inputF32, descriptorPtr3D, d_outputF32, descriptorPtr3D, meanTensor, stdDevTensor, seed, roiGenericSrcPtr, handle);
+                rppt_gaussian_noise_3d_gpu(d_inputF32, descriptorPtr3D, d_outputF32, descriptorPtr3D, meanTensor, stdDevTensor, seed, roiGenericSrcPtr, roiTypeSrc, handle);
                 break;
             }
             default:
