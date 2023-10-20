@@ -31,7 +31,8 @@ RppStatus slice_voxel_host_tensor(T *srcPtr,
                                   RpptGenericDescPtr dstGenericDescPtr,
                                   Rpp32s *anchorTensor,
                                   Rpp32s *shapeTensor,
-                                  T fillValue,
+                                  T* fillValue,
+                                  bool enablePadding,
                                   RpptROI3DPtr roiGenericPtrSrc,
                                   RpptRoi3DType roiType,
                                   RppLayoutParams layoutParams,
@@ -74,11 +75,12 @@ RppStatus slice_voxel_host_tensor(T *srcPtr,
             Rpp32u copyLengthInBytes = bufferLength * sizeof(T);
 
             // if padding is required, fill the buffer with fill value specified
-            bool needPad = (((anchor[1] + shape[1]) > roi.xyzwhdROI.roiDepth) ||
-                            ((anchor[2] + shape[2]) > roi.xyzwhdROI.roiHeight) ||
-                            ((anchor[3] + shape[3]) > roi.xyzwhdROI.roiWidth));
-            if(needPad)
-                std::fill(dstPtrImage, dstPtrImage + dstGenericDescPtr->strides[0] - 1, fillValue);
+            bool needPadding = (((anchor[1] + shape[1]) > roi.xyzwhdROI.roiDepth) ||
+                                ((anchor[2] + shape[2]) > roi.xyzwhdROI.roiHeight) ||
+                                ((anchor[3] + shape[3]) > roi.xyzwhdROI.roiWidth));
+            if(needPadding && enablePadding)
+                std::fill(dstPtrImage, dstPtrImage + dstGenericDescPtr->strides[0] - 1, *fillValue);
+
             for(int c = 0; c < layoutParams.channelParam; c++)
             {
                 T *srcPtrDepth, *dstPtrDepth;
@@ -116,11 +118,11 @@ RppStatus slice_voxel_host_tensor(T *srcPtr,
             Rpp32u copyLengthInBytes = bufferLength * sizeof(T);
 
             // if padding is required, fill the buffer with fill value specified
-            bool needPad = (((anchor[0] + shape[0]) > roi.xyzwhdROI.roiDepth) ||
-                            ((anchor[1] + shape[1]) > roi.xyzwhdROI.roiHeight) ||
-                            ((anchor[2] + shape[2]) > roi.xyzwhdROI.roiWidth));
-            if(needPad)
-                std::fill(dstPtrImage, dstPtrImage + dstGenericDescPtr->strides[0] - 1, fillValue);
+            bool needPadding = (((anchor[0] + shape[0]) > roi.xyzwhdROI.roiDepth) ||
+                                ((anchor[1] + shape[1]) > roi.xyzwhdROI.roiHeight) ||
+                                ((anchor[2] + shape[2]) > roi.xyzwhdROI.roiWidth));
+            if(needPadding && enablePadding)
+                std::fill(dstPtrImage, dstPtrImage + dstGenericDescPtr->strides[0] - 1, *fillValue);
 
             T *srcPtrDepth = srcPtrChannel;
             T *dstPtrDepth = dstPtrChannel;
