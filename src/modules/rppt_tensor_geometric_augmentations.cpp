@@ -908,6 +908,10 @@ RppStatus rppt_slice_host(RppPtr_t srcPtr,
                           RpptGenericDescPtr srcGenericDescPtr,
                           RppPtr_t dstPtr,
                           RpptGenericDescPtr dstGenericDescPtr,
+                          Rpp32s *anchorTensor,
+                          Rpp32s *shapeTensor,
+                          RppPtr_t fillValue,
+                          bool enablePadding,
                           RpptROI3DPtr roiGenericPtrSrc,
                           RpptRoi3DType roiType,
                           rppHandle_t rppHandle)
@@ -918,89 +922,41 @@ RppStatus rppt_slice_host(RppPtr_t srcPtr,
     else if ((srcGenericDescPtr->layout == RpptLayout::NDHWC) && (dstGenericDescPtr->layout == RpptLayout::NDHWC))
         layoutParams = get_layout_params(srcGenericDescPtr->layout, srcGenericDescPtr->dims[4]);
 
-    if ((srcGenericDescPtr->dataType != RpptDataType::F32) && (srcGenericDescPtr->dataType != RpptDataType::U8)) return RPP_ERROR_INVALID_SRC_DATATYPE;
-    if ((dstGenericDescPtr->dataType != RpptDataType::F32) && (dstGenericDescPtr->dataType != RpptDataType::U8)) return RPP_ERROR_INVALID_DST_DATATYPE;
     if ((srcGenericDescPtr->layout != RpptLayout::NCDHW) && (srcGenericDescPtr->layout != RpptLayout::NDHWC)) return RPP_ERROR_INVALID_SRC_LAYOUT;
     if ((dstGenericDescPtr->layout != RpptLayout::NCDHW) && (dstGenericDescPtr->layout != RpptLayout::NDHWC)) return RPP_ERROR_INVALID_DST_LAYOUT;
     if (srcGenericDescPtr->layout != dstGenericDescPtr->layout) return RPP_ERROR_INVALID_ARGUMENTS;
 
     if ((srcGenericDescPtr->dataType == RpptDataType::F32) && (dstGenericDescPtr->dataType == RpptDataType::F32))
     {
-        slice_f32_f32_host_tensor((Rpp32f*) (static_cast<Rpp8u*>(srcPtr) + srcGenericDescPtr->offsetInBytes),
-                                  srcGenericDescPtr,
-                                  (Rpp32f*) (static_cast<Rpp8u*>(dstPtr) + dstGenericDescPtr->offsetInBytes),
-                                  dstGenericDescPtr,
-                                  roiGenericPtrSrc,
-                                  roiType,
-                                  layoutParams,
-                                  rpp::deref(rppHandle));
+        slice_host_tensor((Rpp32f*) (static_cast<Rpp8u*>(srcPtr) + srcGenericDescPtr->offsetInBytes),
+                          srcGenericDescPtr,
+                          (Rpp32f*) (static_cast<Rpp8u*>(dstPtr) + dstGenericDescPtr->offsetInBytes),
+                          dstGenericDescPtr,
+                          anchorTensor,
+                          shapeTensor,
+                          static_cast<Rpp32f *>(fillValue),
+                          enablePadding,
+                          roiGenericPtrSrc,
+                          roiType,
+                          layoutParams,
+                          rpp::deref(rppHandle));
     }
     else if ((srcGenericDescPtr->dataType == RpptDataType::U8) && (dstGenericDescPtr->dataType == RpptDataType::U8))
     {
-        slice_u8_u8_host_tensor(static_cast<Rpp8u*>(srcPtr) + srcGenericDescPtr->offsetInBytes,
-                                srcGenericDescPtr,
-                                static_cast<Rpp8u*>(dstPtr) + dstGenericDescPtr->offsetInBytes,
-                                dstGenericDescPtr,
-                                roiGenericPtrSrc,
-                                roiType,
-                                layoutParams,
-                                rpp::deref(rppHandle));
+        slice_host_tensor(static_cast<Rpp8u*>(srcPtr) + srcGenericDescPtr->offsetInBytes,
+                          srcGenericDescPtr,
+                          static_cast<Rpp8u*>(dstPtr) + dstGenericDescPtr->offsetInBytes,
+                          dstGenericDescPtr,
+                          anchorTensor,
+                          shapeTensor,
+                          static_cast<Rpp8u *>(fillValue),
+                          enablePadding,
+                          roiGenericPtrSrc,
+                          roiType,
+                          layoutParams,
+                          rpp::deref(rppHandle));
     }
-    return RPP_SUCCESS;
-}
 
-RppStatus rppt_slice_voxel_host(RppPtr_t srcPtr,
-                                RpptGenericDescPtr srcGenericDescPtr,
-                                RppPtr_t dstPtr,
-                                RpptGenericDescPtr dstGenericDescPtr,
-                                Rpp32s *anchorTensor,
-                                Rpp32s *shapeTensor,
-                                RppPtr_t fillValue,
-                                bool enablePadding,
-                                RpptROI3DPtr roiGenericPtrSrc,
-                                RpptRoi3DType roiType,
-                                rppHandle_t rppHandle)
-{
-    RppLayoutParams layoutParams;
-    if ((srcGenericDescPtr->layout == RpptLayout::NCDHW) && (dstGenericDescPtr->layout == RpptLayout::NCDHW))
-        layoutParams = get_layout_params(srcGenericDescPtr->layout, srcGenericDescPtr->dims[1]);
-    else if ((srcGenericDescPtr->layout == RpptLayout::NDHWC) && (dstGenericDescPtr->layout == RpptLayout::NDHWC))
-        layoutParams = get_layout_params(srcGenericDescPtr->layout, srcGenericDescPtr->dims[4]);
-
-    if ((srcGenericDescPtr->layout != RpptLayout::NCDHW) && (srcGenericDescPtr->layout != RpptLayout::NDHWC)) return RPP_ERROR_INVALID_SRC_LAYOUT;
-    if ((dstGenericDescPtr->layout != RpptLayout::NCDHW) && (dstGenericDescPtr->layout != RpptLayout::NDHWC)) return RPP_ERROR_INVALID_DST_LAYOUT;
-    if (srcGenericDescPtr->layout != dstGenericDescPtr->layout) return RPP_ERROR_INVALID_ARGUMENTS;
-
-    if ((srcGenericDescPtr->dataType == RpptDataType::F32) && (dstGenericDescPtr->dataType == RpptDataType::F32))
-    {
-        slice_voxel_host_tensor((Rpp32f*) (static_cast<Rpp8u*>(srcPtr) + srcGenericDescPtr->offsetInBytes),
-                                srcGenericDescPtr,
-                                (Rpp32f*) (static_cast<Rpp8u*>(dstPtr) + dstGenericDescPtr->offsetInBytes),
-                                dstGenericDescPtr,
-                                anchorTensor,
-                                shapeTensor,
-                                static_cast<Rpp32f *>(fillValue),
-                                enablePadding,
-                                roiGenericPtrSrc,
-                                roiType,
-                                layoutParams,
-                                rpp::deref(rppHandle));
-    }
-    else if ((srcGenericDescPtr->dataType == RpptDataType::U8) && (dstGenericDescPtr->dataType == RpptDataType::U8))
-    {
-        slice_voxel_host_tensor(static_cast<Rpp8u*>(srcPtr) + srcGenericDescPtr->offsetInBytes,
-                                srcGenericDescPtr,
-                                static_cast<Rpp8u*>(dstPtr) + dstGenericDescPtr->offsetInBytes,
-                                dstGenericDescPtr,
-                                anchorTensor,
-                                shapeTensor,
-                                static_cast<Rpp8u *>(fillValue),
-                                enablePadding,
-                                roiGenericPtrSrc,
-                                roiType,
-                                layoutParams,
-                                rpp::deref(rppHandle));
-    }
     return RPP_SUCCESS;
 }
 
@@ -1639,53 +1595,13 @@ RppStatus rppt_slice_gpu(RppPtr_t srcPtr,
                          RpptGenericDescPtr srcGenericDescPtr,
                          RppPtr_t dstPtr,
                          RpptGenericDescPtr dstGenericDescPtr,
+                         Rpp32s *anchorTensor,
+                         Rpp32s *shapeTensor,
+                         RppPtr_t fillValue,
+                         bool enablePadding,
                          RpptROI3DPtr roiGenericPtrSrc,
                          RpptRoi3DType roiType,
                          rppHandle_t rppHandle)
-{
-#ifdef HIP_COMPILE
-    if ((srcGenericDescPtr->layout != RpptLayout::NCDHW) && (srcGenericDescPtr->layout != RpptLayout::NDHWC)) return RPP_ERROR_INVALID_SRC_LAYOUT;
-    if ((dstGenericDescPtr->layout != RpptLayout::NCDHW) && (dstGenericDescPtr->layout != RpptLayout::NDHWC)) return RPP_ERROR_INVALID_DST_LAYOUT;
-    if (srcGenericDescPtr->layout != dstGenericDescPtr->layout) return RPP_ERROR_INVALID_ARGUMENTS;
-    if ((srcGenericDescPtr->dataType != RpptDataType::F32) && (srcGenericDescPtr->dataType != RpptDataType::U8)) return RPP_ERROR_INVALID_SRC_DATATYPE;
-    if ((dstGenericDescPtr->dataType != RpptDataType::F32) && (dstGenericDescPtr->dataType != RpptDataType::U8)) return RPP_ERROR_INVALID_DST_DATATYPE;
-
-    if ((srcGenericDescPtr->dataType == RpptDataType::F32) && (dstGenericDescPtr->dataType == RpptDataType::F32))
-    {
-        hip_exec_slice_tensor((Rpp32f*) (static_cast<Rpp8u*>(srcPtr) + srcGenericDescPtr->offsetInBytes),
-                              srcGenericDescPtr,
-                              (Rpp32f*) (static_cast<Rpp8u*>(dstPtr) + dstGenericDescPtr->offsetInBytes),
-                              dstGenericDescPtr,
-                              roiGenericPtrSrc,
-                              rpp::deref(rppHandle));
-    }
-    else if ((srcGenericDescPtr->dataType == RpptDataType::U8) && (dstGenericDescPtr->dataType == RpptDataType::U8))
-    {
-        hip_exec_slice_tensor(static_cast<Rpp8u*>(srcPtr) + srcGenericDescPtr->offsetInBytes,
-                              srcGenericDescPtr,
-                              static_cast<Rpp8u*>(dstPtr) + dstGenericDescPtr->offsetInBytes,
-                              dstGenericDescPtr,
-                              roiGenericPtrSrc,
-                              rpp::deref(rppHandle));
-    }
-
-    return RPP_SUCCESS;
-#elif defined(OCL_COMPILE)
-    return RPP_ERROR_NOT_IMPLEMENTED;
-#endif // backend
-}
-
-RppStatus rppt_slice_voxel_gpu(RppPtr_t srcPtr,
-                               RpptGenericDescPtr srcGenericDescPtr,
-                               RppPtr_t dstPtr,
-                               RpptGenericDescPtr dstGenericDescPtr,
-                               Rpp32s *anchorTensor,
-                               Rpp32s *shapeTensor,
-                               RppPtr_t fillValue,
-                               bool enablePadding,
-                               RpptROI3DPtr roiGenericPtrSrc,
-                               RpptRoi3DType roiType,
-                               rppHandle_t rppHandle)
 {
     RppLayoutParams layoutParams;
     if ((srcGenericDescPtr->layout == RpptLayout::NCDHW) && (dstGenericDescPtr->layout == RpptLayout::NCDHW))
@@ -1699,30 +1615,31 @@ RppStatus rppt_slice_voxel_gpu(RppPtr_t srcPtr,
 
     if ((srcGenericDescPtr->dataType == RpptDataType::F32) && (dstGenericDescPtr->dataType == RpptDataType::F32))
     {
-        hip_exec_slice_voxel_tensor((Rpp32f*) (static_cast<Rpp8u*>(srcPtr) + srcGenericDescPtr->offsetInBytes),
-                                    srcGenericDescPtr,
-                                    (Rpp32f*) (static_cast<Rpp8u*>(dstPtr) + dstGenericDescPtr->offsetInBytes),
-                                    dstGenericDescPtr,
-                                    anchorTensor,
-                                    shapeTensor,
-                                    static_cast<Rpp32f *>(fillValue),
-                                    enablePadding,
-                                    roiGenericPtrSrc,
-                                    rpp::deref(rppHandle));
+        hip_exec_slice_tensor((Rpp32f*) (static_cast<Rpp8u*>(srcPtr) + srcGenericDescPtr->offsetInBytes),
+                              srcGenericDescPtr,
+                              (Rpp32f*) (static_cast<Rpp8u*>(dstPtr) + dstGenericDescPtr->offsetInBytes),
+                              dstGenericDescPtr,
+                              anchorTensor,
+                              shapeTensor,
+                              static_cast<Rpp32f *>(fillValue),
+                              enablePadding,
+                              roiGenericPtrSrc,
+                              rpp::deref(rppHandle));
     }
     else if ((srcGenericDescPtr->dataType == RpptDataType::U8) && (dstGenericDescPtr->dataType == RpptDataType::U8))
     {
-        hip_exec_slice_voxel_tensor(static_cast<Rpp8u*>(srcPtr) + srcGenericDescPtr->offsetInBytes,
-                                    srcGenericDescPtr,
-                                    static_cast<Rpp8u*>(dstPtr) + dstGenericDescPtr->offsetInBytes,
-                                    dstGenericDescPtr,
-                                    anchorTensor,
-                                    shapeTensor,
-                                    static_cast<Rpp8u *>(fillValue),
-                                    enablePadding,
-                                    roiGenericPtrSrc,
-                                    rpp::deref(rppHandle));
+        hip_exec_slice_tensor(static_cast<Rpp8u*>(srcPtr) + srcGenericDescPtr->offsetInBytes,
+                              srcGenericDescPtr,
+                              static_cast<Rpp8u*>(dstPtr) + dstGenericDescPtr->offsetInBytes,
+                              dstGenericDescPtr,
+                              anchorTensor,
+                              shapeTensor,
+                              static_cast<Rpp8u *>(fillValue),
+                              enablePadding,
+                              roiGenericPtrSrc,
+                              rpp::deref(rppHandle));
     }
+
     return RPP_SUCCESS;
 }
 
