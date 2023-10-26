@@ -912,8 +912,7 @@ RppStatus rppt_slice_host(RppPtr_t srcPtr,
                           Rpp32s *shapeTensor,
                           RppPtr_t fillValue,
                           bool enablePadding,
-                          RpptROI3DPtr roiGenericPtrSrc,
-                          RpptRoi3DType roiType,
+                          Rpp32u *roiTensor,
                           rppHandle_t rppHandle)
 {
     RppLayoutParams layoutParams;
@@ -921,9 +920,6 @@ RppStatus rppt_slice_host(RppPtr_t srcPtr,
         layoutParams = get_layout_params(srcGenericDescPtr->layout, srcGenericDescPtr->dims[1]);
     else if ((srcGenericDescPtr->layout == RpptLayout::NDHWC) && (dstGenericDescPtr->layout == RpptLayout::NDHWC))
         layoutParams = get_layout_params(srcGenericDescPtr->layout, srcGenericDescPtr->dims[4]);
-
-    if ((srcGenericDescPtr->layout != RpptLayout::NCDHW) && (srcGenericDescPtr->layout != RpptLayout::NDHWC)) return RPP_ERROR_INVALID_SRC_LAYOUT;
-    if ((dstGenericDescPtr->layout != RpptLayout::NCDHW) && (dstGenericDescPtr->layout != RpptLayout::NDHWC)) return RPP_ERROR_INVALID_DST_LAYOUT;
     if (srcGenericDescPtr->layout != dstGenericDescPtr->layout) return RPP_ERROR_INVALID_ARGUMENTS;
 
     if ((srcGenericDescPtr->dataType == RpptDataType::F32) && (dstGenericDescPtr->dataType == RpptDataType::F32))
@@ -936,8 +932,7 @@ RppStatus rppt_slice_host(RppPtr_t srcPtr,
                           shapeTensor,
                           static_cast<Rpp32f *>(fillValue),
                           enablePadding,
-                          roiGenericPtrSrc,
-                          roiType,
+                          roiTensor,
                           layoutParams,
                           rpp::deref(rppHandle));
     }
@@ -951,8 +946,7 @@ RppStatus rppt_slice_host(RppPtr_t srcPtr,
                           shapeTensor,
                           static_cast<Rpp8u *>(fillValue),
                           enablePadding,
-                          roiGenericPtrSrc,
-                          roiType,
+                          roiTensor,
                           layoutParams,
                           rpp::deref(rppHandle));
     }
@@ -1599,8 +1593,7 @@ RppStatus rppt_slice_gpu(RppPtr_t srcPtr,
                          Rpp32s *shapeTensor,
                          RppPtr_t fillValue,
                          bool enablePadding,
-                         RpptROI3DPtr roiGenericPtrSrc,
-                         RpptRoi3DType roiType,
+                         Rpp32u *roiTensor,
                          rppHandle_t rppHandle)
 {
     RppLayoutParams layoutParams;
@@ -1608,9 +1601,6 @@ RppStatus rppt_slice_gpu(RppPtr_t srcPtr,
         layoutParams = get_layout_params(srcGenericDescPtr->layout, srcGenericDescPtr->dims[1]);
     else if ((srcGenericDescPtr->layout == RpptLayout::NDHWC) && (dstGenericDescPtr->layout == RpptLayout::NDHWC))
         layoutParams = get_layout_params(srcGenericDescPtr->layout, srcGenericDescPtr->dims[4]);
-
-    if ((srcGenericDescPtr->layout != RpptLayout::NCDHW) && (srcGenericDescPtr->layout != RpptLayout::NDHWC)) return RPP_ERROR_INVALID_SRC_LAYOUT;
-    if ((dstGenericDescPtr->layout != RpptLayout::NCDHW) && (dstGenericDescPtr->layout != RpptLayout::NDHWC)) return RPP_ERROR_INVALID_DST_LAYOUT;
     if (srcGenericDescPtr->layout != dstGenericDescPtr->layout) return RPP_ERROR_INVALID_ARGUMENTS;
 
     if ((srcGenericDescPtr->dataType == RpptDataType::F32) && (dstGenericDescPtr->dataType == RpptDataType::F32))
@@ -1623,7 +1613,7 @@ RppStatus rppt_slice_gpu(RppPtr_t srcPtr,
                               shapeTensor,
                               static_cast<Rpp32f *>(fillValue),
                               enablePadding,
-                              roiGenericPtrSrc,
+                              roiTensor,
                               rpp::deref(rppHandle));
     }
     else if ((srcGenericDescPtr->dataType == RpptDataType::U8) && (dstGenericDescPtr->dataType == RpptDataType::U8))
@@ -1636,7 +1626,7 @@ RppStatus rppt_slice_gpu(RppPtr_t srcPtr,
                               shapeTensor,
                               static_cast<Rpp8u *>(fillValue),
                               enablePadding,
-                              roiGenericPtrSrc,
+                              roiTensor,
                               rpp::deref(rppHandle));
     }
 
