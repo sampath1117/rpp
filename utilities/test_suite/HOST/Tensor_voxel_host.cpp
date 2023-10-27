@@ -161,6 +161,7 @@ int main(int argc, char * argv[])
         inputU8 = static_cast<Rpp8u *>(calloc(iBufferSizeU8, 1));
         outputU8 = static_cast<Rpp8u *>(calloc(iBufferSizeU8, 1));
     }
+    Rpp32u inputDims = descriptorPtr3D->numDims - 1;
 
     printf("\nRunning %s %d times (each time with a batch size of %d images) and computing mean statistics...", funcName.c_str(), numRuns, batchSize);
     for (int perfRunCount = 0; perfRunCount < numRuns; perfRunCount++)
@@ -216,6 +217,32 @@ int main(int argc, char * argv[])
                     inputU8[i] = std::min(std::max(static_cast<unsigned char>(inputF32[i]), static_cast<unsigned char>(0)), static_cast<unsigned char>(255));
             }
 
+            // copy the roi values from generic roi structure to 1D buffer
+            Rpp32u roiTensor[batchSize * inputDims * 2];
+            for(int i = 0; i < batchSize; i++)
+            {
+                int index = i * inputDims * 2;
+                RpptROI3D roi = roiGenericSrcPtr[i];
+                roiTensor[index] = 0;
+                roiTensor[index + 1] = 0;
+                roiTensor[index + 2] = 0;
+                roiTensor[index + 3] = 0;
+                if(descriptorPtr3D->layout == RpptLayout::NDHWC)
+                {
+                    roiTensor[index + 4] = roi.xyzwhdROI.roiDepth;;
+                    roiTensor[index + 5] = roi.xyzwhdROI.roiHeight;;
+                    roiTensor[index + 6] = roi.xyzwhdROI.roiWidth;
+                    roiTensor[index + 7] = 3;
+                }
+                else if(descriptorPtr3D->layout == RpptLayout::NCDHW)
+                {
+                    roiTensor[index + 4] = descriptorPtr3D->dims[1];
+                    roiTensor[index + 5] = roi.xyzwhdROI.roiDepth;;
+                    roiTensor[index + 6] = roi.xyzwhdROI.roiHeight;;
+                    roiTensor[index + 7] = roi.xyzwhdROI.roiWidth;
+                }
+            }
+
             switch (testCase)
             {
                 case 0:
@@ -241,11 +268,47 @@ int main(int argc, char * argv[])
                 case 1:
                 {
                     testCaseName = "slice";
+
+                    Rpp32s anchorTensor[batchSize * inputDims];
+                    Rpp32s shapeTensor[batchSize * inputDims];
+                    for(int i = 0; i < batchSize; i++)
+                    {
+                        int index = i * inputDims;
+                        anchorTensor[index] = 0;
+                        anchorTensor[index + 1] = 0;
+                        anchorTensor[index + 2] = 0;
+                        anchorTensor[index + 3] = 0;
+
+                        RpptROI3D roi = roiGenericSrcPtr[i];
+                        if(descriptorPtr3D->layout == RpptLayout::NDHWC)
+                        {
+                            shapeTensor[index] = roi.xyzwhdROI.roiDepth;
+                            shapeTensor[index + 1] = roi.xyzwhdROI.roiHeight;
+                            shapeTensor[index + 2] = roi.xyzwhdROI.roiWidth;
+                            shapeTensor[index + 3] = 3;
+                        }
+                        else if(descriptorPtr3D->layout == RpptLayout::NCDHW)
+                        {
+                            shapeTensor[index] = descriptorPtr3D->dims[1];
+                            shapeTensor[index + 1] = roi.xyzwhdROI.roiDepth;
+                            shapeTensor[index + 2] = roi.xyzwhdROI.roiHeight;
+                            shapeTensor[index + 3] = roi.xyzwhdROI.roiWidth;
+                        }
+                    }
+
                     startWallTime = omp_get_wtime();
                     if(inputBitDepth == 0)
-                        rppt_slice_host(inputU8, descriptorPtr3D, outputU8, descriptorPtr3D, roiGenericSrcPtr, roiTypeSrc, handle);
+                    {
+                        Rpp8u fillValue = 0;
+                        bool enablePadding = false;
+                        rppt_slice_host(inputU8, descriptorPtr3D, outputU8, descriptorPtr3D, anchorTensor, shapeTensor, (void *)(&fillValue), enablePadding, roiTensor, handle);
+                    }
                     else if(inputBitDepth == 2)
-                        rppt_slice_host(inputF32, descriptorPtr3D, outputF32, descriptorPtr3D, roiGenericSrcPtr, roiTypeSrc, handle);
+                    {
+                        Rpp32f *fillValue = 0;
+                        bool enablePadding = false;
+                        rppt_slice_host(inputF32, descriptorPtr3D, outputF32, descriptorPtr3D, anchorTensor, shapeTensor, (void *)(&fillValue), enablePadding, roiTensor, handle);
+                    }
                     else
                         missingFuncFlag = 1;
 
