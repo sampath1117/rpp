@@ -211,21 +211,42 @@ RppStatus rppt_rotate_gpu(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstP
 
 /******************** slice ********************/
 
-// slice for a generic 4D tensor
+/*! \brief Slice augmentation HOST
+ * \details This function performs slice augmentation on a generic 4D tensor.
+ *          Slice augmentation involves selecting a region of interest (ROI) from the source tensor
+ *          and copying it to the destination tensor. Support added for f32 -> f32 and u8 -> u8 dataypes.
+ * \param[in] srcPtr source tensor memory
+ * \param[in] srcGenericDescPtr source tensor descriptor
+ * \param[out] dstPtr destination tensor memory
+ * \param[in] dstGenericDescPtr destination tensor descriptor
+ * \param[in] roiGenericPtrSrc ROI data for each image in source tensor (tensor of batchSize RpptRoiGeneric values)
+ * \param[in] roiType ROI type used (RpptRoi3DType::XYZWHD or RpptRoi3DType::LTFRBB)
+ * \param [in] rppHandle Host-handle
+ * \return <tt> RppStatus enum</tt>.
+ * \returns RPP_SUCCESS <tt>\ref RppStatus</tt> on successful completion.
+ * Else return RPP_ERROR
+ * \ingroup group_tensor_geometric
+ */
+RppStatus rppt_slice_host(RppPtr_t srcPtr, RpptGenericDescPtr srcGenericDescPtr, RppPtr_t dstPtr, RpptGenericDescPtr dstGenericDescPtr, Rpp32s *anchorTensor, Rpp32s *shapeTensor, RppPtr_t fillValue, bool enablePadding, RpptROI3DPtr roiGenericPtrSrc, RpptRoi3DType roiType, rppHandle_t rppHandle);
 
-// *param[in] srcPtr source tensor memory
-// *param[in] srcGenericDescPtr source tensor descriptor
-// *param[out] dstPtr destination tensor memory
-// *param[in] dstGenericDescPtr destination tensor descriptor
-// *param[in] roiGenericPtrSrc ROI data for each image in source tensor (tensor of batchSize RpptRoiGeneric values)
-// *param[in] roiType ROI type used (RpptRoi3DType::XYZWHD or RpptRoi3DType::LTFRBB)
-// *returns a  RppStatus enumeration.
-// *retval RPP_SUCCESS : succesful completion
-// *retval RPP_ERROR : Error
-
-RppStatus rppt_slice_host(RppPtr_t srcPtr, RpptGenericDescPtr srcGenericDescPtr, RppPtr_t dstPtr, RpptGenericDescPtr dstGenericDescPtr, RpptROI3DPtr roiGenericPtrSrc, RpptRoi3DType roiType, rppHandle_t rppHandle);
 #ifdef GPU_SUPPORT
-RppStatus rppt_slice_gpu(RppPtr_t srcPtr, RpptGenericDescPtr srcGenericDescPtr, RppPtr_t dstPtr, RpptGenericDescPtr dstGenericDescPtr, RpptROI3DPtr roiGenericPtrSrc, RpptRoi3DType roiType, rppHandle_t rppHandle);
+/*! \brief Slice augmentation GPU
+ * \details This function performs slice augmentation on a generic 4D tensor.
+ *          Slice augmentation involves selecting a region of interest (ROI) from the source tensor
+ *          and copying it to the destination tensor. Support added for f32 -> f32 and u8 -> u8 dataypes.
+ * \param[in] srcPtr source tensor memory
+ * \param[in] srcGenericDescPtr source tensor descriptor
+ * \param[out] dstPtr destination tensor memory
+ * \param[in] dstGenericDescPtr destination tensor descriptor
+ * \param[in] roiGenericPtrSrc ROI data for each image in source tensor (tensor of batchSize RpptRoiGeneric values)
+ * \param[in] roiType ROI type used (RpptRoi3DType::XYZWHD or RpptRoi3DType::LTFRBB)
+ * \param [in] rppHandle HIP-handle
+ * \return <tt> RppStatus enum</tt>.
+ * \returns RPP_SUCCESS <tt>\ref RppStatus</tt> on successful completion.
+ * Else return RPP_ERROR
+ * \ingroup group_tensor_geometric
+ */
+RppStatus rppt_slice_gpu(RppPtr_t srcPtr, RpptGenericDescPtr srcGenericDescPtr, RppPtr_t dstPtr, RpptGenericDescPtr dstGenericDescPtr, Rpp32s *anchorTensor, Rpp32s *shapeTensor, RppPtr_t fillValue, bool enablePadding, RpptROI3DPtr roiGenericPtrSrc, RpptRoi3DType roiType, rppHandle_t rppHandle);
 #endif // GPU_SUPPORT
 
 /******************** flip_voxel ********************/
@@ -249,11 +270,6 @@ RppStatus rppt_slice_gpu(RppPtr_t srcPtr, RpptGenericDescPtr srcGenericDescPtr, 
 RppStatus rppt_flip_voxel_host(RppPtr_t srcPtr, RpptGenericDescPtr srcGenericDescPtr, RppPtr_t dstPtr, RpptGenericDescPtr dstGenericDescPtr, Rpp32u *horizontalTensor, Rpp32u *verticalTensor, Rpp32u *depthTensor, RpptROI3DPtr roiGenericPtrSrc, RpptRoi3DType roiType, rppHandle_t rppHandle);
 #ifdef GPU_SUPPORT
 RppStatus rppt_flip_voxel_gpu(RppPtr_t srcPtr, RpptGenericDescPtr srcGenericDescPtr, RppPtr_t dstPtr, RpptGenericDescPtr dstGenericDescPtr, Rpp32u *horizontalTensor, Rpp32u *verticalTensor, Rpp32u *depthTensor, RpptROI3DPtr roiGenericPtrSrc, RpptRoi3DType roiType, rppHandle_t rppHandle);
-#endif // GPU_SUPPORT
-
-RppStatus rppt_slice_voxel_host(RppPtr_t srcPtr, RpptGenericDescPtr srcGenericDescPtr, RppPtr_t dstPtr, RpptGenericDescPtr dstGenericDescPtr, Rpp32s *anchorTensor, Rpp32s *shapeTensor, RppPtr_t fillValue, bool enablePadding, RpptROI3DPtr roiGenericPtrSrc, RpptRoi3DType roiType, rppHandle_t rppHandle);
-#ifdef GPU_SUPPORT
-RppStatus rppt_slice_voxel_gpu(RppPtr_t srcPtr, RpptGenericDescPtr srcGenericDescPtr, RppPtr_t dstPtr, RpptGenericDescPtr dstGenericDescPtr, Rpp32s *anchorTensor, Rpp32s *shapeTensor, RppPtr_t fillValue, bool enablePadding, RpptROI3DPtr roiGenericPtrSrc, RpptRoi3DType roiType, rppHandle_t rppHandle);
 #endif // GPU_SUPPORT
 
 #ifdef __cplusplus

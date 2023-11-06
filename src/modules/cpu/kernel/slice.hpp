@@ -24,14 +24,19 @@ THE SOFTWARE.
 #include "rpp_cpu_simd.hpp"
 #include "rpp_cpu_common.hpp"
 
-RppStatus slice_f32_f32_host_tensor(Rpp32f *srcPtr,
-                                    RpptGenericDescPtr srcGenericDescPtr,
-                                    Rpp32f *dstPtr,
-                                    RpptGenericDescPtr dstGenericDescPtr,
-                                    RpptROI3DPtr roiGenericPtrSrc,
-                                    RpptRoi3DType roiType,
-                                    RppLayoutParams layoutParams,
-                                    rpp::Handle& handle)
+template<typename T>
+RppStatus slice_host_tensor(T *srcPtr,
+                            RpptGenericDescPtr srcGenericDescPtr,
+                            T *dstPtr,
+                            RpptGenericDescPtr dstGenericDescPtr,
+                            Rpp32s *anchorTensor,
+                            Rpp32s *shapeTensor,
+                            T* fillValue,
+                            bool enablePadding,
+                            RpptROI3DPtr roiGenericPtrSrc,
+                            RpptRoi3DType roiType,
+                            RppLayoutParams layoutParams,
+                            rpp::Handle& handle)
 {
     RpptROI3D roiDefault;
     if(srcGenericDescPtr->layout==RpptLayout::NCDHW)
@@ -39,6 +44,7 @@ RppStatus slice_f32_f32_host_tensor(Rpp32f *srcPtr,
     else if(srcGenericDescPtr->layout==RpptLayout::NDHWC)
         roiDefault = {0, 0, 0, (Rpp32s)srcGenericDescPtr->dims[3], (Rpp32s)srcGenericDescPtr->dims[2], (Rpp32s)srcGenericDescPtr->dims[1]};
     Rpp32u numThreads = handle.GetNumThreads();
+    Rpp32u numDims = srcGenericDescPtr->numDims - 1;
 
     omp_set_dynamic(0);
 #pragma omp parallel for num_threads(numThreads)
@@ -48,153 +54,86 @@ RppStatus slice_f32_f32_host_tensor(Rpp32f *srcPtr,
         RpptROI3DPtr roiPtrInput = &roiGenericPtrSrc[batchCount];
         compute_roi3D_validation_host(roiPtrInput, &roi, &roiDefault, roiType);
 
-        Rpp32f *srcPtrImage, *dstPtrImage;
+        T *srcPtrImage, *dstPtrImage;
         srcPtrImage = srcPtr + batchCount * srcGenericDescPtr->strides[0];
         dstPtrImage = dstPtr + batchCount * dstGenericDescPtr->strides[0];
 
-        Rpp32u bufferLength = roi.xyzwhdROI.roiWidth * layoutParams.bufferMultiplier;
-
-        Rpp32f *srcPtrChannel, *dstPtrChannel;
+        T *srcPtrChannel, *dstPtrChannel;
         dstPtrChannel = dstPtrImage;
+
+        Rpp32s *anchor = &anchorTensor[batchCount * numDims];
+        Rpp32s *shape = &shapeTensor[batchCount * numDims];
 
         // Slice without fused output-layout toggle (NCDHW -> NCDHW)
         if((srcGenericDescPtr->layout == RpptLayout::NCDHW) && (dstGenericDescPtr->layout == RpptLayout::NCDHW))
         {
-            srcPtrChannel = srcPtrImage + (roi.xyzwhdROI.xyz.z * srcGenericDescPtr->strides[2]) + (roi.xyzwhdROI.xyz.y * srcGenericDescPtr->strides[3]) + (roi.xyzwhdROI.xyz.x * layoutParams.bufferMultiplier);
+            srcPtrChannel = srcPtrImage + (anchor[1] * srcGenericDescPtr->strides[2]) + (anchor[2] * srcGenericDescPtr->strides[3]) + (anchor[3] * layoutParams.bufferMultiplier);
+            Rpp32u maxDepth = std::min(shape[1], roi.xyzwhdROI.roiDepth - anchor[1]);
+            Rpp32u maxHeight = std::min(shape[2], roi.xyzwhdROI.roiHeight - anchor[2]);
+            Rpp32u maxWidth = std::min(shape[3], roi.xyzwhdROI.roiWidth - anchor[3]);
+            Rpp32u bufferLength = maxWidth * layoutParams.bufferMultiplier;
+            Rpp32u copyLengthInBytes = bufferLength * sizeof(T);
 
-            Rpp32u copyLengthInBytes = bufferLength * sizeof(Rpp32f);
+            // if padding is required, fill the buffer with fill value specified
+            bool needPadding = (((anchor[1] + shape[1]) > roi.xyzwhdROI.roiDepth) ||
+                                ((anchor[2] + shape[2]) > roi.xyzwhdROI.roiHeight) ||
+                                ((anchor[3] + shape[3]) > roi.xyzwhdROI.roiWidth));
+            if(needPadding && enablePadding)
+                std::fill(dstPtrImage, dstPtrImage + dstGenericDescPtr->strides[0] - 1, *fillValue);
+
             for(int c = 0; c < layoutParams.channelParam; c++)
             {
-                Rpp32f *srcPtrDepth, *dstPtrDepth;
+                T *srcPtrDepth, *dstPtrDepth;
                 srcPtrDepth = srcPtrChannel;
                 dstPtrDepth = dstPtrChannel;
 
-                for(int i = 0; i < roi.xyzwhdROI.roiDepth; i++)
+                for(int i = 0; i < maxDepth; i++)
                 {
-                    Rpp32f *srcPtrRow, *dstPtrRow;
+                    T *srcPtrRow, *dstPtrRow;
                     srcPtrRow = srcPtrDepth;
                     dstPtrRow = dstPtrDepth;
 
-                    for(int j = 0; j < roi.xyzwhdROI.roiHeight; j++)
+                    for(int j = 0; j < maxHeight; j++)
                     {
                         memcpy(dstPtrRow, srcPtrRow, copyLengthInBytes);
-
                         srcPtrRow += srcGenericDescPtr->strides[3];
                         dstPtrRow += dstGenericDescPtr->strides[3];
                     }
                     srcPtrDepth += srcGenericDescPtr->strides[2];
                     dstPtrDepth += dstGenericDescPtr->strides[2];
                 }
-
                 srcPtrChannel += srcGenericDescPtr->strides[1];
                 dstPtrChannel += srcGenericDescPtr->strides[1];
             }
         }
+
         // Slice without fused output-layout toggle (NDHWC -> NDHWC)
         else if((srcGenericDescPtr->layout == RpptLayout::NDHWC) && (dstGenericDescPtr->layout == RpptLayout::NDHWC))
         {
-            Rpp32u copyLengthInBytes = bufferLength * sizeof(Rpp32f);
-            srcPtrChannel = srcPtrImage + (roi.xyzwhdROI.xyz.z * srcGenericDescPtr->strides[1]) + (roi.xyzwhdROI.xyz.y * srcGenericDescPtr->strides[2]) + (roi.xyzwhdROI.xyz.x * layoutParams.bufferMultiplier);
-            Rpp32f *srcPtrDepth = srcPtrChannel;
-            Rpp32f *dstPtrDepth = dstPtrChannel;
+            srcPtrChannel = srcPtrImage + (anchor[0] * srcGenericDescPtr->strides[1]) + (anchor[1] * srcGenericDescPtr->strides[2]) + (anchor[2] * layoutParams.bufferMultiplier);
+            Rpp32u maxDepth = std::min(shape[0], roi.xyzwhdROI.roiDepth - anchor[0]);
+            Rpp32u maxHeight = std::min(shape[1], roi.xyzwhdROI.roiHeight - anchor[1]);
+            Rpp32u maxWidth = std::min(shape[2], roi.xyzwhdROI.roiWidth - anchor[2]);
+            Rpp32u bufferLength = maxWidth * layoutParams.bufferMultiplier;
+            Rpp32u copyLengthInBytes = bufferLength * sizeof(T);
 
-            for(int i = 0; i < roi.xyzwhdROI.roiDepth; i++)
+            // if padding is required, fill the buffer with fill value specified
+            bool needPadding = (((anchor[0] + shape[0]) > roi.xyzwhdROI.roiDepth) ||
+                                ((anchor[1] + shape[1]) > roi.xyzwhdROI.roiHeight) ||
+                                ((anchor[2] + shape[2]) > roi.xyzwhdROI.roiWidth));
+            if(needPadding && enablePadding)
+                std::fill(dstPtrImage, dstPtrImage + dstGenericDescPtr->strides[0] - 1, *fillValue);
+
+            T *srcPtrDepth = srcPtrChannel;
+            T *dstPtrDepth = dstPtrChannel;
+            for(int i = 0; i < maxDepth; i++)
             {
-                Rpp32f *srcPtrRow, *dstPtrRow;
+                T *srcPtrRow, *dstPtrRow;
                 srcPtrRow = srcPtrDepth;
                 dstPtrRow = dstPtrDepth;
-
-                for(int j = 0; j < roi.xyzwhdROI.roiHeight; j++)
+                for(int j = 0; j < maxHeight; j++)
                 {
                     memcpy(dstPtrRow, srcPtrRow, copyLengthInBytes);
-
-                    srcPtrRow += srcGenericDescPtr->strides[2];
-                    dstPtrRow += dstGenericDescPtr->strides[2];
-                }
-                srcPtrDepth += srcGenericDescPtr->strides[1];
-                dstPtrDepth += dstGenericDescPtr->strides[1];
-            }
-        }
-    }
-
-    return RPP_SUCCESS;
-}
-
-RppStatus slice_u8_u8_host_tensor(Rpp8u *srcPtr,
-                                  RpptGenericDescPtr srcGenericDescPtr,
-                                  Rpp8u *dstPtr,
-                                  RpptGenericDescPtr dstGenericDescPtr,
-                                  RpptROI3DPtr roiGenericPtrSrc,
-                                  RpptRoi3DType roiType,
-                                  RppLayoutParams layoutParams,
-                                  rpp::Handle& handle)
-{
-    RpptROI3D roiDefault;
-    if(srcGenericDescPtr->layout==RpptLayout::NCDHW)
-        roiDefault = {0, 0, 0, (Rpp32s)srcGenericDescPtr->dims[4], (Rpp32s)srcGenericDescPtr->dims[3], (Rpp32s)srcGenericDescPtr->dims[2]};
-    else if(srcGenericDescPtr->layout==RpptLayout::NDHWC)
-        roiDefault = {0, 0, 0, (Rpp32s)srcGenericDescPtr->dims[3], (Rpp32s)srcGenericDescPtr->dims[2], (Rpp32s)srcGenericDescPtr->dims[1]};
-    Rpp32u numThreads = handle.GetNumThreads();
-
-    omp_set_dynamic(0);
-#pragma omp parallel for num_threads(numThreads)
-    for(int batchCount = 0; batchCount < dstGenericDescPtr->dims[0]; batchCount++)
-    {
-        RpptROI3D roi;
-        RpptROI3DPtr roiPtrInput = &roiGenericPtrSrc[batchCount];
-        compute_roi3D_validation_host(roiPtrInput, &roi, &roiDefault, roiType);
-
-        Rpp8u *srcPtrImage, *dstPtrImage;
-        srcPtrImage = srcPtr + batchCount * srcGenericDescPtr->strides[0];
-        dstPtrImage = dstPtr + batchCount * dstGenericDescPtr->strides[0];
-
-        Rpp32u bufferLength = roi.xyzwhdROI.roiWidth * layoutParams.bufferMultiplier;
-        Rpp8u *srcPtrChannel, *dstPtrChannel;
-        dstPtrChannel = dstPtrImage;
-
-        // Slice without fused output-layout toggle (NCDHW -> NCDHW)
-        if((srcGenericDescPtr->layout == RpptLayout::NCDHW) && (dstGenericDescPtr->layout == RpptLayout::NCDHW))
-        {
-            srcPtrChannel = srcPtrImage + (roi.xyzwhdROI.xyz.z * srcGenericDescPtr->strides[2]) + (roi.xyzwhdROI.xyz.y * srcGenericDescPtr->strides[3]) + (roi.xyzwhdROI.xyz.x * layoutParams.bufferMultiplier);
-            for(int c = 0; c < layoutParams.channelParam; c++)
-            {
-                Rpp8u *srcPtrDepth, *dstPtrDepth;
-                srcPtrDepth = srcPtrChannel;
-                dstPtrDepth = dstPtrChannel;
-                for(int i = 0; i < roi.xyzwhdROI.roiDepth; i++)
-                {
-                    Rpp8u *srcPtrRow, *dstPtrRow;
-                    srcPtrRow = srcPtrDepth;
-                    dstPtrRow = dstPtrDepth;
-                    for(int j = 0; j < roi.xyzwhdROI.roiHeight; j++)
-                    {
-                        memcpy(dstPtrRow, srcPtrRow, bufferLength * sizeof(Rpp8u));
-                        srcPtrRow += srcGenericDescPtr->strides[3];
-                        dstPtrRow += dstGenericDescPtr->strides[3];
-                    }
-                    srcPtrDepth += srcGenericDescPtr->strides[2];
-                    dstPtrDepth += dstGenericDescPtr->strides[2];
-                }
-                srcPtrChannel += srcGenericDescPtr->strides[1];
-                dstPtrChannel += srcGenericDescPtr->strides[1];
-            }
-        }
-        // Slice without fused output-layout toggle (NDHWC -> NDHWC)
-        else if((srcGenericDescPtr->layout == RpptLayout::NDHWC) && (dstGenericDescPtr->layout == RpptLayout::NDHWC))
-        {
-            srcPtrChannel = srcPtrImage + (roi.xyzwhdROI.xyz.z * srcGenericDescPtr->strides[1]) + (roi.xyzwhdROI.xyz.y * srcGenericDescPtr->strides[2]) + (roi.xyzwhdROI.xyz.x * layoutParams.bufferMultiplier);
-            Rpp8u *srcPtrDepth = srcPtrChannel;
-            Rpp8u *dstPtrDepth = dstPtrChannel;
-
-            for(int i = 0; i < roi.xyzwhdROI.roiDepth; i++)
-            {
-                Rpp8u *srcPtrRow, *dstPtrRow;
-                srcPtrRow = srcPtrDepth;
-                dstPtrRow = dstPtrDepth;
-
-                for(int j = 0; j < roi.xyzwhdROI.roiHeight; j++)
-                {
-                    memcpy(dstPtrRow, srcPtrRow, bufferLength * sizeof(Rpp8u));
                     srcPtrRow += srcGenericDescPtr->strides[2];
                     dstPtrRow += dstGenericDescPtr->strides[2];
                 }
