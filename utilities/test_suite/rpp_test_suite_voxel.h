@@ -32,12 +32,11 @@ THE SOFTWARE.
 #include <fstream>
 #include <unistd.h>
 #include <dirent.h>
-#include <boost/filesystem.hpp>
 #include "rpp.h"
 #include "nifti1.h"
+#include "filesystem.h"
 
 using namespace std;
-namespace fs = boost::filesystem;
 typedef int16_t NIFTI_DATATYPE;
 
 #define MIN_HEADER_SIZE 348
