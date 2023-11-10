@@ -51,29 +51,30 @@ RppStatus slice_host_tensor(T *srcPtr,
         T *srcPtrChannel, *dstPtrChannel;
         dstPtrChannel = dstPtrTemp;
 
-        Rpp32s *anchor = &anchorTensor[batchCount * numDims];
-        Rpp32s *shape = &shapeTensor[batchCount * numDims];
-
-        // get the starting address of length values from roiTensor
-        Rpp32u *roi = roiTensor + batchCount * numDims * 2;
-        Rpp32s *length = reinterpret_cast<Rpp32s *>(&roi[numDims]);
-
         if(numDims == 4)
         {
+            Rpp32u paramDims = numDims - 1;
+            Rpp32s *anchor = &anchorTensor[batchCount * paramDims];
+            Rpp32s *shape = &shapeTensor[batchCount * paramDims];
+
+            // get the starting address of length values from roiTensor
+            Rpp32u *roi = roiTensor + batchCount * paramDims * 2;
+            Rpp32s *length = reinterpret_cast<Rpp32s *>(&roi[paramDims]);
+
             // slice without fused output-layout toggle (NCDHW -> NCDHW)
             if((srcGenericDescPtr->layout == RpptLayout::NCDHW) && (dstGenericDescPtr->layout == RpptLayout::NCDHW))
             {
-                srcPtrChannel = srcPtrTemp + (anchor[1] * srcGenericDescPtr->strides[2]) + (anchor[2] * srcGenericDescPtr->strides[3]) + (anchor[3] * layoutParams.bufferMultiplier);
-                Rpp32u maxDepth = std::min(shape[1], length[1] - anchor[1]);
-                Rpp32u maxHeight = std::min(shape[2], length[2] - anchor[2]);
-                Rpp32u maxWidth = std::min(shape[3], length[3] - anchor[3]);
-                Rpp32u bufferLength = maxWidth * layoutParams.bufferMultiplier;
+                srcPtrChannel = srcPtrTemp + (anchor[0] * srcGenericDescPtr->strides[2]) + (anchor[1] * srcGenericDescPtr->strides[3]) + anchor[2];
+                Rpp32u maxDepth = std::min(shape[0], length[0] - anchor[0]);
+                Rpp32u maxHeight = std::min(shape[1], length[1] - anchor[1]);
+                Rpp32u maxWidth = std::min(shape[2], length[2] - anchor[2]);
+                Rpp32u bufferLength = maxWidth;
                 Rpp32u copyLengthInBytes = bufferLength * sizeof(T);
 
                 // if padding is required, fill the buffer with fill value specified
-                bool needPadding = (((anchor[1] + shape[1]) > length[1]) ||
-                                    ((anchor[2] + shape[2]) > length[2]) ||
-                                    ((anchor[3] + shape[3]) > length[3]));
+                bool needPadding = (((anchor[0] + shape[0]) > length[0]) ||
+                                    ((anchor[1] + shape[1]) > length[1]) ||
+                                    ((anchor[2] + shape[2]) > length[2]));
                 if(needPadding && enablePadding)
                     std::fill(dstPtrChannel, dstPtrChannel + dstGenericDescPtr->strides[0] - 1, *fillValue);
 
@@ -138,18 +139,26 @@ RppStatus slice_host_tensor(T *srcPtr,
         }
         else if(numDims == 3)
         {
+            Rpp32u paramDims = numDims - 1;
+            Rpp32s *anchor = &anchorTensor[batchCount * paramDims];
+            Rpp32s *shape = &shapeTensor[batchCount * paramDims];
+
+            // get the starting address of length values from roiTensor
+            Rpp32u *roi = roiTensor + batchCount * paramDims * 2;
+            Rpp32s *length = reinterpret_cast<Rpp32s *>(&roi[paramDims]);
+
             // slice without fused output-layout toggle (NCHW -> NCHW)
             if((srcGenericDescPtr->layout == RpptLayout::NCHW) && (dstGenericDescPtr->layout == RpptLayout::NCHW))
             {
-                srcPtrChannel = srcPtrTemp + (anchor[1] * srcGenericDescPtr->strides[2]) + (anchor[2] * layoutParams.bufferMultiplier);
-                Rpp32u maxHeight = std::min(shape[1], length[1] - anchor[1]);
-                Rpp32u maxWidth = std::min(shape[2], length[2] - anchor[2]);
-                Rpp32u bufferLength = maxWidth * layoutParams.bufferMultiplier;
+                srcPtrChannel = srcPtrTemp + (anchor[0] * srcGenericDescPtr->strides[2]) + anchor[1];
+                Rpp32u maxHeight = std::min(shape[0], length[0] - anchor[0]);
+                Rpp32u maxWidth = std::min(shape[1], length[1] - anchor[1]);
+                Rpp32u bufferLength = maxWidth;
                 Rpp32u copyLengthInBytes = bufferLength * sizeof(T);
 
                 // if padding is required, fill the buffer with fill value specified
-                bool needPadding = (((anchor[1] + shape[1]) > length[1]) ||
-                                    ((anchor[2] + shape[2]) > length[2]));
+                bool needPadding = (((anchor[0] + shape[0]) > length[0]) ||
+                                    ((anchor[1] + shape[1]) > length[1]));
                 if(needPadding && enablePadding)
                     std::fill(dstPtrChannel, dstPtrChannel + dstGenericDescPtr->strides[0] - 1, *fillValue);
 
@@ -196,6 +205,13 @@ RppStatus slice_host_tensor(T *srcPtr,
         }
         else if(numDims == 2)
         {
+            Rpp32s *anchor = &anchorTensor[batchCount * numDims];
+            Rpp32s *shape = &shapeTensor[batchCount * numDims];
+
+            // get the starting address of length values from roiTensor
+            Rpp32u *roi = roiTensor + batchCount * numDims * 2;
+            Rpp32s *length = reinterpret_cast<Rpp32s *>(&roi[numDims]);
+
             srcPtrChannel = srcPtrTemp + (anchor[0] * srcGenericDescPtr->strides[1]) + anchor[1];
             Rpp32u maxHeight = std::min(shape[0], length[0] - anchor[0]);
             Rpp32u maxWidth = std::min(shape[1], length[1] - anchor[1]);
@@ -218,6 +234,14 @@ RppStatus slice_host_tensor(T *srcPtr,
         }
         else if(numDims == 1)
         {
+            Rpp32s *anchor = &anchorTensor[batchCount * numDims];
+            Rpp32s *shape = &shapeTensor[batchCount * numDims];
+
+            // get the starting address of length values from roiTensor
+            Rpp32u *roi = roiTensor + batchCount * numDims * 2;
+            Rpp32s *length = reinterpret_cast<Rpp32s *>(&roi[numDims]);
+
+
             srcPtrChannel = srcPtrTemp + anchor[0];
             Rpp32u maxLength = std::min(shape[0], length[0] - anchor[0]);
             Rpp32u copyLengthInBytes = maxLength * sizeof(T);
