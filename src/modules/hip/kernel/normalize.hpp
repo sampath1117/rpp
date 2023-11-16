@@ -128,8 +128,9 @@ RppStatus hip_exec_normalize_tensor(Rpp32f *srcPtr,
 
     int globalThreads_x = ceil((float)srcGenericDescPtr->strides[0] / localThreads_x);
     int globalThreads_y = srcGenericDescPtr->dims[0];
+    // std::cout << "globalThreads_y: " << globalThreads_y << std::endl;
     int globalThreads_z = 1;
-    globalThreads_x = std::min(globalThreads_x, std::max(32, 2048 / globalThreads_y));
+    // globalThreads_x = std::min(globalThreads_x, std::max(32, 2048 / globalThreads_y));
 
     // launch kernel
     Rpp32f epsilon;
