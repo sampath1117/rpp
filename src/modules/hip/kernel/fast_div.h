@@ -3,11 +3,6 @@
 
 #include <cstdint>
 #include <type_traits>
-
-namespace dali {
-
-namespace detail {
-
 template <typename component>
 struct lohi {
   component lo, hi;
@@ -72,14 +67,14 @@ __host__ __device__ inline uint32_t div_lohi(uint32_t lo, uint32_t hi, uint32_t 
 
 __host__ __device__ __forceinline__ lohi<uint64_t> mull(uint64_t a, uint64_t b) {
   lohi<uint64_t> ret;
-#ifdef __CUDA_ARCH__
-  ret.lo = a * b;
-  ret.hi = __umul64hi(a, b);
-#else
+// #ifdef __CUDA_ARCH__
+//   ret.lo = a * b;
+//   ret.hi = __umul64hi(a, b);
+// #else
   unsigned __int128 m = (unsigned __int128)a * b;
   ret.lo = m;
   ret.hi = m >> 64;
-#endif
+// #endif
   return ret;
 }
 
@@ -128,8 +123,6 @@ __host__ __device__ inline uint64_t div_lohi(uint64_t lo, uint64_t hi, uint64_t 
 #endif
 }
 
-}  // namespace detail
-
 /**
  * @brief Fast unsigned integer division
  *
@@ -169,7 +162,7 @@ struct fast_div {
       return;
     }
 
-    int log_div = detail::ilog2(divisor);
+    int log_div = ilog2(divisor);
     this->shift = log_div;
 
     if ((divisor & (divisor - 1)) == 0) {
@@ -177,8 +170,8 @@ struct fast_div {
       return;
     }
 
-    uint m_lo = detail::div_lohi(0,                  uint(1) << log_div, divisor);
-    uint m_hi = detail::div_lohi(uint(1) << log_div, uint(1) << log_div, divisor);
+    uint m_lo = div_lohi(0,                  uint(1) << log_div, divisor);
+    uint m_hi = div_lohi(uint(1) << log_div, uint(1) << log_div, divisor);
     this->add = (m_lo == m_hi) ? 1 : 0;  // round-up failed, use round-down method
     this->mul = m_hi;
   }
@@ -191,35 +184,35 @@ struct fast_div {
 __host__ __device__ __forceinline__ uint32_t operator/(uint32_t x, fast_div<uint32_t> y) {
   // If the divisor is a power of 2, the multiplier would be 2^32, which is out of range
   // - therefore, powers of 2 get special treatment and the multiplication is skipped.
-#ifdef __CUDA_ARCH__
-  if (y.mul)
-    x = __umulhi(x + y.add, y.mul);
-  return x >> y.shift;
-#else
+// #ifdef __CUDA_ARCH__
+//   if (y.mul)
+//     x = __umulhi(x + y.add, y.mul);
+//   return x >> y.shift;
+// #else
   if (y.mul) {
     uint32_t hi = static_cast<uint64_t>(x + y.add) * y.mul >> 32;
     return hi >> y.shift;
   } else {
     return x >> y.shift;
   }
-#endif
+// #endif
 }
 
 __host__ __device__ __forceinline__ uint64_t operator/(uint64_t x, fast_div<uint64_t> y) {
   // If the divisor is a power of 2, the multiplier would be 2^64, which is out of range
   // - therefore, powers of 2 get special treatment and the multiplication is skipped.
-#ifdef __CUDA_ARCH__
-  if (y.mul)
-    x = __umul64hi(x + y.add, y.mul);
-  return x >> y.shift;
-#else
+// #ifdef __CUDA_ARCH__
+//   if (y.mul)
+//     x = __umul64hi(x + y.add, y.mul);
+//   return x >> y.shift;
+// #else
   if (y.mul) {
     uint64_t hi = static_cast<unsigned __int128>(x + y.add) * y.mul >> 64;
     return hi >> y.shift;
   } else {
     return x >> y.shift;
   }
-#endif
+// #endif
 }
 
 template <typename uint>
@@ -234,6 +227,5 @@ __host__ __device__ __forceinline__ uint div_mod(uint &mod, uint dividend, fast_
   return q;
 }
 
-}  // namespace dali
 
 #endif  // DALI_CORE_FAST_DIV_H_

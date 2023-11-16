@@ -5,7 +5,7 @@
 #include <cassert>
 #include <cstdint>
 #include <stdexcept>
-// #include "dali/core/cuda_utils.h"
+#include "cuda_utils.h"
 #include "util.h"
 #include "fast_div.h"
 
@@ -26,7 +26,6 @@
  *
  * The reindexing is done by either dividing and multiplying by old/new strides or by taking modulo.
  */
-
 struct DropDims {
   static constexpr int kMaxDims = 4;
 
@@ -39,8 +38,8 @@ struct DropDims {
   int64_t mul_m[kMaxDims];
   int start = 2 * kMaxDims;
 
-  __host__ __device__ inline dali::fast_div<uint64_t> div(int idx) const {
-    dali::fast_div<uint64_t> fd;
+  __host__ __device__ __forceinline__ fast_div<uint64_t> div(int idx) const {
+    fast_div<uint64_t> fd;
     fd.divisor = 0;
     fd.mul = div_m[idx];
     fd.add = div_add[idx];
@@ -48,8 +47,8 @@ struct DropDims {
     return fd;
   }
 
-  __host__ __device__ inline dali::fast_div<uint64_t> mod(int idx) const {
-    dali::fast_div<uint64_t> fd;
+  __host__ __device__ __forceinline__ fast_div<uint64_t> mod(int idx) const {
+    fast_div<uint64_t> fd;
     fd.divisor = mod_d[idx];
     fd.mul = mod_m[idx];
     fd.add = mod_add[idx];
@@ -57,17 +56,17 @@ struct DropDims {
     return fd;
   }
 
-  __host__ __device__ inline int64_t mul(int idx) const {
+  __host__ __device__ __forceinline__ int64_t mul(int idx) const {
     return mul_m[idx];
   }
 
-  __host__ __device__ inline void div(int idx, dali::fast_div<uint64_t> v) {
+  __host__ __device__ __forceinline__ void div(int idx, fast_div<uint64_t> v) {
     div_m[idx] = v.mul;
     div_add[idx] = v.add;
     div_shift[idx] = v.shift;
   }
 
-  __host__ __device__ __forceinline__ void mod(int idx, dali::fast_div<uint64_t> v) {
+  __host__ __device__ __forceinline__ void mod(int idx, fast_div<uint64_t> v) {
     mod_d[idx] = v.divisor;
     mod_m[idx] = v.mul;
     mod_add[idx] = v.add;
@@ -115,7 +114,7 @@ struct DropDims {
    * ```
    */
   static int simplify(int64_t *out_shape, unsigned &out_mask,
-                      int64_t *in_shape, uint64_t axis_mask, Rpp32u input_dims) {
+                      uint *in_shape, uint64_t axis_mask, Rpp32u input_dims) {
     int dims = input_dims;
     int d = 0;
     out_shape[0] = in_shape[0];
@@ -146,7 +145,7 @@ struct DropDims {
   /**
    * @brief Initializes reindexing given shape and mask.
    */
-  DropDims(int64_t *in_shape, uint64_t reduced_axes, uint input_dims) {
+  DropDims(uint *in_shape, uint64_t reduced_axes, uint input_dims) {
     memset(this, 0, sizeof(*this));
     if (input_dims == 0) {
       start = -1;
@@ -155,6 +154,8 @@ struct DropDims {
     int64_t shape[2 * kMaxDims];
     unsigned axis_mask;
     int d = simplify(shape, axis_mask, in_shape, reduced_axes, input_dims);
+    // printf("\nreduced dims after simplify: %d", d);
+    // printf("\nreduced axis_mask after simplify: %u", axis_mask);
 
     if (d == 1) {
       // short circuit trivial case
@@ -171,8 +172,11 @@ struct DropDims {
     int64_t volumes[2*kMaxDims];
     int64_t kept_volumes[2*kMaxDims];
     int64_t vol_total = 1, vol_kept = 1;
+    // shape[0] = 2;
+    // shape[1] = 3;
 
     for (int i = d - 1; i >= 0; i--) {
+      // printf("\nvol_total, vol_kept: %ld, %ld", vol_total, vol_kept);
       volumes[i] = vol_total;
       kept_volumes[i] = vol_kept;
       vol_total *= shape[i];
@@ -190,6 +194,7 @@ struct DropDims {
     for (int i = 0; i < d - 1; i++) {
       assert(volumes[i] > 1);  // simplification should make this impossible
       if (axis_mask & (1u << i)) {
+        // printf("\nvolumes[%d]: %ld", i, volumes[i]);
         mod(nmod++, volumes[i]);
       } else {
         div(ndiv, volumes[i]);
@@ -228,6 +233,11 @@ struct DropDims {
     start = mod_first
               ? 2 * (kMaxDims - nmod - mod_ofs) + 1
               : 2 * (kMaxDims - ndiv);
+    // printf("\nstart: %d", start);
+    // printf("\nnmod: %d", nmod);
+    // printf("\nndiv: %d", ndiv);
+    // printf("\nmod_ofs: %d", mod_ofs);
+    // printf("\nmod_first: %d", mod_first);
   }
 
   __host__ __device__ int64_t reindex(int64_t index) const {
@@ -279,14 +289,14 @@ struct DropDims {
       REINDEX_CASE(2)
       REINDEX_CASE(3)
       REINDEX_CASE(4)
-    //   static_assert(max_dims <= 5, "Add more switch cases for max_dims > 5");
+      // static_assert(max_dims <= 5, "Add more switch cases for max_dims > 5");
     }
 
+    // printf("\nout, index: %ld, %ld", out, index);
     out += index;
 
     return out;
   }
 };
-
 
 #endif  // DALI_KERNELS_REDUCE_REDUCE_DROP_DIMS_H_

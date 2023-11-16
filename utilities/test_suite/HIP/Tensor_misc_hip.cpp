@@ -141,8 +141,8 @@ void fill_roi_values(Rpp32u nDim, Rpp32u batchSize, Rpp32u *roiTensor, bool qaMo
                 {
                     roiTensor[i] = 0;
                     roiTensor[i + 1] = 0;
-                    roiTensor[i + 2] = 2;
-                    roiTensor[i + 3] = 3;
+                    roiTensor[i + 2] = 1920;
+                    roiTensor[i + 3] = 1080;
                 }
             }
             break;
@@ -507,7 +507,7 @@ int main(int argc, char **argv)
 
                 // copy data from HOST to HIP
                 CHECK(hipMemcpy(d_inputF32, (void *)inputF32, numValues * sizeof(Rpp32f), hipMemcpyHostToDevice));
-
+                CHECK(hipDeviceSynchronize());
                 cout << "copied inputs from host to hip:" << numValues << endl;
 
                 if (qaMode && nDim == 3 && axisMask == 3 && (computeMean || computeStddev))
@@ -581,26 +581,33 @@ int main(int argc, char **argv)
         avgWallTime += wallTime;
     }
 
-    rppDestroyGPU(handle);
     CHECK(hipMemcpy(outputF32, d_outputF32, numValues * sizeof(Rpp32f), hipMemcpyDeviceToHost));
+    CHECK(hipDeviceSynchronize());
 
-    cout << "printing inputs: " << endl;
-    for(int i = 0; i < roiTensor[2]; i++)
-    {
-        for(int j = 0; j < roiTensor[3]; j++)
-            cout << inputF32[i * roiTensor[3] + j] << " ";
+    // for(uint k = 1; k < 2; k++)
+    // {
+    //     cout << "printing inputs for sample: " << k << endl;
+    //     Rpp32f *inputtemp = inputF32 + k * srcDescriptorPtrND->strides[0];
+    //     for(int i = 0; i < roiTensor[2]; i++)
+    //     {
+    //         for(int j = 0; j < roiTensor[3]; j++)
+    //             cout << inputtemp[i * roiTensor[3] + j] << " ";
 
-        cout << endl;
-    }
+    //         cout << endl;
+    //     }
 
-    cout << "printing outputs: " << endl;
-    for(int i = 0; i < roiTensor[2]; i++)
-    {
-        for(int j = 0; j < roiTensor[3]; j++)
-            cout << outputF32[i * roiTensor[3] + j] << " ";
+    //     cout << "printing outputs for sample: " << k << endl;
+    //     Rpp32f *outputtemp = outputF32 + k * srcDescriptorPtrND->strides[0];
+    //     for(int i = 0; i < roiTensor[2]; i++)
+    //     {
+    //         for(int j = 0; j < roiTensor[3]; j++)
+    //             cout << outputtemp[i * roiTensor[3] + j] << " ";
 
-        cout << endl;
-    }
+    //         cout << endl;
+    //     }
+    // }
+
+    rppDestroyGPU(handle);
     if(!qaMode)
     {
         maxWallTime *= 1000;

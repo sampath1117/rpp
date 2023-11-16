@@ -26,6 +26,7 @@ struct NormalizeInvStdDevNonScalar {
     __host__ __device__ __forceinline__ void apply(int64_t offset, float epsilon, float global_scale, float global_shift)
     {
         int64_t param_offset = dd.reindex(offset);
+        // printf("\noffset, param_offset: %ld, %ld\n", offset, param_offset);
         float mean = base[param_offset];
         float stddev = scale[param_offset];
         float x = fmaf(stddev, stddev, epsilon);
@@ -61,12 +62,21 @@ void FillDescs(NormalizeInvStdDevNonScalar *descs,
                Rpp32u axis_mask,
                Rpp32u *roiTensor,
                RpptGenericDescPtr srcGenericDescPtr,
-               RpptGenericDescPtr dstGenericDescPtr) {
+               RpptGenericDescPtr dstGenericDescPtr,
+               Rpp32u computeMean,
+               Rpp32u computeStddev) {
     int num_samples_ = srcGenericDescPtr->dims[0];
     int base_idx_delta = num_samples_ == 1 ? 0 : 1;
     int scale_idx_delta = num_samples_ == 1 ? 0 : 1;
     Rpp32u input_dims = srcGenericDescPtr->numDims - 1;
-    Rpp32u param_stride;
+
+    Rpp32u param_stride = 0;
+    if(computeMean && computeStddev)
+    {
+        param_stride = 1;
+        for(int i = 0; i < input_dims; i++)
+            param_stride *= ((axis_mask & (int)(pow(2, i))) >= 1) ? 1 : srcGenericDescPtr->dims[i + 1];
+    }
 
     // loop over all samples in a batch
     for (int i = 0, b = 0, s = 0; i < num_samples_;
@@ -82,8 +92,8 @@ void FillDescs(NormalizeInvStdDevNonScalar *descs,
         desc.scale = scaleTemp;
         desc.base = baseTemp;
         desc.size = volume(length, input_dims);
-        std::cout << "volume: " << desc.size << std::endl;
-        desc.dd = DropDims(reinterpret_cast<int64_t *>(length), static_cast<uint64_t>(axis_mask), input_dims);
+        // std::cout << "volume: " << desc.size << std::endl;
+        desc.dd = DropDims(length, static_cast<uint64_t>(axis_mask), input_dims);
     }
 }
 
@@ -108,7 +118,8 @@ RppStatus hip_exec_normalize_tensor(Rpp32f *srcPtr,
     hipHostMalloc(&cpu_descs, batchSize * sizeof(NormalizeInvStdDevNonScalar));
     FillDescs(cpu_descs, dstPtr, srcPtr,
               meanTensor, stdDevTensor, axisMask,
-              roiTensor, srcGenericDescPtr, dstGenericDescPtr);
+              roiTensor, srcGenericDescPtr, dstGenericDescPtr,
+              computeMean, computeStddev);
 
     // set block and grid values
     int localThreads_x = std::min(256, (int)srcGenericDescPtr->strides[0]);
@@ -116,8 +127,9 @@ RppStatus hip_exec_normalize_tensor(Rpp32f *srcPtr,
     int localThreads_z = 1;
 
     int globalThreads_x = ceil((float)srcGenericDescPtr->strides[0] / localThreads_x);
-    int globalThreads_y = 1;
+    int globalThreads_y = srcGenericDescPtr->dims[0];
     int globalThreads_z = 1;
+    globalThreads_x = std::min(globalThreads_x, std::max(32, 2048 / globalThreads_y));
 
     // launch kernel
     Rpp32f epsilon;
