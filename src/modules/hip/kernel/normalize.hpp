@@ -28,7 +28,7 @@ __global__ void normalize_2d_hip_tensor(float *input,
     uint height = roi[0];
     uint width = roi[1];
 
-    if (id_x >= width && id_y >= height)
+    if (id_x >= width || id_y >= height)
         return;
 
     uint *paramShape = &paramShapeTensor[id_z * 2];
@@ -131,6 +131,7 @@ RppStatus hip_exec_normalize_tensor(Rpp32f *srcPtr,
         int globalThreads_z = dstGenericDescPtr->dims[0];
     }
 
+    hipStreamSynchronize(handle.GetStream());
     hipHostFree(paramShape);
     hipHostFree(paramStrides);
 
