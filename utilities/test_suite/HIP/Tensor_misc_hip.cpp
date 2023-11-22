@@ -41,7 +41,7 @@ void compute_strides(RpptGenericDescPtr descriptorPtr)
     if (descriptorPtr->numDims > 0)
     {
         uint64_t v = 1;
-        for (int i = descriptorPtr->numDims; i > 0; i--)
+        for (int i = descriptorPtr->numDims - 1; i > 0; i--)
         {
             descriptorPtr->strides[i] = v;
             v *= descriptorPtr->dims[i];
@@ -141,8 +141,8 @@ void fill_roi_values(Rpp32u nDim, Rpp32u batchSize, Rpp32u *roiTensor, bool qaMo
                 {
                     roiTensor[i] = 0;
                     roiTensor[i + 1] = 0;
-                    roiTensor[i + 2] = 2;
-                    roiTensor[i + 3] = 3;
+                    roiTensor[i + 2] = 1920;
+                    roiTensor[i + 3] = 1080;
                 }
             }
             break;
@@ -422,8 +422,6 @@ int main(int argc, char **argv)
     CHECK(hipHostMalloc(&roiTensor, nDim * 2 * batchSize, sizeof(Rpp32u)));
     fill_roi_values(nDim, batchSize, roiTensor, qaMode);
 
-    cout << "filled ROI values" << endl;
-
     // set src/dst generic tensor descriptors
     RpptGenericDesc srcDescriptor, dstDescriptor;
     RpptGenericDescPtr srcDescriptorPtrND, dstDescriptorPtrND;
@@ -447,18 +445,15 @@ int main(int argc, char **argv)
     // if testCase is not normalize, then copy dims and strides from src to dst
     if(testCase ==  1)
     {
-        memcpy(dstDescriptorPtrND->dims, srcDescriptorPtrND->dims, nDim * sizeof(Rpp32u));
-        memcpy(dstDescriptorPtrND->strides, srcDescriptorPtrND->strides, nDim * sizeof(Rpp32u));
+        memcpy(dstDescriptorPtrND->dims, srcDescriptorPtrND->dims, srcDescriptorPtrND->numDims * sizeof(Rpp32u));
+        memcpy(dstDescriptorPtrND->strides, srcDescriptorPtrND->strides, dstDescriptorPtrND->numDims * sizeof(Rpp32u));
     }
-
     set_generic_descriptor_layout(srcDescriptorPtrND, dstDescriptorPtrND, nDim, toggle, qaMode);
-    cout << "set layout" << endl;
 
     Rpp32u numValues = 1;
     for(int i = 0; i <= nDim; i++)
         numValues *= srcDescriptorPtrND->dims[i];
 
-    cout << "numValues:" << numValues << endl;
     // allocate memory for input / output
     Rpp32f *inputF32 = NULL, *outputF32 = NULL;
     inputF32 = (Rpp32f *)calloc(numValues, sizeof(Rpp32f));
@@ -467,7 +462,6 @@ int main(int argc, char **argv)
     void *d_inputF32, *d_outputF32;
     CHECK(hipMalloc(&d_inputF32, numValues * sizeof(Rpp32f)));
     CHECK(hipMalloc(&d_outputF32, numValues * sizeof(Rpp32f)));
-    cout << "allocated gpu memory for inputs" << endl;
 
     // case-wise RPP API and measure time script for Unit and Performance test
     printf("\nRunning normalize %d times (each time with a batch size of %d) and computing mean statistics...", numRuns, batchSize);
@@ -508,7 +502,6 @@ int main(int argc, char **argv)
                 // copy data from HOST to HIP
                 CHECK(hipMemcpy(d_inputF32, (void *)inputF32, numValues * sizeof(Rpp32f), hipMemcpyHostToDevice));
                 CHECK(hipDeviceSynchronize());
-                cout << "copied inputs from host to hip:" << numValues << endl;
 
                 if (qaMode && nDim == 3 && axisMask == 3 && (computeMean || computeStddev))
                 {
@@ -536,7 +529,6 @@ int main(int argc, char **argv)
                         size *= ((axisMask & (int)(pow(2,i))) >= 1) ? 1 : roiTensor[(nDim * 2 * batch) + nDim + i];
                     maxSize = max(maxSize, size);
                 }
-
                 cout << "computed maxsize:" << maxSize << endl;
 
                 // allocate memory if not memory is allocated
@@ -555,8 +547,6 @@ int main(int argc, char **argv)
 
                 // if(!(computeMean && computeStddev))
                 //     fill_mean_stddev_values(nDim, batchSize, size, meanTensor, stdDevTensor, qaMode);
-
-                cout << "filled mean and std dev values:" << maxSize << endl;
 
                 startWallTime = omp_get_wtime();
                 rppt_normalize_generic_gpu(d_inputF32, srcDescriptorPtrND, d_outputF32, dstDescriptorPtrND, axisMask, meanTensor, stdDevTensor, computeMean, computeStddev, scale, shift, roiTensor, handle);
@@ -583,32 +573,34 @@ int main(int argc, char **argv)
 
     CHECK(hipMemcpy(outputF32, d_outputF32, numValues * sizeof(Rpp32f), hipMemcpyDeviceToHost));
     CHECK(hipDeviceSynchronize());
+    rppDestroyGPU(handle);
 
-    for(uint k = 0; k < batchSize; k++)
+    if(qaMode)
     {
-        cout << "printing inputs for sample: " << k << endl;
-        Rpp32f *inputtemp = inputF32 + k * srcDescriptorPtrND->strides[0];
-        for(int i = 0; i < roiTensor[2]; i++)
+        for(uint k = 0; k < batchSize; k++)
         {
-            for(int j = 0; j < roiTensor[3]; j++)
-                cout << inputtemp[i * roiTensor[3] + j] << " ";
+            cout << "printing inputs for sample: " << k << endl;
+            Rpp32f *inputtemp = inputF32 + k * srcDescriptorPtrND->strides[0];
+            for(int i = 0; i < roiTensor[2]; i++)
+            {
+                for(int j = 0; j < roiTensor[3]; j++)
+                    cout << inputtemp[i * roiTensor[3] + j] << " ";
 
-            cout << endl;
-        }
+                cout << endl;
+            }
 
-        cout << "printing outputs for sample: " << k << endl;
-        Rpp32f *outputtemp = outputF32 + k * srcDescriptorPtrND->strides[0];
-        for(int i = 0; i < roiTensor[2]; i++)
-        {
-            for(int j = 0; j < roiTensor[3]; j++)
-                cout << outputtemp[i * roiTensor[3] + j] << " ";
+            cout << "printing outputs for sample: " << k << endl;
+            Rpp32f *outputtemp = outputF32 + k * srcDescriptorPtrND->strides[0];
+            for(int i = 0; i < roiTensor[2]; i++)
+            {
+                for(int j = 0; j < roiTensor[3]; j++)
+                    cout << outputtemp[i * roiTensor[3] + j] << " ";
 
-            cout << endl;
+                cout << endl;
+            }
         }
     }
-
-    rppDestroyGPU(handle);
-    if(!qaMode)
+    else
     {
         maxWallTime *= 1000;
         minWallTime *= 1000;

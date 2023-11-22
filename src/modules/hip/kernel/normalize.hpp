@@ -15,6 +15,8 @@ __global__ void normalize_2d_hip_tensor(float *input,
                                         uint2 dstStridesNH,
                                         float *meanTensor,
                                         float *stdDevTensor,
+                                        float scale,
+                                        float shift,
                                         uint *roiTensor,
                                         uint *paramShapeTensor,
                                         uint *paramStridesTensor,
@@ -39,8 +41,9 @@ __global__ void normalize_2d_hip_tensor(float *input,
     uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + id_x;
     float mean = meanTensor[id_z * maxParamVolume + paramIndex];
     float stdDev = stdDevTensor[id_z * maxParamVolume + paramIndex];
-    float invStdDev = 1.0f / stdDev;
-    output[dstIdx] = (input[srcIdx] - mean) * invStdDev;
+    float stdDevSquare = stdDev * stdDev;
+    float invStdDev = stdDevSquare ? rsqrt(stdDevSquare) * scale : 0;
+    output[dstIdx] = fmaf((input[srcIdx] - mean), invStdDev, shift);
 }
 
 void normalize_setup(Rpp32u *roiTensor, Rpp32u batchSize, Rpp32u numDims, Rpp32u axisMask,
@@ -118,6 +121,8 @@ RppStatus hip_exec_normalize_tensor(Rpp32f *srcPtr,
                            make_uint2(dstGenericDescPtr->strides[0], dstGenericDescPtr->strides[1]),
                            meanTensor,
                            stdDevTensor,
+                           scale,
+                           shift,
                            roiTensor,
                            paramShape,
                            paramStrides,
