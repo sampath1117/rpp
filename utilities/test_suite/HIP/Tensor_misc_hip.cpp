@@ -141,8 +141,8 @@ void fill_roi_values(Rpp32u nDim, Rpp32u batchSize, Rpp32u *roiTensor, bool qaMo
                 {
                     roiTensor[i] = 0;
                     roiTensor[i + 1] = 0;
-                    roiTensor[i + 2] = 1920;
-                    roiTensor[i + 3] = 1080;
+                    roiTensor[i + 2] = 2;
+                    roiTensor[i + 3] = 3;
                 }
             }
             break;
@@ -404,11 +404,11 @@ int main(int argc, char **argv)
 
     cout << "testCase, batchSize, nDim: " << testCase << ", " <<batchSize << ", " << nDim << endl;
 
-    if (qaMode && batchSize != 3)
-    {
-        std::cout<<"QA mode can only run with batchsize 3"<<std::endl;
-        return -1;
-    }
+    // if (qaMode && batchSize != 3)
+    // {
+    //     std::cout<<"QA mode can only run with batchsize 3"<<std::endl;
+    //     return -1;
+    // }
 
     string funcName = augmentationMiscMap[testCase];
     if (funcName.empty())
@@ -489,7 +489,7 @@ int main(int argc, char **argv)
             case 1:
             {
                 // Modify ROI to 4x5x7 when checking QA for axisMask = 6 alone (calls direct c code internally)
-                int axisMask = 1; // 3D HWC Channel normalize axes(0,1)
+                int axisMask = 2; // 3D HWC Channel normalize axes(0,1)
                 float scale = 1.0;
                 float shift = 0.0;
                 bool computeMean, computeStddev;
@@ -543,13 +543,13 @@ int main(int argc, char **argv)
                 if(meanTensor == nullptr)
                 {
                     CHECK(hipHostMalloc(&meanTensor, maxSize * batchSize * sizeof(Rpp32f)));
-                    for(int i = 0; i < maxSize; i++)
-                        meanTensor[i] = 1.0f;
+                    for(int i = 0; i < maxSize * batchSize; i++)
+                        meanTensor[i] = 5.0f * i;
                 }
                 if(stdDevTensor == nullptr)
                 {
                     CHECK(hipHostMalloc(&stdDevTensor, maxSize * batchSize * sizeof(Rpp32f)));
-                    for(int i = 0; i < maxSize; i++)
+                    for(int i = 0; i < maxSize * batchSize; i++)
                         stdDevTensor[i] = 1.0f;
                 }
 
@@ -584,28 +584,28 @@ int main(int argc, char **argv)
     CHECK(hipMemcpy(outputF32, d_outputF32, numValues * sizeof(Rpp32f), hipMemcpyDeviceToHost));
     CHECK(hipDeviceSynchronize());
 
-    // for(uint k = 1; k < 2; k++)
-    // {
-    //     cout << "printing inputs for sample: " << k << endl;
-    //     Rpp32f *inputtemp = inputF32 + k * srcDescriptorPtrND->strides[0];
-    //     for(int i = 0; i < roiTensor[2]; i++)
-    //     {
-    //         for(int j = 0; j < roiTensor[3]; j++)
-    //             cout << inputtemp[i * roiTensor[3] + j] << " ";
+    for(uint k = 0; k < batchSize; k++)
+    {
+        cout << "printing inputs for sample: " << k << endl;
+        Rpp32f *inputtemp = inputF32 + k * srcDescriptorPtrND->strides[0];
+        for(int i = 0; i < roiTensor[2]; i++)
+        {
+            for(int j = 0; j < roiTensor[3]; j++)
+                cout << inputtemp[i * roiTensor[3] + j] << " ";
 
-    //         cout << endl;
-    //     }
+            cout << endl;
+        }
 
-    //     cout << "printing outputs for sample: " << k << endl;
-    //     Rpp32f *outputtemp = outputF32 + k * srcDescriptorPtrND->strides[0];
-    //     for(int i = 0; i < roiTensor[2]; i++)
-    //     {
-    //         for(int j = 0; j < roiTensor[3]; j++)
-    //             cout << outputtemp[i * roiTensor[3] + j] << " ";
+        cout << "printing outputs for sample: " << k << endl;
+        Rpp32f *outputtemp = outputF32 + k * srcDescriptorPtrND->strides[0];
+        for(int i = 0; i < roiTensor[2]; i++)
+        {
+            for(int j = 0; j < roiTensor[3]; j++)
+                cout << outputtemp[i * roiTensor[3] + j] << " ";
 
-    //         cout << endl;
-    //     }
-    // }
+            cout << endl;
+        }
+    }
 
     rppDestroyGPU(handle);
     if(!qaMode)
