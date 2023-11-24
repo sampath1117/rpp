@@ -144,6 +144,7 @@ RppStatus hip_exec_normalize_tensor(Rpp32f *srcPtr,
                        global_scale,
                        shift);
 
+    hipStreamSynchronize(handle.GetStream());
     hipHostFree(cpu_descs);
     return RPP_SUCCESS;
 }

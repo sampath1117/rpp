@@ -141,8 +141,8 @@ void fill_roi_values(Rpp32u nDim, Rpp32u batchSize, Rpp32u *roiTensor, bool qaMo
                 {
                     roiTensor[i] = 0;
                     roiTensor[i + 1] = 0;
-                    roiTensor[i + 2] = 1920;
-                    roiTensor[i + 3] = 1080;
+                    roiTensor[i + 2] = 2;
+                    roiTensor[i + 3] = 3;
                 }
             }
             break;
@@ -439,7 +439,7 @@ int main(int argc, char **argv)
     srcDescriptorPtrND->dims[0] = batchSize;
     dstDescriptorPtrND->dims[0] = batchSize;
     for(int i = 1; i <= nDim; i++)
-        srcDescriptorPtrND->dims[i] = roiTensor[nDim + i - 1];
+        srcDescriptorPtrND->dims[i] = roiTensor[nDim + i - 1] * 2;
     compute_strides(srcDescriptorPtrND);
 
     // if testCase is not normalize, then copy dims and strides from src to dst
@@ -483,7 +483,7 @@ int main(int argc, char **argv)
             case 1:
             {
                 // Modify ROI to 4x5x7 when checking QA for axisMask = 6 alone (calls direct c code internally)
-                int axisMask = 2; // 3D HWC Channel normalize axes(0,1)
+                int axisMask = 1; // 3D HWC Channel normalize axes(0,1)
                 float scale = 1.0;
                 float shift = 0.0;
                 bool computeMean, computeStddev;
@@ -548,6 +548,9 @@ int main(int argc, char **argv)
                 // if(!(computeMean && computeStddev))
                 //     fill_mean_stddev_values(nDim, batchSize, size, meanTensor, stdDevTensor, qaMode);
 
+                cout << srcDescriptorPtrND->dims[0] << ", " << srcDescriptorPtrND->dims[1] << ", " << srcDescriptorPtrND->dims[2] << endl;
+                cout << srcDescriptorPtrND->strides[0] << ", " << srcDescriptorPtrND->strides[1] << ", " << srcDescriptorPtrND->strides[2] << endl;
+
                 startWallTime = omp_get_wtime();
                 rppt_normalize_generic_gpu(d_inputF32, srcDescriptorPtrND, d_outputF32, dstDescriptorPtrND, axisMask, meanTensor, stdDevTensor, computeMean, computeStddev, scale, shift, roiTensor, handle);
 
@@ -575,7 +578,7 @@ int main(int argc, char **argv)
     CHECK(hipDeviceSynchronize());
     rppDestroyGPU(handle);
 
-    if(qaMode)
+    if(!qaMode)
     {
         for(uint k = 0; k < batchSize; k++)
         {
@@ -584,7 +587,7 @@ int main(int argc, char **argv)
             for(int i = 0; i < roiTensor[2]; i++)
             {
                 for(int j = 0; j < roiTensor[3]; j++)
-                    cout << inputtemp[i * roiTensor[3] + j] << " ";
+                    cout << inputtemp[i * 6 + j] << " ";
 
                 cout << endl;
             }
@@ -594,7 +597,7 @@ int main(int argc, char **argv)
             for(int i = 0; i < roiTensor[2]; i++)
             {
                 for(int j = 0; j < roiTensor[3]; j++)
-                    cout << outputtemp[i * roiTensor[3] + j] << " ";
+                    cout << outputtemp[i * 6 + j] << " ";
 
                 cout << endl;
             }
