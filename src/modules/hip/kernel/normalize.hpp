@@ -9,9 +9,9 @@ __device__ int compute_index_2d(int y, int x, uint *paramShape, uint *paramStrid
     return paramIndex;
 }
 
-__global__ void normalize_2d_hip_tensor(float *input,
+__global__ void normalize_2d_hip_tensor(float *srcPtr,
                                         uint2 srcStridesNH,
-                                        float *output,
+                                        float *dstPtr,
                                         uint2 dstStridesNH,
                                         float *meanTensor,
                                         float *stdDevTensor,
@@ -43,39 +43,41 @@ __global__ void normalize_2d_hip_tensor(float *input,
     float stdDev = stdDevTensor[id_z * maxParamVolume + paramIndex];
     float stdDevSquare = stdDev * stdDev;
     float invStdDev = stdDevSquare ? rsqrt(stdDevSquare) * scale : 0;
-    output[dstIdx] = fmaf((input[srcIdx] - mean), invStdDev, shift);
+    dstPtr[dstIdx] = fmaf((srcPtr[srcIdx] - mean), invStdDev, shift);
 }
 
-__device__ int validate_and_compute_index_nd(int index, int numDims, uint *srcStrides, uint *roi, uint *dims,
-                                             uint *paramShape, uint *paramStrides, Rpp32u *isValid)
+__device__ int validate_and_compute_index_nd(int index, int numDims, uint *roi, uint *dims,
+                                             uint *paramShape, uint *paramStrides, bool *isValid)
 {
     int paramIndex = 0;
     int product = 1;
+
+    // excluding outer most dimension, calculate the co-ordinate for corresponding dimension from the 1D index
+    // check if the co-ordinate is within ROI
     for(uint i = numDims - 1; i > 0; i--)
     {
         product *= dims[i];
         uint coord = (index % product) / (product / dims[i]);
         *isValid = (coord < roi[i]);
-        if(*isValid == 0)
+        if(*isValid == false)
             break;
         paramIndex += ((paramShape[i] > 1) ? (coord % paramShape[i]) * paramStrides[i] : 0);
     }
 
-    // check the validity of outermost dimension
-    if(*isValid == 1)
+    /// for outermost dimension, calculate and check if co-ordinate is within ROI
+    if(*isValid == true)
     {
         uint coord = index / product;
         *isValid = (coord < roi[0]);
-        if(*isValid == 1)
+        if(*isValid == true)
             paramIndex += ((paramShape[0] > 1) ? (coord % paramShape[0]) * paramStrides[0] : 0);
     }
     return paramIndex;
 }
 
-__global__ void normalize_nd_hip_tensor(float *input,
-                                        uint *srcStrides,
-                                        float *output,
-                                        uint *dstStrides,
+__global__ void normalize_nd_hip_tensor(float *srcPtr,
+                                        uint *srcStridedDims,
+                                        float *dstPtr,
                                         float *meanTensor,
                                         float *stdDevTensor,
                                         float scale,
@@ -84,8 +86,7 @@ __global__ void normalize_nd_hip_tensor(float *input,
                                         uint *paramShapeTensor,
                                         uint *paramStridesTensor,
                                         uint maxParamVolume,
-                                        uint numDims,
-                                        uint *srcDims)
+                                        uint numDims)
 {
     int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
@@ -94,9 +95,8 @@ __global__ void normalize_nd_hip_tensor(float *input,
     uint *paramShape = &paramShapeTensor[id_z * numDims];
     uint *paramStrides = &paramStridesTensor[id_z * numDims];
 
-
-    Rpp32u isValid = 1;
-    int paramIndex = validate_and_compute_index_nd(id_x, numDims, srcStrides, roi, srcDims,
+    bool isValid = true;
+    int paramIndex = validate_and_compute_index_nd(id_x, numDims, roi, srcStridedDims,
                                                    paramShape, paramStrides, &isValid);
     if(isValid)
     {
@@ -104,7 +104,7 @@ __global__ void normalize_nd_hip_tensor(float *input,
         float stdDev = stdDevTensor[id_z * maxParamVolume + paramIndex];
         float stdDevSquare = stdDev * stdDev;
         float invStdDev = stdDevSquare ? rsqrt(stdDevSquare) * scale : 0;
-        output[id_x] = fmaf((input[id_x] - mean), invStdDev, shift);
+        dstPtr[id_x] = fmaf((srcPtr[id_x] - mean), invStdDev, shift);
     }
 }
 
@@ -164,9 +164,9 @@ RppStatus hip_exec_normalize_tensor(Rpp32f *srcPtr,
     normalize_setup(roiTensor, batchSize, numDims, axisMask,
                     paramShape, paramStrides, maxParamVolume);
 
-    Rpp32u *srcStrides = nullptr, *dstStrides = nullptr, *srcDims = nullptr;
+    Rpp32u *srcStridedDims = nullptr;
     // based on number of dimensions call the corresponding kernel
-    if (numDims == 3)
+    if (numDims == 2)
     {
         // NHW
         int globalThreads_x = dstGenericDescPtr->dims[2];
@@ -199,12 +199,8 @@ RppStatus hip_exec_normalize_tensor(Rpp32f *srcPtr,
         int globalThreads_z = dstGenericDescPtr->dims[0];
 
         // allocate tensor for source and dst strides
-        hipHostMalloc(&srcStrides, numDims * sizeof(Rpp32u));
-        hipHostMalloc(&dstStrides, numDims * sizeof(Rpp32u));
-        hipHostMalloc(&srcDims, numDims * sizeof(Rpp32u));
-        memcpy(srcStrides, &srcGenericDescPtr->strides[1], numDims * sizeof(Rpp32u));
-        memcpy(dstStrides, &dstGenericDescPtr->strides[1], numDims * sizeof(Rpp32u));
-        memcpy(srcDims, &srcGenericDescPtr->dims[1], numDims * sizeof(Rpp32u));
+        hipHostMalloc(&srcStridedDims, numDims * sizeof(Rpp32u));
+        memcpy(srcStridedDims, &srcGenericDescPtr->dims[1], numDims * sizeof(Rpp32u));
 
         hipLaunchKernelGGL(normalize_nd_hip_tensor,
                            dim3(ceil((float)globalThreads_x/LOCAL_THREADS_X), ceil((float)globalThreads_y), ceil((float)globalThreads_z)),
@@ -212,9 +208,8 @@ RppStatus hip_exec_normalize_tensor(Rpp32f *srcPtr,
                            0,
                            handle.GetStream(),
                            srcPtr,
-                           srcStrides,
+                           srcStridedDims,
                            dstPtr,
-                           dstStrides,
                            meanTensor,
                            stdDevTensor,
                            scale,
@@ -223,8 +218,7 @@ RppStatus hip_exec_normalize_tensor(Rpp32f *srcPtr,
                            paramShape,
                            paramStrides,
                            maxParamVolume,
-                           numDims,
-                           srcDims);
+                           numDims);
     }
 
     hipStreamSynchronize(handle.GetStream());
@@ -232,12 +226,8 @@ RppStatus hip_exec_normalize_tensor(Rpp32f *srcPtr,
     hipHostFree(paramStrides);
 
     // free the memory if not NULL
-    if(srcStrides != nullptr)
-        hipHostFree(srcStrides);
-    if(srcDims != nullptr)
-        hipHostFree(srcDims);
-    if(dstStrides != nullptr)
-        hipHostFree(dstStrides);
+    if(srcStridedDims != nullptr)
+        hipHostFree(srcStridedDims);
 
     return RPP_SUCCESS;
 }
