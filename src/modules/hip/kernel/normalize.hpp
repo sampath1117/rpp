@@ -22,9 +22,9 @@ __global__ void normalize_2d_hip_tensor(float *srcPtr,
                                         uint *paramStridesTensor,
                                         uint maxParamVolume)
 {
-    int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
-    int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
-    int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
+    int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x; // width
+    int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y; // height
+    int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z; // batchsize
 
     uint *roi = &roiTensor[id_z * 4 + 2];
     uint height = roi[0];
@@ -41,6 +41,53 @@ __global__ void normalize_2d_hip_tensor(float *srcPtr,
     uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + id_x;
     float mean = meanTensor[id_z * maxParamVolume + paramIndex];
     float stdDev = stdDevTensor[id_z * maxParamVolume + paramIndex];
+    float stdDevSquare = stdDev * stdDev;
+    float invStdDev = stdDevSquare ? rsqrt(stdDevSquare) * scale : 0;
+    dstPtr[dstIdx] = fmaf((srcPtr[srcIdx] - mean), invStdDev, shift);
+}
+
+__device__ int compute_index_3d(int z, int y, int x, uint *paramShape, uint *paramStrides)
+{
+    int zFactor =  (paramShape[0] > 1) ? (z % paramShape[0]) * paramStrides[0] : 0;
+    int yFactor =  (paramShape[1] > 1) ? (y % paramShape[1]) * paramStrides[1] : 0;
+    int xFactor =  (paramShape[2] > 1) ? (x % paramShape[2]) * paramStrides[2] : 0;
+    int paramIndex = zFactor + yFactor + xFactor;
+    return paramIndex;
+}
+
+__global__ void normalize_3d_hip_tensor(float *srcPtr,
+                                        uint2 srcStridesDH,
+                                        float *dstPtr,
+                                        uint2 dstStridesDH,
+                                        float *meanTensor,
+                                        float *stdDevTensor,
+                                        float scale,
+                                        float shift,
+                                        uint *roiTensor,
+                                        uint *paramShapeTensor,
+                                        uint *paramStridesTensor,
+                                        uint maxParamVolume)
+{
+    int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x; // width
+    int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y; // height
+    int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z; // depth
+
+    uint *roi = roiTensor;
+    uint width = roi[2];
+    uint height = roi[1];
+    uint depth = roi[0];
+
+    if (id_x >= width || id_y >= height || id_z >= depth)
+        return;
+
+    uint *paramShape = paramShapeTensor;
+    uint *paramStrides = paramStridesTensor;
+    int paramIndex = compute_index_3d(id_z, id_y, id_x, paramShape, paramStrides);
+
+    uint srcIdx = (id_z * srcStridesDH.x) + (id_y * srcStridesDH.y) + id_x;
+    uint dstIdx = (id_z * dstStridesDH.x) + (id_y * dstStridesDH.y) + id_x;
+    float mean = meanTensor[paramIndex];
+    float stdDev = stdDevTensor[paramIndex];
     float stdDevSquare = stdDev * stdDev;
     float invStdDev = stdDevSquare ? rsqrt(stdDevSquare) * scale : 0;
     dstPtr[dstIdx] = fmaf((srcPtr[srcIdx] - mean), invStdDev, shift);
@@ -145,14 +192,14 @@ RppStatus hip_exec_normalize_tensor(Rpp32f *srcPtr,
                                     Rpp32f *meanTensor,
                                     Rpp32f *stdDevTensor,
                                     Rpp32u computeMean,
-                                    Rpp32u computeStddev,
+                                    Rpp32u computeStdDev,
                                     Rpp32f scale,
                                     Rpp32f shift,
                                     Rpp32u *roiTensor,
                                     rpp::Handle& handle)
 {
     Rpp32u batchSize = srcGenericDescPtr->dims[0];
-    Rpp32u numDims = srcGenericDescPtr->numDims - 1;
+    Rpp32u numDims = srcGenericDescPtr->numDims - 1; // exclude batchsize from input dims
 
     // create buffer for paramShape and paramStride
     Rpp32u *paramShape, *paramStrides;
@@ -163,6 +210,9 @@ RppStatus hip_exec_normalize_tensor(Rpp32f *srcPtr,
     Rpp32u maxParamVolume;
     normalize_setup(roiTensor, batchSize, numDims, axisMask,
                     paramShape, paramStrides, maxParamVolume);
+
+    if((computeMean == 0) && (computeStdDev == 0))
+        maxParamVolume = 0;
 
     Rpp32u *srcStridedDims = nullptr;
     // based on number of dimensions call the corresponding kernel
@@ -191,9 +241,37 @@ RppStatus hip_exec_normalize_tensor(Rpp32f *srcPtr,
                            paramStrides,
                            maxParamVolume);
     }
+    else if (numDims == 3)
+    {
+        // NDHW
+        int globalThreads_x = dstGenericDescPtr->dims[3];
+        int globalThreads_y = dstGenericDescPtr->dims[2];
+        int globalThreads_z = dstGenericDescPtr->dims[1];
+
+        for(int batchCount = 0; batchCount < dstGenericDescPtr->dims[0]; batchCount++)
+        {
+            hipLaunchKernelGGL(normalize_3d_hip_tensor,
+                               dim3(ceil((float)globalThreads_x/LOCAL_THREADS_X), ceil((float)globalThreads_y/LOCAL_THREADS_Y), ceil((float)globalThreads_z/LOCAL_THREADS_Z)),
+                               dim3(LOCAL_THREADS_X, LOCAL_THREADS_Y, LOCAL_THREADS_Z),
+                               0,
+                               handle.GetStream(),
+                               srcPtr + (batchCount * srcGenericDescPtr->strides[0]),
+                               make_uint2(srcGenericDescPtr->strides[1], srcGenericDescPtr->strides[2]),
+                               dstPtr + (batchCount * dstGenericDescPtr->strides[0]),
+                               make_uint2(dstGenericDescPtr->strides[1], dstGenericDescPtr->strides[2]),
+                               &meanTensor[batchCount * maxParamVolume],
+                               &stdDevTensor[batchCount * maxParamVolume],
+                               scale,
+                               shift,
+                               &roiTensor[batchCount * 6 + 3],
+                               &paramShape[batchCount * 3],
+                               &paramStrides[batchCount * 3],
+                               maxParamVolume);
+        }
+    }
     else
     {
-        // do nothing for now
+        // interpret the input as 1D tensor
         int globalThreads_x = dstGenericDescPtr->strides[0];
         int globalThreads_y = 1;
         int globalThreads_z = dstGenericDescPtr->dims[0];
