@@ -286,13 +286,27 @@ __global__ void gaussian_noise_3d_ncdhw_hip_tensor(float *srcPtr,
     xorwowState.counter = xorwowInitialStatePtr->counter + xorwowSeed;
 
     d_float8 val_f8;
-    for(int c = 0; c < channels; c++)
+    bool copyInput = (!gaussianNoise3dParams_f2.x) && (!gaussianNoise3dParams_f2.y);
+    if(!copyInput)
     {
-        rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx, &val_f8);
-        gaussian_noise_8_hip_compute(&val_f8, &xorwowState, gaussianNoise3dParams_f2.x, gaussianNoise3dParams_f2.y);
-        rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &val_f8);
-        srcIdx += srcStridesCDH.x;
-        dstIdx += dstStridesCDH.x;
+        for(int c = 0; c < channels; c++)
+        {
+            rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx, &val_f8);
+            gaussian_noise_8_hip_compute(&val_f8, &xorwowState, gaussianNoise3dParams_f2.x, gaussianNoise3dParams_f2.y);
+            rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &val_f8);
+            srcIdx += srcStridesCDH.x;
+            dstIdx += dstStridesCDH.x;
+        }
+    }
+    else
+    {
+        for(int c = 0; c < channels; c++)
+        {
+            rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx, &val_f8);
+            rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &val_f8);
+            srcIdx += srcStridesCDH.x;
+            dstIdx += dstStridesCDH.x;
+        }
     }
 }
 
@@ -329,7 +343,9 @@ __global__ void gaussian_noise_3d_ndhwc_hip_tensor(float *srcPtr,
 
     d_float24 val_f24;
     rpp_hip_load24_pkd3_and_unpack_to_float24_pln3(srcPtr + srcIdx, &val_f24);
-    gaussian_noise_24_hip_compute(&val_f24, &xorwowState, gaussianNoise3dParams_f2.x, gaussianNoise3dParams_f2.y);
+    bool copyInput = (!gaussianNoise3dParams_f2.x) && (!gaussianNoise3dParams_f2.y);
+    if(!copyInput)
+        gaussian_noise_24_hip_compute(&val_f24, &xorwowState, gaussianNoise3dParams_f2.x, gaussianNoise3dParams_f2.y);
     rpp_hip_pack_float24_pln3_and_store24_pkd3(dstPtr + dstIdx, &val_f24);
 }
 
