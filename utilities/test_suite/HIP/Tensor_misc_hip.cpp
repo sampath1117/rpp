@@ -53,7 +53,7 @@ void compute_strides(RpptGenericDescPtr descriptorPtr)
 string get_path(Rpp32u nDim, Rpp32u readType)
 {
     string refPath = get_current_dir_name();
-    string pattern = "HOST/build";
+    string pattern = "HIP/build";
     string finalPath = "";
     remove_substring(refPath, pattern);
     string dim = std::to_string(nDim) + "d";
@@ -125,24 +125,14 @@ void fill_roi_values(Rpp32u nDim, Rpp32u batchSize, Rpp32u *roiTensor, bool qaMo
     {
         case 2:
         {
-            if (qaMode)
+            if (!qaMode)
             {
                 for(int i = 0; i < batchSize * 4; i += 4)
                 {
                     roiTensor[i] = 0;
                     roiTensor[i + 1] = 0;
-                    roiTensor[i + 2] = 2;
-                    roiTensor[i + 3] = 3;
-                }
-            }
-            else
-            {
-                for(int i = 0; i < batchSize * 4; i += 4)
-                {
-                    roiTensor[i] = 0;
-                    roiTensor[i + 1] = 0;
-                    roiTensor[i + 2] = 2;
-                    roiTensor[i + 3] = 3;
+                    roiTensor[i + 2] = 1920;
+                    roiTensor[i + 3] = 1080;
                 }
             }
             break;
@@ -168,9 +158,9 @@ void fill_roi_values(Rpp32u nDim, Rpp32u batchSize, Rpp32u *roiTensor, bool qaMo
                     roiTensor[i] = 0;
                     roiTensor[i + 1] = 0;
                     roiTensor[i + 2] = 0;
-                    roiTensor[i + 3] = 1152;
-                    roiTensor[i + 4] = 768;
-                    roiTensor[i + 5] = 16;
+                    roiTensor[i + 3] = 192;
+                    roiTensor[i + 4] = 540;
+                    roiTensor[i + 5] = 30;
                 }
             }
             break;
@@ -349,7 +339,7 @@ void compare_output(Rpp32f *outputF32, Rpp32u nDim, Rpp32u batchSize, string dst
         for(int j = 0; j < sampleLength; j++)
         {
             bool invalid_comparision = ((out[j] == 0.0f) && (ref[j] != 0.0f));
-            if(!invalid_comparision && abs(out[j] - ref[j]) < 1e-6)
+            if(!invalid_comparision && abs(out[j] - ref[j]) < 1e-4)
                 cnt++;
         }
         if (cnt == sampleLength)
@@ -402,13 +392,11 @@ int main(int argc, char **argv)
     string dst = argv[7];
     qaMode = (testType == 0);
 
-    cout << "testCase, batchSize, nDim: " << testCase << ", " <<batchSize << ", " << nDim << endl;
-
-    // if (qaMode && batchSize != 3)
-    // {
-    //     std::cout<<"QA mode can only run with batchsize 3"<<std::endl;
-    //     return -1;
-    // }
+    if (qaMode && batchSize != 3)
+    {
+        std::cout<<"QA mode can only run with batchsize 3"<<std::endl;
+        return -1;
+    }
 
     string funcName = augmentationMiscMap[testCase];
     if (funcName.empty())
@@ -439,11 +427,11 @@ int main(int argc, char **argv)
     srcDescriptorPtrND->dims[0] = batchSize;
     dstDescriptorPtrND->dims[0] = batchSize;
     for(int i = 1; i <= nDim; i++)
-        srcDescriptorPtrND->dims[i] = roiTensor[nDim + i - 1] * 2;
+        srcDescriptorPtrND->dims[i] = roiTensor[nDim + i - 1];
     compute_strides(srcDescriptorPtrND);
 
     // if testCase is not normalize, then copy dims and strides from src to dst
-    if(testCase ==  1)
+    if(testCase != 0)
     {
         memcpy(dstDescriptorPtrND->dims, srcDescriptorPtrND->dims, srcDescriptorPtrND->numDims * sizeof(Rpp32u));
         memcpy(dstDescriptorPtrND->strides, srcDescriptorPtrND->strides, dstDescriptorPtrND->numDims * sizeof(Rpp32u));
@@ -482,8 +470,8 @@ int main(int argc, char **argv)
         {
             case 1:
             {
-                // Modify ROI to 4x5x7 when checking QA for axisMask = 6 alone (calls direct c code internally)
-                int axisMask = 1; // 3D HWC Channel normalize axes(0,1)
+                // Modify ROI to 4x5x7 when checking QA for axisMask = 6 alone(calls direct c code internally)
+                int axisMask = 3; // 3D HWC Channel normalize axes(0,1)
                 float scale = 1.0;
                 float shift = 0.0;
                 bool computeMean, computeStddev;
@@ -533,30 +521,25 @@ int main(int argc, char **argv)
 
                 // allocate memory if not memory is allocated
                 if(meanTensor == nullptr)
-                {
                     CHECK(hipHostMalloc(&meanTensor, maxSize * batchSize * sizeof(Rpp32f)));
-                    for(int i = 0; i < maxSize * batchSize; i++)
-                        meanTensor[i] = 5.0f * i;
-                }
+
                 if(stdDevTensor == nullptr)
-                {
                     CHECK(hipHostMalloc(&stdDevTensor, maxSize * batchSize * sizeof(Rpp32f)));
-                    for(int i = 0; i < maxSize * batchSize; i++)
-                        stdDevTensor[i] = 1.0f;
-                }
 
-                // if(!(computeMean && computeStddev))
-                //     fill_mean_stddev_values(nDim, batchSize, size, meanTensor, stdDevTensor, qaMode);
-
-                cout << srcDescriptorPtrND->dims[0] << ", " << srcDescriptorPtrND->dims[1] << ", " << srcDescriptorPtrND->dims[2] << endl;
-                cout << srcDescriptorPtrND->strides[0] << ", " << srcDescriptorPtrND->strides[1] << ", " << srcDescriptorPtrND->strides[2] << endl;
+                if(!(computeMean && computeStddev))
+                    fill_mean_stddev_values(nDim, batchSize, size, meanTensor, stdDevTensor, qaMode);
 
                 startWallTime = omp_get_wtime();
                 rppt_normalize_generic_gpu(d_inputF32, srcDescriptorPtrND, d_outputF32, dstDescriptorPtrND, axisMask, meanTensor, stdDevTensor, computeMean, computeStddev, scale, shift, roiTensor, handle);
 
                 // compare outputs if qaMode is true
-                // if(qaMode)
-                //     compare_output(outputF32, nDim, batchSize, dst, funcName, axisMask);
+                if(qaMode)
+                {
+                    CHECK(hipDeviceSynchronize());
+                    CHECK(hipMemcpy(outputF32, d_outputF32, numValues * sizeof(Rpp32f), hipMemcpyDeviceToHost));
+                    CHECK(hipDeviceSynchronize());
+                    compare_output(outputF32, nDim, batchSize, dst, funcName, axisMask);
+                }
                 break;
             }
             default:
@@ -565,45 +548,20 @@ int main(int argc, char **argv)
                 exit(0);
             }
         }
-        CHECK(hipDeviceSynchronize());
-        endWallTime = omp_get_wtime();
+        if(!qaMode)
+        {
+            CHECK(hipDeviceSynchronize());
+            endWallTime = omp_get_wtime();
 
-        wallTime = endWallTime - startWallTime;
-        maxWallTime = std::max(maxWallTime, wallTime);
-        minWallTime = std::min(minWallTime, wallTime);
-        avgWallTime += wallTime;
+            wallTime = endWallTime - startWallTime;
+            maxWallTime = std::max(maxWallTime, wallTime);
+            minWallTime = std::min(minWallTime, wallTime);
+            avgWallTime += wallTime;
+        }
     }
-
-    CHECK(hipMemcpy(outputF32, d_outputF32, numValues * sizeof(Rpp32f), hipMemcpyDeviceToHost));
-    CHECK(hipDeviceSynchronize());
     rppDestroyGPU(handle);
 
     if(!qaMode)
-    {
-        for(uint k = 0; k < batchSize; k++)
-        {
-            cout << "printing inputs for sample: " << k << endl;
-            Rpp32f *inputtemp = inputF32 + k * srcDescriptorPtrND->strides[0];
-            for(int i = 0; i < roiTensor[2]; i++)
-            {
-                for(int j = 0; j < roiTensor[3]; j++)
-                    cout << inputtemp[i * 6 + j] << " ";
-
-                cout << endl;
-            }
-
-            cout << "printing outputs for sample: " << k << endl;
-            Rpp32f *outputtemp = outputF32 + k * srcDescriptorPtrND->strides[0];
-            for(int i = 0; i < roiTensor[2]; i++)
-            {
-                for(int j = 0; j < roiTensor[3]; j++)
-                    cout << outputtemp[i * 6 + j] << " ";
-
-                cout << endl;
-            }
-        }
-    }
-    else
     {
         maxWallTime *= 1000;
         minWallTime *= 1000;
@@ -611,6 +569,7 @@ int main(int argc, char **argv)
         avgWallTime /= numRuns;
         cout << fixed << "\nmax,min,avg wall times in ms/batch = " << maxWallTime << "," << minWallTime << "," << avgWallTime;
     }
+
 
     free(inputF32);
     free(outputF32);
