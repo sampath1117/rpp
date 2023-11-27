@@ -1,12 +1,48 @@
 #include <hip/hip_runtime.h>
 #include "rpp_hip_common.hpp"
 
+__device__ void normalize_hip_compute(d_float8 *data_f8, d_float8 *mean_f8, d_float8 *invStdDev_f8, d_float8 *shift_f8)
+{
+    data_f8->f4[0] = ((data_f8->f4[0] - mean_f8->f4[0]) * invStdDev_f8->f4[1]) + shift_f8->f4[0];
+    data_f8->f4[1] = ((data_f8->f4[1] - mean_f8->f4[1]) * invStdDev_f8->f4[1]) + shift_f8->f4[1];
+}
+
+__device__ void load_normalize_params(d_int8 *locParam_f8, float *meanPtr, float *stdDevPtr, float scale, d_float8 *mean_f8,  d_float8 *invStdDev_f8)
+{
+    for(int i = 0; i < 8; i++)
+    {
+        mean_f8->f1[i] = meanPtr[locParam_f8->1[i]];
+        float stdDev = stdDevPtr[locParam_f8->1[i]];
+        float stdDevSquare = stdDev * stdDev;
+        float invStdDev = stdDevSquare ? rsqrt(stdDevSquare) * scale : 0;
+        invStdDev_f8->f1[i] = invStdDev;
+    }
+}
+
 __device__ int compute_index_2d(int y, int x, uint *paramShape, uint *paramStrides)
 {
     int yFactor =  (paramShape[0] > 1) ? (y % paramShape[0]) * paramStrides[0] : 0;
     int xFactor =  (paramShape[1] > 1) ? (x % paramShape[1]) * paramStrides[1] : 0;
     int paramIndex = yFactor + xFactor;
     return paramIndex;
+}
+
+__device__ void normalize_2d_paramlocs_hip_compute(int id_y, int id_x, d_int8 *locParam_i8, uint *paramShape, uint *paramStrides)
+{
+    d_int8 increment_i8, locDstx_i8;
+    increment_i8.i4[0] = make_int4(0, 1, 2, 3);
+    increment_i8.i4[1] = make_int4(4, 5, 6, 7);
+    locDstx_i8.i4[0] = static_cast<int4>(id_x) + increment_i8.i4[0];
+    locDstx_i8.i4[1] = static_cast<int4>(id_x) + increment_i8.i4[1];
+
+    locParam_i8->i1[0] = compute_index_2d(id_y, locDstx_i8.i1[0], paramShape, paramStrides);
+    locParam_i8->i1[1] = compute_index_2d(id_y, locDstx_i8.i1[1], paramShape, paramStrides);
+    locParam_i8->i1[2] = compute_index_2d(id_y, locDstx_i8.i1[2], paramShape, paramStrides);
+    locParam_i8->i1[3] = compute_index_2d(id_y, locDstx_i8.i1[3], paramShape, paramStrides);
+    locParam_i8->i1[4] = compute_index_2d(id_y, locDstx_i8.i1[4], paramShape, paramStrides);
+    locParam_i8->i1[5] = compute_index_2d(id_y, locDstx_i8.i1[5], paramShape, paramStrides);
+    locParam_i8->i1[6] = compute_index_2d(id_y, locDstx_i8.i1[6], paramShape, paramStrides);
+    locParam_i8->i1[7] = compute_index_2d(id_y, locDstx_i8.i1[7], paramShape, paramStrides);
 }
 
 __global__ void normalize_2d_hip_tensor(float *srcPtr,
@@ -22,7 +58,7 @@ __global__ void normalize_2d_hip_tensor(float *srcPtr,
                                         uint *paramStridesTensor,
                                         uint maxParamVolume)
 {
-    int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x; // width
+    int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8; // width
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y; // height
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z; // batchsize
 
@@ -35,15 +71,23 @@ __global__ void normalize_2d_hip_tensor(float *srcPtr,
 
     uint *paramShape = &paramShapeTensor[id_z * 2];
     uint *paramStrides = &paramStridesTensor[id_z * 2];
-    int paramIndex = compute_index_2d(id_y, id_x, paramShape, paramStrides);
 
+    d_int8 locParam_f8;
+    normalize_2d_paramlocs_hip_compute(id_y, id_x, &locParam_f8, paramShape, paramStrides);
+
+    d_float8 mean_f8, invStdDev_f8, shift_f8;
+    float *meanPtr = &meanTensor[id_z * maxParamVolume];
+    float *stdDevPtr = &stdDevTensor[id_z * maxParamVolume];
+    load_normalize_params(&locParam_f8, meanPtr, stdDevPtr, scale, &mean_f8, &invStdDev_f8);
+    shift_f8.f4[0] = static_cast<float4>(shift);
+    shift_f8.f4[1] = shift_f8.f4[0];
+
+    d_float8 data_f8;
     uint srcIdx = (id_z * srcStridesNH.x) + (id_y * srcStridesNH.y) + id_x;
     uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + id_x;
-    float mean = meanTensor[id_z * maxParamVolume + paramIndex];
-    float stdDev = stdDevTensor[id_z * maxParamVolume + paramIndex];
-    float stdDevSquare = stdDev * stdDev;
-    float invStdDev = stdDevSquare ? rsqrt(stdDevSquare) * scale : 0;
-    dstPtr[dstIdx] = fmaf((srcPtr[srcIdx] - mean), invStdDev, shift);
+    rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx, &data_f8);
+    normalize_hip_compute(&data_f8, &mean_f8, &invStdDev_f8, &shift_f8);
+    rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &data_f8);
 }
 
 __device__ int compute_index_3d(int z, int y, int x, uint *paramShape, uint *paramStrides)
@@ -219,7 +263,7 @@ RppStatus hip_exec_normalize_tensor(Rpp32f *srcPtr,
     if (numDims == 2)
     {
         // NHW
-        int globalThreads_x = dstGenericDescPtr->dims[2];
+        int globalThreads_x = (dstGenericDescPtr->dims[2] + 7) >> 3;
         int globalThreads_y = dstGenericDescPtr->dims[1];
         int globalThreads_z = dstGenericDescPtr->dims[0];
 
