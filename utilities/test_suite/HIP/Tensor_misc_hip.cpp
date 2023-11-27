@@ -471,7 +471,7 @@ int main(int argc, char **argv)
             case 1:
             {
                 // Modify ROI to 4x5x7 when checking QA for axisMask = 6 alone(calls direct c code internally)
-                int axisMask = 3; // 3D HWC Channel normalize axes(0,1)
+                int axisMask = 1; // 3D HWC Channel normalize axes(0,1)
                 float scale = 1.0;
                 float shift = 0.0;
                 bool computeMean, computeStddev;
@@ -557,6 +557,9 @@ int main(int argc, char **argv)
             maxWallTime = std::max(maxWallTime, wallTime);
             minWallTime = std::min(minWallTime, wallTime);
             avgWallTime += wallTime;
+
+            CHECK(hipMemcpy(outputF32, d_outputF32, numValues * sizeof(Rpp32f), hipMemcpyDeviceToHost));
+            CHECK(hipDeviceSynchronize());
         }
     }
     rppDestroyGPU(handle);
