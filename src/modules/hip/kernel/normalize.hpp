@@ -7,12 +7,12 @@ __device__ void normalize_hip_compute(d_float8 *data_f8, d_float8 *mean_f8, d_fl
     data_f8->f4[1] = ((data_f8->f4[1] - mean_f8->f4[1]) * invStdDev_f8->f4[1]) + shift_f8->f4[1];
 }
 
-__device__ void load_normalize_params(d_int8 *locParam_f8, float *meanPtr, float *stdDevPtr, float scale, d_float8 *mean_f8,  d_float8 *invStdDev_f8)
+__device__ void load_normalize_params(d_int8 *locParam_i8, float *meanPtr, float *stdDevPtr, float scale, d_float8 *mean_f8,  d_float8 *invStdDev_f8)
 {
     for(int i = 0; i < 8; i++)
     {
-        mean_f8->f1[i] = meanPtr[locParam_f8->1[i]];
-        float stdDev = stdDevPtr[locParam_f8->1[i]];
+        mean_f8->f1[i] = meanPtr[locParam_i8->i1[i]];
+        float stdDev = stdDevPtr[locParam_i8->i1[i]];
         float stdDevSquare = stdDev * stdDev;
         float invStdDev = stdDevSquare ? rsqrt(stdDevSquare) * scale : 0;
         invStdDev_f8->f1[i] = invStdDev;
@@ -72,13 +72,13 @@ __global__ void normalize_2d_hip_tensor(float *srcPtr,
     uint *paramShape = &paramShapeTensor[id_z * 2];
     uint *paramStrides = &paramStridesTensor[id_z * 2];
 
-    d_int8 locParam_f8;
-    normalize_2d_paramlocs_hip_compute(id_y, id_x, &locParam_f8, paramShape, paramStrides);
+    d_int8 locParam_i8;
+    normalize_2d_paramlocs_hip_compute(id_y, id_x, &locParam_i8, paramShape, paramStrides);
 
     d_float8 mean_f8, invStdDev_f8, shift_f8;
     float *meanPtr = &meanTensor[id_z * maxParamVolume];
     float *stdDevPtr = &stdDevTensor[id_z * maxParamVolume];
-    load_normalize_params(&locParam_f8, meanPtr, stdDevPtr, scale, &mean_f8, &invStdDev_f8);
+    load_normalize_params(&locParam_i8, meanPtr, stdDevPtr, scale, &mean_f8, &invStdDev_f8);
     shift_f8.f4[0] = static_cast<float4>(shift);
     shift_f8.f4[1] = shift_f8.f4[0];
 
