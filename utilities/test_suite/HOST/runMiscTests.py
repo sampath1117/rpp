@@ -213,6 +213,7 @@ else:
 
 # print the results of qa tests
 supportedCaseList = ['0']
+nonQACaseList = []
 supportedCases = 0
 for num in caseList:
     if num in supportedCaseList:
@@ -220,13 +221,27 @@ for num in caseList:
 caseInfo = "Tests are run for " + str(supportedCases) + " supported cases out of the " + str(len(caseList)) + " cases requested"
 if testType == 0:
     qaFilePath = os.path.join(outFilePath, "QA_results.txt")
-    f = open(qaFilePath, 'r+')
-    print("---------------------------------- Results of QA Test ----------------------------------\n")
-    for line in f:
-        sys.stdout.write(line)
-        sys.stdout.flush()
-    f.write(caseInfo)
-print("\n-------------- " + caseInfo + " --------------")
+    checkFile = os.path.isfile(qaFilePath)
+    if checkFile:
+        f = open(qaFilePath, 'r+')
+        print("---------------------------------- Results of QA Test - Tensor_host_audio -----------------------------------\n")
+        numLines = 0
+        numPassed = 0
+        for line in f:
+            sys.stdout.write(line)
+            numLines += 1
+            if "PASSED" in line:
+                numPassed += 1
+            sys.stdout.flush()
+        resultsInfo = "\n\nFinal Results of Tests:"
+        resultsInfo += "\n    - Total test cases including all subvariants REQUESTED = " + str(numLines)
+        resultsInfo += "\n    - Total test cases including all subvariants PASSED = " + str(numPassed)
+        resultsInfo += "\n\nGeneral information on Tensor test suite availability:"
+        resultsInfo += "\n    - Total augmentations supported in Tensor Misc test suite = " + str(len(supportedCaseList))
+        resultsInfo += "\n    - Total augmentations with golden output QA test support = " + str(len(supportedCaseList) - len(nonQACaseList))
+        resultsInfo += "\n    - Total augmentations without golden ouput QA test support (due to randomization involved) = " + str(len(nonQACaseList))
+        f.write(resultsInfo)
+    print("\n-------------------------------------------------------------------" + resultsInfo + "\n\n-------------------------------------------------------------------")
 
 # Performance tests
 if (testType == 1):
