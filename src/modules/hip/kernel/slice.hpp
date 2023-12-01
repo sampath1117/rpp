@@ -143,7 +143,7 @@ RppStatus hip_exec_slice_tensor(T *srcPtr,
 
     if(numDims == 4)
     {
-        Rpp32u paramDims = numDims - 1;
+        Rpp32u paramDims = numDims;
         if (dstGenericDescPtr->layout == RpptLayout::NCDHW)
         {
             int globalThreads_x = (dstGenericDescPtr->strides[3] + 7) >> 3; // W - width (x direction) - vectorized for 8 element loads/stores per channel
@@ -156,11 +156,11 @@ RppStatus hip_exec_slice_tensor(T *srcPtr,
                 Rpp32s *shape = &shapeTensor[batchCount * paramDims];
                 Rpp32u *roi = roiTensor + batchCount * paramDims * 2;
                 Rpp32s *length = reinterpret_cast<Rpp32s *>(&roi[paramDims]);
-                Rpp32u maxDepth = std::min(shape[0], length[0] - anchor[0]);
-                Rpp32u maxHeight = std::min(shape[1], length[1] - anchor[1]);
-                Rpp32u maxWidth = std::min(shape[2], length[2] - anchor[2]);
+                Rpp32u maxDepth = std::min(shape[1], length[1] - anchor[1]);
+                Rpp32u maxHeight = std::min(shape[2], length[2] - anchor[2]);
+                Rpp32u maxWidth = std::min(shape[3], length[3] - anchor[3]);
 
-                T *srcPtrTemp = srcPtr + (batchCount * srcGenericDescPtr->strides[0]) + anchor[0] * srcGenericDescPtr->strides[2] + anchor[1] * srcGenericDescPtr->strides[3] + anchor[2];
+                T *srcPtrTemp = srcPtr + (batchCount * srcGenericDescPtr->strides[0]) + anchor[1] * srcGenericDescPtr->strides[2] + anchor[2] * srcGenericDescPtr->strides[3] + anchor[3];
                 T *dstPtrTemp = dstPtr + (batchCount * dstGenericDescPtr->strides[0]);
 
                 hipLaunchKernelGGL(slice_ncdhw_hip_tensor,
@@ -210,7 +210,7 @@ RppStatus hip_exec_slice_tensor(T *srcPtr,
     }
     else if(numDims == 3)
     {
-        Rpp32u paramDims = numDims - 1;
+        Rpp32u paramDims = numDims;
         if (dstGenericDescPtr->layout == RpptLayout::NCHW)
         {
             int globalThreads_x = (dstGenericDescPtr->strides[2] + 7) >> 3; // W - width (x direction) - vectorized for 8 element loads/stores per channel
@@ -223,9 +223,9 @@ RppStatus hip_exec_slice_tensor(T *srcPtr,
                 Rpp32s *shape = &shapeTensor[batchCount * paramDims];
                 Rpp32u *roi = roiTensor + batchCount * paramDims * 2;
                 Rpp32s *length = reinterpret_cast<Rpp32s *>(&roi[paramDims]);
-                Rpp32u maxHeight = std::min(shape[0], length[0] - anchor[0]);
-                Rpp32u maxWidth = std::min(shape[1], length[1] - anchor[1]);
-                T *srcPtrTemp = srcPtr + (batchCount * srcGenericDescPtr->strides[0]) + anchor[0] * srcGenericDescPtr->strides[2] + anchor[1];
+                Rpp32u maxHeight = std::min(shape[1], length[1] - anchor[1]);
+                Rpp32u maxWidth = std::min(shape[2], length[2] - anchor[2]);
+                T *srcPtrTemp = srcPtr + (batchCount * srcGenericDescPtr->strides[0]) + anchor[1] * srcGenericDescPtr->strides[2] + anchor[2];
                 T *dstPtrTemp = dstPtr + (batchCount * dstGenericDescPtr->strides[0]);
 
                 hipLaunchKernelGGL(slice_ncdhw_hip_tensor,
@@ -348,7 +348,7 @@ RppStatus hip_exec_fill_value_tensor(T *dstPtr,
 {
     if(numDims == 4)
     {
-        Rpp32u paramDims = numDims - 1;
+        Rpp32u paramDims = numDims;
         // create a kernel for filling padded region with fill value specified
         if (dstGenericDescPtr->layout == RpptLayout::NCDHW)
         {
@@ -362,14 +362,14 @@ RppStatus hip_exec_fill_value_tensor(T *dstPtr,
                 Rpp32s *shape = &shapeTensor[batchCount * paramDims];
                 Rpp32u *roi = roiTensor + batchCount * paramDims * 2;
                 Rpp32s *length = reinterpret_cast<Rpp32s *>(&roi[paramDims]);
-                Rpp32u maxDepth = std::min(shape[0], length[0] - anchor[0]);
-                Rpp32u maxHeight = std::min(shape[1], length[1] - anchor[1]);
-                Rpp32u maxWidth = std::min(shape[2], length[2] - anchor[2]);
+                Rpp32u maxDepth = std::min(shape[1], length[1] - anchor[1]);
+                Rpp32u maxHeight = std::min(shape[2], length[2] - anchor[2]);
+                Rpp32u maxWidth = std::min(shape[3], length[3] - anchor[3]);
 
                 // check if padding is needed
-                bool needPadding = (((anchor[0] + shape[0]) > length[0]) ||
-                                    ((anchor[1] + shape[1]) > length[1]) ||
-                                    ((anchor[2] + shape[2]) > length[2]));
+                bool needPadding = (((anchor[1] + shape[1]) > length[1]) ||
+                                    ((anchor[2] + shape[2]) > length[2]) ||
+                                    ((anchor[3] + shape[3]) > length[3]));
 
                 // launch kernel for filling the padded region with fill value specified
                 if(needPadding)
@@ -426,7 +426,7 @@ RppStatus hip_exec_fill_value_tensor(T *dstPtr,
     }
     else if(numDims == 3)
     {
-        Rpp32u paramDims = numDims - 1;
+        Rpp32u paramDims = numDims;
         // create a kernel for filling padded region with fill value specified
         if (dstGenericDescPtr->layout == RpptLayout::NCHW)
         {
@@ -440,12 +440,12 @@ RppStatus hip_exec_fill_value_tensor(T *dstPtr,
                 Rpp32s *shape = &shapeTensor[batchCount * paramDims];
                 Rpp32u *roi = roiTensor + batchCount * paramDims * 2;
                 Rpp32s *length = reinterpret_cast<Rpp32s *>(&roi[paramDims]);
-                Rpp32u maxHeight = std::min(shape[0], length[0] - anchor[0]);
-                Rpp32u maxWidth = std::min(shape[1], length[1] - anchor[1]);
+                Rpp32u maxHeight = std::min(shape[1], length[1] - anchor[1]);
+                Rpp32u maxWidth = std::min(shape[2], length[2] - anchor[2]);
 
                 // check if padding is needed
-                bool needPadding = (((anchor[0] + shape[0]) > length[0]) ||
-                                    ((anchor[1] + shape[1]) > length[1]));
+                bool needPadding = (((anchor[1] + shape[1]) > length[1]) ||
+                                    ((anchor[2] + shape[2]) > length[2]));
 
                 // launch kernel for filling the padded region with fill value specified
                 if(needPadding)
