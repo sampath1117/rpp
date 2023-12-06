@@ -2571,6 +2571,20 @@ inline void compute_brightness_4_host(__m128 *p, __m128 *pBrightnessParams)
     p[0] = _mm_fmadd_ps(p[0], pBrightnessParams[0], pBrightnessParams[1]);    // brightness adjustment
 }
 
+inline void compute_strides(Rpp32u *strides, Rpp32u *shape, Rpp32u nDim)
+{
+    if (nDim > 0)
+    {
+        uint64_t v = 1;
+        for (int i = nDim - 1; i > 0; i--)
+        {
+            strides[i] = v;
+            v *= shape[i];
+        }
+        strides[0] = v;
+    }
+}
+
 inline void compute_exposure_48_host(__m256 *p, __m256 &pExposureParam)
 {
     p[0] = _mm256_mul_ps(p[0], pExposureParam);    // exposure adjustment
