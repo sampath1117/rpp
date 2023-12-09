@@ -413,12 +413,12 @@ int main(int argc, char **argv)
     // set src/dst generic tensor descriptors
     RpptGenericDesc srcDescriptor, dstDescriptor;
     RpptGenericDescPtr srcDescriptorPtrND, dstDescriptorPtrND;
-    srcDescriptorPtrND  = &srcDescriptor;
+    CHECK(hipHostMalloc(&srcDescriptorPtrND, sizeof(RpptGenericDesc)));
+    CHECK(hipHostMalloc(&dstDescriptorPtrND, sizeof(RpptGenericDesc)));
     srcDescriptorPtrND->numDims = nDim + 1;
     srcDescriptorPtrND->offsetInBytes = 0;
     srcDescriptorPtrND->dataType = RpptDataType::F32;
 
-    dstDescriptorPtrND  = &dstDescriptor;
     dstDescriptorPtrND->numDims = nDim + 1;
     dstDescriptorPtrND->offsetInBytes = 0;
     dstDescriptorPtrND->dataType = RpptDataType::F32;
