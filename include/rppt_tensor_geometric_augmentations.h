@@ -272,6 +272,90 @@ RppStatus rppt_flip_voxel_host(RppPtr_t srcPtr, RpptGenericDescPtr srcGenericDes
 RppStatus rppt_flip_voxel_gpu(RppPtr_t srcPtr, RpptGenericDescPtr srcGenericDescPtr, RppPtr_t dstPtr, RpptGenericDescPtr dstGenericDescPtr, Rpp32u *horizontalTensor, Rpp32u *verticalTensor, Rpp32u *depthTensor, RpptROI3DPtr roiGenericPtrSrc, RpptRoi3DType roiType, rppHandle_t rppHandle);
 #endif // GPU_SUPPORT
 
+/******************** transpose_generic ********************/
+
+/*! \brief Transpose augmentation on HOST backend for a nD tensor
+ * \details The transpose augmentation performs an input-permutation based transpose on a generic nD tensor.
+ * \param[in] srcPtr source tensor in HOST memory
+ * \param[in] srcGenericDescPtr source tensor descriptor
+ * \param[out] dstPtr source tensor in HOST memory
+ * \param[in] dstGenericDescPtr destination tensor descriptor
+ * \param[in] permTensor permutation tensor for transpose operation
+ * \param[in] roiTensor ROI data for each element in source tensor (tensor of batchSize * number of dimensions * 2 values)
+ * \param [in] rppHandle RPP HIP handle created with <tt>\ref rppCreateWithStreamAndBatchSize()</tt>
+ * \return A <tt> \ref RppStatus</tt> enumeration.
+ * \retval RPP_SUCCESS Successful completion.
+ * \retval RPP_ERROR* Unsuccessful completion.
+ */
+
+RppStatus rppt_transpose_generic_host(RppPtr_t srcPtr, RpptGenericDescPtr srcGenericDescPtr, RppPtr_t dstPtr, RpptGenericDescPtr dstGenericDescPtr, Rpp32u *permTensor, Rpp32u *roiTensor, rppHandle_t rppHandle);
+/*! \brief Normalize Generic HOST
+ * \details Normalizes the input generic ND buffer by removing the mean and dividing by the standard deviation for a given ND Tensor.
+ *          Supports u8->f32, i8->f32, f16->f16 and f32->f32 datatypes. Also has toggle variant(NHWC->NCHW) support for 3D.
+ * \param [in] srcPtr source tensor memory
+ * \param[in] srcGenericDescPtr source tensor descriptor
+ * \param[out] dstPtr destination tensor memory
+ * \param[in] dstGenericDescPtr destination tensor descriptor
+ * \param[in] axisMask axis along which normalization needs to be done
+ * \param[in] meanTensor values to be subtracted from input
+ * \param[in] stdDevTensor standard deviation values to scale the input
+ * \param[in] computeMean flag to represent internal computation of mean
+ * \param[in] computeStddev flag to represent internal computation of stddev
+ * \param[in] scale value to be multiplied with data after subtracting from mean
+ * \param[in] shift value to be added finally
+ * \param[in] roiTensor values to represent dimensions of input tensor
+ * \param [in] rppHandle Host-handle
+ * \return <tt> Rppt_Status enum</tt>.
+ * \returns RPP_SUCCESS <tt>\ref Rppt_Status</tt> on successful completion.
+ * Else return RPP_ERROR
+ * \ingroup group_tensor_geometric
+ */
+
+RppStatus rppt_normalize_generic_host(RppPtr_t srcPtr, RpptGenericDescPtr srcGenericDescPtr, RppPtr_t dstPtr, RpptGenericDescPtr dstGenericDescPtr, Rpp32u axisMask, Rpp32f *meanTensor, Rpp32f *stdDevTensor, Rpp32u computeMean, Rpp32u computeStddev, Rpp32f scale, Rpp32f shift, Rpp32u *roiTensor, rppHandle_t rppHandle);
+
+#ifdef GPU_SUPPORT
+/*! \brief Normalize Generic HOST
+ * \details Normalizes the input generic ND buffer by removing the mean and dividing by the standard deviation for a given ND Tensor.
+ *          Supports u8->f32, i8->f32, f16->f16 and f32->f32 datatypes. Also has toggle variant(NHWC->NCHW) support for 3D.
+ * \param [in] srcPtr source tensor memory
+ * \param[in] srcGenericDescPtr source tensor descriptor
+ * \param[out] dstPtr destination tensor memory
+ * \param[in] dstGenericDescPtr destination tensor descriptor
+ * \param[in] axisMask axis along which normalization needs to be done
+ * \param[in] meanTensor values to be subtracted from input
+ * \param[in] stdDevTensor standard deviation values to scale the input
+ * \param[in] computeMean flag to represent internal computation of mean
+ * \param[in] computeStddev flag to represent internal computation of stddev
+ * \param[in] scale value to be multiplied with data after subtracting from mean
+ * \param[in] shift value to be added finally
+ * \param[in] roiTensor values to represent dimensions of input tensor
+ * \param [in] rppHandle Host-handle
+ * \return <tt> Rppt_Status enum</tt>.
+ * \returns RPP_SUCCESS <tt>\ref Rppt_Status</tt> on successful completion.
+ * Else return RPP_ERROR
+ * \ingroup group_tensor_geometric
+ */
+
+RppStatus rppt_normalize_generic_gpu(RppPtr_t srcPtr, RpptGenericDescPtr srcGenericDescPtr, RppPtr_t dstPtr, RpptGenericDescPtr dstGenericDescPtr, Rpp32u axisMask, Rpp32f *meanTensor, Rpp32f *stdDevTensor, Rpp32u computeMean, Rpp32u computeStddev, Rpp32f scale, Rpp32f shift, Rpp32u *roiTensor, rppHandle_t rppHandle);
+#endif // GPU_SUPPORT
+
+#ifdef GPU_SUPPORT
+/*! \brief Transpose augmentation on HIP backend for a nD tensor
+ * \details The transpose augmentation performs an input-permutation based transpose on a generic nD tensor.
+ * \param[in] srcPtr source tensor in HIP memory
+ * \param[in] srcGenericDescPtr source tensor descriptor
+ * \param[out] dstPtr source tensor in HIP memory
+ * \param[in] dstGenericDescPtr destination tensor descriptor
+ * \param[in] permTensor permutation tensor for transpose operation
+ * \param[in] roiGenericPtrSrc ROI data for each element in source tensor (tensor of batchSize RpptRoiGeneric values)
+ * \param [in] rppHandle RPP HIP handle created with <tt>\ref rppCreateWithStreamAndBatchSize()</tt>
+ * \return A <tt> \ref RppStatus</tt> enumeration.
+ * \retval RPP_SUCCESS Successful completion.
+ * \retval RPP_ERROR* Unsuccessful completion.
+ */
+RppStatus rppt_transpose_generic_gpu(RppPtr_t srcPtr, RpptGenericDescPtr srcGenericDescPtr, RppPtr_t dstPtr, RpptGenericDescPtr dstGenericDescPtr, Rpp32u *permTensor, Rpp32u *roiTensor, rppHandle_t rppHandle);
+#endif // GPU_SUPPORT
+
 #ifdef __cplusplus
 }
 #endif

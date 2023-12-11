@@ -2566,6 +2566,20 @@ inline void compute_brightness_4_host(__m128 *p, __m128 *pBrightnessParams)
     p[0] = _mm_fmadd_ps(p[0], pBrightnessParams[0], pBrightnessParams[1]);    // brightness adjustment
 }
 
+inline void compute_strides(Rpp32u *strides, Rpp32u *shape, Rpp32u nDim)
+{
+    if (nDim > 0)
+    {
+        uint64_t v = 1;
+        for (int i = nDim - 1; i > 0; i--)
+        {
+            strides[i] = v;
+            v *= shape[i];
+        }
+        strides[0] = v;
+    }
+}
+
 inline void compute_fmadd_8_host(__m256 *p, __m256 *pFmaddParams)
 {
     p[0] = _mm256_fmadd_ps(p[0], pFmaddParams[0], pFmaddParams[1]);    // fmadd adjustment
@@ -5913,6 +5927,52 @@ inline void compute_separable_horizontal_resample(Rpp32f *inputPtr, T *outputPtr
             }
         }
     }
+}
+
+inline void compute_sum_16_host(__m256i *p, __m256i *pSum)
+{
+    pSum[0] = _mm256_add_epi32(_mm256_add_epi32(p[0], p[1]), pSum[0]); //add 16 values to 8
+}
+
+inline void compute_sum_48_host(__m256i *p, __m256i *pSumR, __m256i *pSumG, __m256i *pSumB)
+{
+    pSumR[0] = _mm256_add_epi32(_mm256_add_epi32(p[0], p[1]), pSumR[0]); //add 16R values and bring it down to 8
+    pSumG[0] = _mm256_add_epi32(_mm256_add_epi32(p[2], p[3]), pSumG[0]); //add 16G values and bring it down to 8
+    pSumB[0] = _mm256_add_epi32(_mm256_add_epi32(p[4], p[5]), pSumB[0]); //add 16B values and bring it down to 8
+}
+
+inline void compute_sum_8_host(__m256d *p, __m256d *pSum)
+{
+    pSum[0] = _mm256_add_pd(_mm256_add_pd(p[0], p[1]), pSum[0]); //add 8 values and bring it down to 4
+}
+
+inline void compute_sum_24_host(__m256d *p, __m256d *pSumR, __m256d *pSumG, __m256d *pSumB)
+{
+    pSumR[0] = _mm256_add_pd(_mm256_add_pd(p[0], p[1]), pSumR[0]); //add 8R values and bring it down to 4
+    pSumG[0] = _mm256_add_pd(_mm256_add_pd(p[2], p[3]), pSumG[0]); //add 8G values and bring it down to 4
+    pSumB[0] = _mm256_add_pd(_mm256_add_pd(p[4], p[5]), pSumB[0]); //add 8B values and bring it down to 4
+}
+
+inline void compute_transpose4x8_avx(__m256 *pSrc, __m128 *pDst)
+{
+    __m256 tmp0, tmp1, tmp2, tmp3;
+    tmp0 = _mm256_shuffle_ps(pSrc[0], pSrc[1], 0x44);   /* shuffle to get [P01|P02|P09|P10|P05|P06|P13|P14] */
+    tmp2 = _mm256_shuffle_ps(pSrc[0], pSrc[1], 0xEE);   /* shuffle to get [P03|P04|P11|P12|P07|P08|P15|P16] */
+    tmp1 = _mm256_shuffle_ps(pSrc[2], pSrc[3], 0x44);   /* shuffle to get [P17|P18|P25|P26|P21|P22|P29|P30] */
+    tmp3 = _mm256_shuffle_ps(pSrc[2], pSrc[3], 0xEE);   /* shuffle to get [P19|P20|P27|P28|P23|P24|P31|P32] */
+    pSrc[0] = _mm256_shuffle_ps(tmp0, tmp1, 0x88);  /* shuffle to get [P01|P09|P17|P25|P05|P13|P21|P29] */
+    pSrc[1] = _mm256_shuffle_ps(tmp0, tmp1, 0xDD);  /* shuffle to get [P02|P10|P18|P26|P06|P14|P22|P30] */
+    pSrc[2] = _mm256_shuffle_ps(tmp2, tmp3, 0x88);  /* shuffle to get [P03|P11|P19|P27|P07|P15|P23|P31] */
+    pSrc[3] = _mm256_shuffle_ps(tmp2, tmp3, 0xDD);  /* shuffle to get [P04|P12|P20|P28|P08|P16|P24|P32] */
+
+    pDst[0] = _mm256_castps256_ps128(pSrc[0]);  /* extract [P01|P09|P17|P25] */
+    pDst[1] = _mm256_castps256_ps128(pSrc[1]);  /* extract [P02|P10|P18|P26] */
+    pDst[2] = _mm256_castps256_ps128(pSrc[2]);  /* extract [P03|P11|P19|P27] */
+    pDst[3] = _mm256_castps256_ps128(pSrc[3]);  /* extract [P04|P12|P20|P28] */
+    pDst[4] = _mm256_extractf128_ps(pSrc[0], 1);    /* extract [P05|P13|P21|P29] */
+    pDst[5] = _mm256_extractf128_ps(pSrc[1], 1);    /* extract [P06|P14|P22|P30] */
+    pDst[6] = _mm256_extractf128_ps(pSrc[2], 1);    /* extract [P07|P15|P23|P31] */
+    pDst[7] = _mm256_extractf128_ps(pSrc[3], 1);    /* extract [P08|P16|P24|P32] */
 }
 
 #endif //RPP_CPU_COMMON_H

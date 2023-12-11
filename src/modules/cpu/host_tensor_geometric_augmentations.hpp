@@ -32,5 +32,7 @@ THE SOFTWARE.
 #include "kernel/warp_affine.hpp"
 #include "kernel/slice.hpp"
 #include "kernel/flip_voxel.hpp"
+#include "kernel/transpose_generic.hpp"
+#include "kernel/normalize_generic.hpp"
 
 #endif // HOST_TENSOR_GEOMETRIC_AUGMENTATIONS_HPP
