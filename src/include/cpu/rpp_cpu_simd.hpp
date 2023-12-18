@@ -284,9 +284,23 @@ inline void rpp_saturate16_0to1_avx(__m256 *p)
     p[1] = _mm256_min_ps(_mm256_max_ps(p[1], avx_p0), avx_p1);
 }
 
+inline void rpp_saturate16_0to1_sse(__m128 *p)
+{
+    p[0] = _mm_min_ps(_mm_max_ps(p[0], xmm_p0), xmm_p1);
+    p[1] = _mm_min_ps(_mm_max_ps(p[1], xmm_p0), xmm_p1);
+    p[2] = _mm_min_ps(_mm_max_ps(p[2], xmm_p0), xmm_p1);
+    p[3] = _mm_min_ps(_mm_max_ps(p[3], xmm_p0), xmm_p1);
+}
+
 inline void rpp_saturate8_0to1_avx(__m256 *p)
 {
     p[0] = _mm256_min_ps(_mm256_max_ps(p[0], avx_p0), avx_p1);
+}
+
+inline void rpp_saturate8_0to1_sse(__m128 *p)
+{
+    p[0] = _mm_min_ps(_mm_max_ps(p[0], xmm_p0), xmm_p1);
+    p[1] = _mm_min_ps(_mm_max_ps(p[1], xmm_p0), xmm_p1);
 }
 
 // SSE loads and stores

@@ -1499,10 +1499,18 @@ RppStatus gaussian_noise_3d_u8_u8_host_tensor(Rpp8u *srcPtr,
                     }
                     for (; vectorLoopCount < bufferLength; vectorLoopCount += 3)
                     {
-                        dstPtrTemp[0] = (Rpp8u)(compute_gaussian_noise_1_host((Rpp32f)srcPtrTemp[0] * ONE_OVER_255, &xorwowState, mean, stdDev) * 255.0f);
-                        dstPtrTemp[1] = (Rpp8u)(compute_gaussian_noise_1_host((Rpp32f)srcPtrTemp[1] * ONE_OVER_255, &xorwowState, mean, stdDev) * 255.0f);
-                        dstPtrTemp[2] = (Rpp8u)(compute_gaussian_noise_1_host((Rpp32f)srcPtrTemp[2] * ONE_OVER_255, &xorwowState, mean, stdDev) * 255.0f);
-
+                        if(!copyInput)
+                        {
+                            dstPtrTemp[0] = (Rpp8u)(compute_gaussian_noise_1_host((Rpp32f)srcPtrTemp[0] * ONE_OVER_255, &xorwowState, mean, stdDev) * 255.0f);
+                            dstPtrTemp[1] = (Rpp8u)(compute_gaussian_noise_1_host((Rpp32f)srcPtrTemp[1] * ONE_OVER_255, &xorwowState, mean, stdDev) * 255.0f);
+                            dstPtrTemp[2] = (Rpp8u)(compute_gaussian_noise_1_host((Rpp32f)srcPtrTemp[2] * ONE_OVER_255, &xorwowState, mean, stdDev) * 255.0f);
+                        }
+                        else
+                        {
+                            dstPtrTemp[0] = srcPtrTemp[0];
+                            dstPtrTemp[1] = srcPtrTemp[1];
+                            dstPtrTemp[2] = srcPtrTemp[2];
+                        }
                         srcPtrTemp += 3;
                         dstPtrTemp += 3;
                     }
@@ -1578,9 +1586,18 @@ RppStatus gaussian_noise_3d_u8_u8_host_tensor(Rpp8u *srcPtr,
                     }
                     for (; vectorLoopCount < bufferLength; vectorLoopCount++)
                     {
-                        *dstPtrTempR++ = (Rpp8u)(compute_gaussian_noise_1_host((Rpp32f)*srcPtrTempR++ * ONE_OVER_255, &xorwowState, mean, stdDev) * 255.0f);
-                        *dstPtrTempG++ = (Rpp8u)(compute_gaussian_noise_1_host((Rpp32f)*srcPtrTempG++ * ONE_OVER_255, &xorwowState, mean, stdDev) * 255.0f);
-                        *dstPtrTempB++ = (Rpp8u)(compute_gaussian_noise_1_host((Rpp32f)*srcPtrTempB++ * ONE_OVER_255, &xorwowState, mean, stdDev) * 255.0f);
+                        if(!copyInput)
+                        {
+                            *dstPtrTempR++ = (Rpp8u)(compute_gaussian_noise_1_host((Rpp32f)*srcPtrTempR++ * ONE_OVER_255, &xorwowState, mean, stdDev) * 255.0f);
+                            *dstPtrTempG++ = (Rpp8u)(compute_gaussian_noise_1_host((Rpp32f)*srcPtrTempG++ * ONE_OVER_255, &xorwowState, mean, stdDev) * 255.0f);
+                            *dstPtrTempB++ = (Rpp8u)(compute_gaussian_noise_1_host((Rpp32f)*srcPtrTempB++ * ONE_OVER_255, &xorwowState, mean, stdDev) * 255.0f);
+                        }
+                        else
+                        {
+                            *dstPtrTempR++ = *srcPtrTempR++;
+                            *dstPtrTempG++ = *srcPtrTempG++;
+                            *dstPtrTempB++ = *srcPtrTempB++;
+                        }
                     }
                     srcPtrRowR += srcGenericDescPtr->strides[3];
                     srcPtrRowG += srcGenericDescPtr->strides[3];
@@ -1647,7 +1664,10 @@ RppStatus gaussian_noise_3d_u8_u8_host_tensor(Rpp8u *srcPtr,
                     }
                     for (; vectorLoopCount < bufferLength; vectorLoopCount++)
                     {
-                        *dstPtrTemp++ = (Rpp8u)(compute_gaussian_noise_1_host((Rpp32f)*srcPtrTemp++ * ONE_OVER_255, &xorwowState, mean, stdDev) * 255.0f);
+                        if(!copyInput)
+                            *dstPtrTemp++ = (Rpp8u)(compute_gaussian_noise_1_host((Rpp32f)*srcPtrTemp++ * ONE_OVER_255, &xorwowState, mean, stdDev) * 255.0f);
+                        else
+                            *dstPtrTemp++ = *srcPtrTemp++;
                     }
                     srcPtrRow += srcGenericDescPtr->strides[3];
                     dstPtrRow += dstGenericDescPtr->strides[3];
@@ -1752,12 +1772,14 @@ RppStatus gaussian_noise_3d_f32_f32_host_tensor(Rpp32f *srcPtr,
                         rpp_simd_load(rpp_load24_f32pkd3_to_f32pln3_avx, srcPtrTemp, p);                                // simd loads
                         if(!copyInput)
                             compute_gaussian_noise_24_host(p, pxXorwowStateX, &pxXorwowStateCounter, pGaussianNoiseParams); // gaussian_noise adjustment
+                        rpp_saturate24_0to1_avx(p);
                         rpp_simd_store(rpp_store24_f32pln3_to_f32pkd3_avx, dstPtrTemp, p);                              // simd stores
 #else
                         __m128 p[4];
                         rpp_simd_load(rpp_load12_f32pkd3_to_f32pln3, srcPtrTemp, p);                                    // simd loads
                         if(!copyInput)
                             compute_gaussian_noise_12_host(p, pxXorwowStateX, &pxXorwowStateCounter, pGaussianNoiseParams); // gaussian_noise adjustment
+                        rpp_saturate16_0to1_sse(p);
                         rpp_simd_store(rpp_store12_f32pln3_to_f32pkd3, dstPtrTemp, p);                                  // simd stores
 #endif
                         srcPtrTemp += vectorIncrement;
@@ -1765,10 +1787,18 @@ RppStatus gaussian_noise_3d_f32_f32_host_tensor(Rpp32f *srcPtr,
                     }
                     for (; vectorLoopCount < bufferLength; vectorLoopCount += 3)
                     {
-                        dstPtrTemp[0] = compute_gaussian_noise_1_host(srcPtrTemp[0], &xorwowState, mean, stdDev);
-                        dstPtrTemp[1] = compute_gaussian_noise_1_host(srcPtrTemp[1], &xorwowState, mean, stdDev);
-                        dstPtrTemp[2] = compute_gaussian_noise_1_host(srcPtrTemp[2], &xorwowState, mean, stdDev);
-
+                        if(!copyInput)
+                        {
+                            dstPtrTemp[0] = compute_gaussian_noise_1_host(srcPtrTemp[0], &xorwowState, mean, stdDev);
+                            dstPtrTemp[1] = compute_gaussian_noise_1_host(srcPtrTemp[1], &xorwowState, mean, stdDev);
+                            dstPtrTemp[2] = compute_gaussian_noise_1_host(srcPtrTemp[2], &xorwowState, mean, stdDev);
+                        }
+                        else
+                        {
+                            dstPtrTemp[0] = RPPPIXELCHECKF32(srcPtrTemp[0]);
+                            dstPtrTemp[1] = RPPPIXELCHECKF32(srcPtrTemp[1]);
+                            dstPtrTemp[2] = RPPPIXELCHECKF32(srcPtrTemp[2]);
+                        }
                         srcPtrTemp += 3;
                         dstPtrTemp += 3;
                     }
@@ -1819,12 +1849,14 @@ RppStatus gaussian_noise_3d_f32_f32_host_tensor(Rpp32f *srcPtr,
                         rpp_simd_load(rpp_load24_f32pln3_to_f32pln3_avx, srcPtrTempR, srcPtrTempG, srcPtrTempB, p);     // simd loads
                         if(!copyInput)
                             compute_gaussian_noise_24_host(p, pxXorwowStateX, &pxXorwowStateCounter, pGaussianNoiseParams); // gaussian_noise adjustment
+                        rpp_saturate24_0to1_avx(p);
                         rpp_simd_store(rpp_store24_f32pln3_to_f32pln3_avx, dstPtrTempR, dstPtrTempG, dstPtrTempB, p);   // simd stores
 #else
                         __m128 p[4];
                         rpp_simd_load(rpp_load12_f32pln3_to_f32pln3, srcPtrTempR, srcPtrTempG, srcPtrTempB, p);         // simd loads
                         if(!copyInput)
                             compute_gaussian_noise_12_host(p, pxXorwowStateX, &pxXorwowStateCounter, pGaussianNoiseParams); // gaussian_noise adjustment
+                        rpp_saturate16_0to1_sse(p);
                         rpp_simd_store(rpp_store12_f32pln3_to_f32pln3, dstPtrTempR, dstPtrTempG, dstPtrTempB, p);       // simd stores
 #endif
                         srcPtrTempR += vectorIncrementPerChannel;
@@ -1836,9 +1868,18 @@ RppStatus gaussian_noise_3d_f32_f32_host_tensor(Rpp32f *srcPtr,
                     }
                     for (; vectorLoopCount < bufferLength; vectorLoopCount++)
                     {
-                        *dstPtrTempR++ = compute_gaussian_noise_1_host(*srcPtrTempR++, &xorwowState, mean, stdDev);
-                        *dstPtrTempG++ = compute_gaussian_noise_1_host(*srcPtrTempG++, &xorwowState, mean, stdDev);
-                        *dstPtrTempB++ = compute_gaussian_noise_1_host(*srcPtrTempB++, &xorwowState, mean, stdDev);
+                        if(!copyInput)
+                        {
+                            *dstPtrTempR++ = compute_gaussian_noise_1_host(*srcPtrTempR++, &xorwowState, mean, stdDev);
+                            *dstPtrTempG++ = compute_gaussian_noise_1_host(*srcPtrTempG++, &xorwowState, mean, stdDev);
+                            *dstPtrTempB++ = compute_gaussian_noise_1_host(*srcPtrTempB++, &xorwowState, mean, stdDev);
+                        }
+                        else
+                        {
+                            *dstPtrTempR++ = RPPPIXELCHECKF32(*srcPtrTempR++);
+                            *dstPtrTempG++ = RPPPIXELCHECKF32(*srcPtrTempG++);
+                            *dstPtrTempB++ = RPPPIXELCHECKF32(*srcPtrTempB++);
+                        }
                     }
                     srcPtrRowR += srcGenericDescPtr->strides[3];
                     srcPtrRowG += srcGenericDescPtr->strides[3];
@@ -1888,12 +1929,14 @@ RppStatus gaussian_noise_3d_f32_f32_host_tensor(Rpp32f *srcPtr,
                         rpp_simd_load(rpp_load16_f32_to_f32_avx, srcPtrTemp, p);                                        // simd loads
                         if(!copyInput)
                             compute_gaussian_noise_16_host(p, pxXorwowStateX, &pxXorwowStateCounter, pGaussianNoiseParams); // gaussian_noise adjustment
+                        rpp_saturate16_0to1_avx(p);
                         rpp_simd_store(rpp_store16_f32_to_f32_avx, dstPtrTemp, p);                                      // simd stores
 #else
                         __m128 p[2];
                         rpp_simd_load(rpp_load8_f32_to_f32, srcPtrTemp, p);                                             // simd loads
                         if(!copyInput)
                             compute_gaussian_noise_8_host(p, pxXorwowStateX, &pxXorwowStateCounter, pGaussianNoiseParams);  // gaussian_noise adjustment
+                        rpp_saturate8_0to1_sse(p);
                         rpp_simd_store(rpp_store8_f32_to_f32, dstPtrTemp, p);                                           // simd stores
 #endif
                         srcPtrTemp += vectorIncrementPerChannelDouble;
@@ -1901,7 +1944,10 @@ RppStatus gaussian_noise_3d_f32_f32_host_tensor(Rpp32f *srcPtr,
                     }
                     for (; vectorLoopCount < bufferLength; vectorLoopCount++)
                     {
-                        *dstPtrTemp++ = compute_gaussian_noise_1_host(*srcPtrTemp++, &xorwowState, mean, stdDev);
+                        if(!copyInput)
+                            *dstPtrTemp++ = compute_gaussian_noise_1_host(*srcPtrTemp++, &xorwowState, mean, stdDev);
+                        else
+                            *dstPtrTemp++ = RPPPIXELCHECKF32(*srcPtrTemp++);
                     }
                     srcPtrRow += srcGenericDescPtr->strides[3];
                     dstPtrRow += dstGenericDescPtr->strides[3];
