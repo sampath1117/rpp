@@ -1927,30 +1927,24 @@ RppStatus gaussian_noise_3d_f32_f32_host_tensor(Rpp32f *srcPtr,
                     dstPtrTemp = dstPtrRow;
 
                     int vectorLoopCount = 0;
-//                     for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannelDouble)
-//                     {
-// #if __AVX2__
-//                         __m256 p[2];
-//                         rpp_simd_load(rpp_load16_f32_to_f32_avx, srcPtrTemp, p);                                        // simd loads
-//                         if(!copyInput)
-//                         {
-//                             compute_gaussian_noise_16_host(p, pxXorwowStateX, &pxXorwowStateCounter, pGaussianNoiseParams); // gaussian_noise adjustment
-//                             rpp_saturate16_0to1_avx(p);
-//                         }
-//                         rpp_simd_store(rpp_store16_f32_to_f32_avx, dstPtrTemp, p);                                      // simd stores
-// #else
-//                         __m128 p[2];
-//                         rpp_simd_load(rpp_load8_f32_to_f32, srcPtrTemp, p);                                             // simd loads
-//                         if(!copyInput)
-//                         {
-//                             compute_gaussian_noise_8_host(p, pxXorwowStateX, &pxXorwowStateCounter, pGaussianNoiseParams);  // gaussian_noise adjustment
-//                             rpp_saturate8_0to1_sse(p);
-//                         }
-//                         rpp_simd_store(rpp_store8_f32_to_f32, dstPtrTemp, p);                                           // simd stores
-// #endif
-//                         srcPtrTemp += vectorIncrementPerChannelDouble;
-//                         dstPtrTemp += vectorIncrementPerChannelDouble;
-//                     }
+                    for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannelDouble)
+                    {
+#if __AVX2__
+                        __m256 p[2];
+                        rpp_simd_load(rpp_load16_f32_to_f32_avx, srcPtrTemp, p);                                        // simd loads
+                        if(!copyInput)
+                            compute_gaussian_noise_16_host_new(p, generator, mean, stdDev); // gaussian_noise adjustment
+                        rpp_simd_store(rpp_store16_f32_to_f32_avx, dstPtrTemp, p);                                      // simd stores
+#else
+                        __m128 p[2];
+                        rpp_simd_load(rpp_load8_f32_to_f32, srcPtrTemp, p);                                             // simd loads
+                        if(!copyInput)
+                            compute_gaussian_noise_8_host(p, pxXorwowStateX, &pxXorwowStateCounter, pGaussianNoiseParams);  // gaussian_noise adjustment
+                        rpp_simd_store(rpp_store8_f32_to_f32, dstPtrTemp, p);                                           // simd stores
+#endif
+                        srcPtrTemp += vectorIncrementPerChannelDouble;
+                        dstPtrTemp += vectorIncrementPerChannelDouble;
+                    }
                     for (; vectorLoopCount < bufferLength; vectorLoopCount++)
                     {
                         if(!copyInput)

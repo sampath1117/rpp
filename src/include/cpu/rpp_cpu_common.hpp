@@ -3389,6 +3389,20 @@ inline void compute_gaussian_noise_16_host(__m256 *p, __m256i *pxXorwowStateX, _
     p[1] = _mm256_fmadd_ps(pSqrt[1], pRngVals[1], p[1]);                                            // return RPPPIXELCHECKF32(pixSqrt * rngVal + pixVal);
 }
 
+inline void compute_gaussian_noise_16_host_new(__m256 *p, std::mt19937 &generator, Rpp32f mean, Rpp32f stdDev)
+{
+    std::normal_distribution<Rpp32f> distribution(mean, stdDev);
+    Rpp32f noiseBuf[16];
+    for(int i = 0; i < 16; i++)
+        noiseBuf[i] =  distribution(generator);
+
+    __m256 pNoise[2];
+    pNoise[0] = _mm256_loadu_ps(noiseBuf);
+    pNoise[1] = _mm256_loadu_ps(noiseBuf + 8);
+    p[0] = _mm256_add_ps(p[0], pNoise[0]);
+    p[1] = _mm256_add_ps(p[1], pNoise[1]);
+}
+
 inline void compute_gaussian_noise_8_host(__m128 *p, __m128i *pxXorwowStateX, __m128i *pxXorwowStateCounter, __m128 *pGaussianNoiseParams)
 {
     __m128 pRngVals[2], pSqrt[2];
@@ -3406,6 +3420,12 @@ inline void compute_gaussian_noise_16_host(__m128 *p, __m128i *pxXorwowStateX, _
 {
     compute_gaussian_noise_8_host(p, pxXorwowStateX, pxXorwowStateCounter, pGaussianNoiseParams);
     compute_gaussian_noise_8_host(&p[2], pxXorwowStateX, pxXorwowStateCounter, pGaussianNoiseParams);
+}
+
+inline void compute_gaussian_noise_16_host_new()
+{
+
+
 }
 
 inline void compute_gaussian_noise_48_host(__m256 *p, __m256i *pxXorwowStateX, __m256i *pxXorwowStateCounter, __m256 *pGaussianNoiseParams)
