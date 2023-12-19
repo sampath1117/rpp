@@ -1904,6 +1904,7 @@ RppStatus gaussian_noise_3d_f32_f32_host_tensor(Rpp32f *srcPtr,
         // Gaussian Noise without fused output-layout toggle single channel (NCDHW -> NCDHW)
         else if ((srcGenericDescPtr->dims[1] == 1) && (srcGenericDescPtr->layout == RpptLayout::NCDHW) && (dstGenericDescPtr->layout == RpptLayout::NCDHW))
         {
+            thread_local std::mt19937 generator(std::random_device{}());
             srcPtrChannel = srcPtrImage + (roi.xyzwhdROI.xyz.z * srcGenericDescPtr->strides[2]) + (roi.xyzwhdROI.xyz.y * srcGenericDescPtr->strides[3]) + (roi.xyzwhdROI.xyz.x * layoutParams.bufferMultiplier);
 #if __AVX2__
             alignedLength = bufferLength & ~15;
@@ -1926,34 +1927,34 @@ RppStatus gaussian_noise_3d_f32_f32_host_tensor(Rpp32f *srcPtr,
                     dstPtrTemp = dstPtrRow;
 
                     int vectorLoopCount = 0;
-                    for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannelDouble)
-                    {
-#if __AVX2__
-                        __m256 p[2];
-                        rpp_simd_load(rpp_load16_f32_to_f32_avx, srcPtrTemp, p);                                        // simd loads
-                        if(!copyInput)
-                        {
-                            compute_gaussian_noise_16_host(p, pxXorwowStateX, &pxXorwowStateCounter, pGaussianNoiseParams); // gaussian_noise adjustment
-                            rpp_saturate16_0to1_avx(p);
-                        }
-                        rpp_simd_store(rpp_store16_f32_to_f32_avx, dstPtrTemp, p);                                      // simd stores
-#else
-                        __m128 p[2];
-                        rpp_simd_load(rpp_load8_f32_to_f32, srcPtrTemp, p);                                             // simd loads
-                        if(!copyInput)
-                        {
-                            compute_gaussian_noise_8_host(p, pxXorwowStateX, &pxXorwowStateCounter, pGaussianNoiseParams);  // gaussian_noise adjustment
-                            rpp_saturate8_0to1_sse(p);
-                        }
-                        rpp_simd_store(rpp_store8_f32_to_f32, dstPtrTemp, p);                                           // simd stores
-#endif
-                        srcPtrTemp += vectorIncrementPerChannelDouble;
-                        dstPtrTemp += vectorIncrementPerChannelDouble;
-                    }
+//                     for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannelDouble)
+//                     {
+// #if __AVX2__
+//                         __m256 p[2];
+//                         rpp_simd_load(rpp_load16_f32_to_f32_avx, srcPtrTemp, p);                                        // simd loads
+//                         if(!copyInput)
+//                         {
+//                             compute_gaussian_noise_16_host(p, pxXorwowStateX, &pxXorwowStateCounter, pGaussianNoiseParams); // gaussian_noise adjustment
+//                             rpp_saturate16_0to1_avx(p);
+//                         }
+//                         rpp_simd_store(rpp_store16_f32_to_f32_avx, dstPtrTemp, p);                                      // simd stores
+// #else
+//                         __m128 p[2];
+//                         rpp_simd_load(rpp_load8_f32_to_f32, srcPtrTemp, p);                                             // simd loads
+//                         if(!copyInput)
+//                         {
+//                             compute_gaussian_noise_8_host(p, pxXorwowStateX, &pxXorwowStateCounter, pGaussianNoiseParams);  // gaussian_noise adjustment
+//                             rpp_saturate8_0to1_sse(p);
+//                         }
+//                         rpp_simd_store(rpp_store8_f32_to_f32, dstPtrTemp, p);                                           // simd stores
+// #endif
+//                         srcPtrTemp += vectorIncrementPerChannelDouble;
+//                         dstPtrTemp += vectorIncrementPerChannelDouble;
+//                     }
                     for (; vectorLoopCount < bufferLength; vectorLoopCount++)
                     {
                         if(!copyInput)
-                            *dstPtrTemp++ = compute_gaussian_noise_1_host(*srcPtrTemp++, &xorwowState, mean, stdDev);
+                            *dstPtrTemp++ = compute_gaussian_noise_1_host_new(*srcPtrTemp++, generator, mean, stdDev);
                         else
                             *dstPtrTemp++ = *srcPtrTemp++;
                     }

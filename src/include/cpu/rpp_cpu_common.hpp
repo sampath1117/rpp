@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include <cstring>
 #include <rppdefs.h>
 #include <omp.h>
+#include <random>
 #include <half/half.hpp>
 using halfhpp = half_float::half;
 typedef halfhpp Rpp16f;
@@ -3451,6 +3452,12 @@ inline Rpp32f compute_gaussian_noise_1_host(Rpp32f pixVal, RpptXorwowStateBoxMul
     pixSqrt = sqrt(pixVal);
 
     return RPPPIXELCHECKF32(pixSqrt * rngVal + pixVal);
+}
+
+inline Rpp32f compute_gaussian_noise_1_host_new(Rpp32f pixVal, std::mt19937 &generator, Rpp32f mean, Rpp32f stdDev)
+{
+    std::normal_distribution<Rpp32f> distribution(mean, stdDev);
+    return (pixVal + distribution(generator));
 }
 
 inline void compute_offset_i8_1c_avx(__m256 &p)
