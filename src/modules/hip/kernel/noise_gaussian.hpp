@@ -9,10 +9,10 @@ __device__ void gaussian_noise_8_hip_compute(d_float8 *pix_f8, RpptXorwowStateBo
     rpp_hip_math_multiply8_const(&rngVals_f8, &rngVals_f8, (float4)stdDev);
     rpp_hip_math_add8_const(&rngVals_f8, &rngVals_f8, (float4)mean);
 
-    rpp_hip_math_sqrt8(pix_f8, &pixSqrt_f8);
-    rpp_hip_math_multiply8(&pixSqrt_f8, &rngVals_f8, &rngVals_f8);
+    // rpp_hip_math_sqrt8(pix_f8, &pixSqrt_f8);
+    // rpp_hip_math_multiply8(&pixSqrt_f8, &rngVals_f8, &rngVals_f8);
     rpp_hip_math_add8(pix_f8, &rngVals_f8, pix_f8);
-    rpp_hip_pixel_check_0to1(pix_f8);
+    // rpp_hip_pixel_check_0to1(pix_f8);
 }
 
 __device__ void gaussian_noise_24_hip_compute(d_float24 *pix_f24, RpptXorwowStateBoxMuller *xorwowState, float mean, float stdDev)
@@ -24,10 +24,10 @@ __device__ void gaussian_noise_24_hip_compute(d_float24 *pix_f24, RpptXorwowStat
     rpp_hip_math_multiply24_const(&rngVals_f24, &rngVals_f24, (float4)stdDev);
     rpp_hip_math_add24_const(&rngVals_f24, &rngVals_f24, (float4)mean);
 
-    rpp_hip_math_sqrt24(pix_f24, &pixSqrt_f24);
-    rpp_hip_math_multiply24(&pixSqrt_f24, &rngVals_f24, &rngVals_f24);
+    // rpp_hip_math_sqrt24(pix_f24, &pixSqrt_f24);
+    // rpp_hip_math_multiply24(&pixSqrt_f24, &rngVals_f24, &rngVals_f24);
     rpp_hip_math_add24(pix_f24, &rngVals_f24, pix_f24);
-    rpp_hip_pixel_check_0to1(pix_f24);
+    // rpp_hip_pixel_check_0to1(pix_f24);
 }
 
 __device__ void gaussian_noise_8_adjusted_input_hip_compute(uchar *srcPtr, d_float8 *pix_f8) { rpp_hip_math_multiply8_const(pix_f8, pix_f8, (float4)ONE_OVER_255); }
