@@ -42,7 +42,7 @@ std::map<int, string> audioAugmentationMap =
     {3, "down_mixing"},
     {4, "spectrogram"},
     {5, "mel_filter_bank"},
-    {6, "resample"}
+    {6, "resample"},
     {7, "slice"}
 };
 
