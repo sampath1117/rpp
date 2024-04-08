@@ -115,7 +115,71 @@ void compute_2D_mean(Rpp32f *srcPtr, Rpp32f *meanPtr, Rpp32u *dims, Rpp32u *stri
         meanPtr[i] = 0;
         compute_sum(meanPtr[i], srcPtrTemp, stride[0], dims[1]);
         srcPtrTemp += stride[1];
-        meanPtr[i] *= normFactor;
+        meanPtr[i] = meanPtr[i] * normFactor;
+    }
+}
+
+Rpp32f rpp_rsqrt(Rpp32f x)
+{
+    // Use SSE intrinsic and one Newton-Raphson refinement step
+    // - faster and less hacky than the hack below.
+    __m128 X = _mm_set_ss(x);
+    __m128 tmp = _mm_rsqrt_ss(X);
+    Rpp32f y = _mm_cvtss_f32(tmp);
+    return y * (1.5f - x * 0.5f * y * y);
+}
+
+static void rpp_rsqrt_sse(Rpp32f *input, Rpp64s numElements, Rpp32f eps, Rpp32f rdiv, Rpp32f mul)
+{
+    Rpp64s i = 0;
+    __m128 rdivx4 = _mm_set1_ps(rdiv);
+    __m128 mulx4 = _mm_set1_ps(mul * 0.5f);
+    if (eps) // epsilon is present - no need for masking, but we need to add it
+    {
+        __m128 epsx4 = _mm_set1_ps(eps);
+        for (; i + 4 <= numElements; i += 4)
+        {
+            __m128 x = _mm_loadu_ps(&input[i]);
+            x = _mm_mul_ps(x, rdivx4);
+            x = _mm_add_ps(x, epsx4);
+            __m128 y = _mm_rsqrt_ps(x);
+            __m128 y2 = _mm_mul_ps(y, y);
+            __m128 xy2 = _mm_mul_ps(x, y2);
+            __m128 three_minus_xy2 = _mm_sub_ps(xmm_p3, xy2);
+            y = _mm_mul_ps(y, three_minus_xy2);
+            y = _mm_mul_ps(y, mulx4);
+            _mm_storeu_ps(&input[i], y);
+        }
+    }
+    else
+    {
+        for (; i + 4 <= numElements; i += 4)
+        {
+            __m128 x = _mm_loadu_ps(&input[i]);
+            x = _mm_mul_ps(x, rdivx4);
+            __m128 mask = _mm_cmpneq_ps(x, xmm_p0);
+            __m128 y = _mm_rsqrt_ps(x);
+            y = _mm_and_ps(y, mask);
+            __m128 y2 = _mm_mul_ps(y, y);
+            __m128 xy2 = _mm_mul_ps(x, y2);
+            __m128 three_minus_xy2 = _mm_sub_ps(xmm_p3, xy2);
+            y = _mm_mul_ps(y, three_minus_xy2);
+            y = _mm_mul_ps(y, mulx4);
+            _mm_storeu_ps(&input[i], y);
+        }
+    }
+    if (eps)
+    {
+        for (; i < numElements; i++)
+            input[i] = rpp_rsqrt(input[i] * rdiv + eps) * mul;
+    }
+    else
+    {
+        for (; i < numElements; i++)
+        {
+            Rpp32f x = input[i] * rdiv;
+            input[i] = x ? rpp_rsqrt(x) * mul : 0;
+        }
     }
 }
 
@@ -131,7 +195,7 @@ void compute_2D_inv_std_dev(Rpp32f *srcPtr, Rpp32f *meanPtr, Rpp32f *stdDevPtr, 
         compute_diff_square_sum(stdDevPtr[i], srcPtrTemp, stride[0], dims[1], meanPtr[i]);
         srcPtrTemp += stride[1];
     }
-    rpp_rsqrt_avx(stdDevPtr, (Rpp32s)dims[0], 0, normFactor, scale);
+    rpp_rsqrt_sse(stdDevPtr, (Rpp64s)dims[0], 0, normFactor, scale);
 }
 
 // Computes mean for 3D inputs
@@ -358,8 +422,8 @@ void normalize_3D_tensor_avx_axis3(Rpp32f *srcPtr, RpptGenericDescPtr srcGeneric
         {
             __m256 pSrc1 = _mm256_loadu_ps(srcPtrTemp);
             __m256 pSrc2 = _mm256_loadu_ps(srcPtrTemp + 8);
-            __m256 pDst1 = _mm256_fmadd_ps(_mm256_sub_ps(pSrc1, pMean1), pMultiplier1, pShift);
-            __m256 pDst2 = _mm256_fmadd_ps(_mm256_sub_ps(pSrc2, pMean2), pMultiplier2, pShift);
+            __m256 pDst1 = _mm256_add_ps(_mm256_mul_ps(_mm256_sub_ps(pSrc1, pMean1), pMultiplier1), pShift);
+            __m256 pDst2 = _mm256_add_ps(_mm256_mul_ps(_mm256_sub_ps(pSrc2, pMean2), pMultiplier2), pShift);
             _mm256_storeu_ps(dstPtrTemp, pDst1);
             _mm256_storeu_ps(dstPtrTemp + 8, pDst2);
             srcPtrTemp += 16;
@@ -485,7 +549,7 @@ void normalize_2D_tensor_avx_axis2(Rpp32f *srcPtr, RpptGenericDescPtr srcDescPtr
         for(; vectorLoopCount < alignedLength ; vectorLoopCount += 8)
         {
             __m256 pSrc = _mm256_loadu_ps(srcPtrTempRow);
-            __m256 pDst = _mm256_fmadd_ps(_mm256_sub_ps(pSrc, pMean), pInvStdDev, pShift);
+            __m256 pDst = _mm256_add_ps(_mm256_mul_ps(_mm256_sub_ps(pSrc, pMean), pInvStdDev), pShift);
             _mm256_storeu_ps(dstPtrTempRow, pDst);
             srcPtrTempRow += 8;
             dstPtrTempRow += 8;
