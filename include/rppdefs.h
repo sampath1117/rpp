@@ -361,7 +361,8 @@ typedef enum
     NCHW,
     NHWC,
     NCDHW,
-    NDHWC
+    NDHWC,
+    NONE
 } RpptLayout;
 
 /*! \brief RPPT Tensor 2D ROI type enum
