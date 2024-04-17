@@ -564,6 +564,37 @@ int main(int argc, char **argv)
 
                     break;
                 }
+                case 24:
+                {
+                    testCaseName = "warp_affine";
+
+                    if ((interpolationType != RpptInterpolationType::BILINEAR) && (interpolationType != RpptInterpolationType::NEAREST_NEIGHBOR))
+                    {
+                        missingFuncFlag = 1;
+                        break;
+                    }
+
+                    Rpp32f6 affineTensor_f6[batchSize];
+                    Rpp32f *affineTensor = (Rpp32f *)affineTensor_f6;
+                    for (i = 0; i < batchSize; i++)
+                    {
+                        affineTensor_f6[i].data[0] = 1.23;
+                        affineTensor_f6[i].data[1] = 0.5;
+                        affineTensor_f6[i].data[2] = 0.0;
+                        affineTensor_f6[i].data[3] = -0.8;
+                        affineTensor_f6[i].data[4] = 0.83;
+                        affineTensor_f6[i].data[5] = 0.0;
+                    }
+
+                    startWallTime = omp_get_wtime();
+                    startCpuTime = clock();
+                    if (inputBitDepth == 0 || inputBitDepth == 1 || inputBitDepth == 2 || inputBitDepth == 5)
+                        rppt_warp_affine_host(input, srcDescPtr, output, dstDescPtr, affineTensor, interpolationType, roiTensorPtrSrc, roiTypeSrc, handle);
+                    else
+                        missingFuncFlag = 1;
+
+                    break;
+                }
                 case 29:
                 {
                     testCaseName = "water";

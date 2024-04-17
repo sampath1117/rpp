@@ -2401,8 +2401,8 @@ template <typename T>
 __device__ __forceinline__ void rpp_hip_interpolate1_nearest_neighbor_pln1(T *srcPtr, uint srcStrideH, float locSrcX, float locSrcY, int4 *roiPtrSrc_i4, float *dst)
 {
     int2 locSrc;
-    locSrc.x = roundf(locSrcX);
-    locSrc.y = roundf(locSrcY);
+    locSrc.x = nearbyintf(locSrcX);
+    locSrc.y = nearbyintf(locSrcY);
 
     if ((locSrc.x < roiPtrSrc_i4->x) || (locSrc.y < roiPtrSrc_i4->y) || (locSrc.x > roiPtrSrc_i4->z) || (locSrc.y > roiPtrSrc_i4->w))
     {

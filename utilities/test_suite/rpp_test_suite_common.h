@@ -53,7 +53,7 @@ using namespace cv;
 using namespace std;
 
 #define CUTOFF 1
-#define DEBUG_MODE 0
+#define DEBUG_MODE 1
 #define MAX_IMAGE_DUMP 20
 #define MAX_BATCH_SIZE 512
 #define GOLDEN_OUTPUT_MAX_HEIGHT 150    // Golden outputs are generated with MAX_HEIGHT set to 150. Changing this constant will result in QA test failures
@@ -78,6 +78,7 @@ std::map<int, string> augmentationMap =
     {20, "flip"},
     {21, "resize"},
     {23, "rotate"},
+    {24, "warp_affine"},
     {29, "water"},
     {30, "non_linear_blend"},
     {31, "color_cast"},
@@ -942,6 +943,7 @@ inline void write_image_batch_opencv(string outputFolder, Rpp8u *output, RpptDes
 void compare_outputs_pkd_and_pln1(Rpp8u* output, Rpp8u* refOutput, RpptDescPtr dstDescPtr, RpptImagePatch *dstImgSizes, int refOutputHeight, int refOutputWidth, int refOutputSize, int &fileMatch)
 {
     Rpp8u *rowTemp, *rowTempRef, *outVal, *outRefVal, *outputTemp, *outputTempRef;
+            int mismatchedIdx = 0;
     for(int imageCnt = 0; imageCnt < dstDescPtr->n; imageCnt++)
     {
         outputTemp = output + imageCnt * dstDescPtr->strides.nStride;
@@ -962,11 +964,17 @@ void compare_outputs_pkd_and_pln1(Rpp8u* output, Rpp8u* refOutput, RpptDescPtr d
                 int diff = abs(*outVal - *outRefVal);
                 if(diff <= CUTOFF)
                     matchedIdx++;
+                else
+                {
+                    std::cout<<" \n mismatches row : "<<i <<" col : "<<j<<" image : "<<imageCnt<<" act val : "<<(int)*outVal<<" refVal : "<<(int)*outRefVal;
+                    mismatchedIdx++;
+                }
             }
         }
         if(matchedIdx == (height * width) && matchedIdx !=0)
             fileMatch++;
     }
+    std::cout<<"\n no of mismatches "<<mismatchedIdx;
 }
 
 // compares the output of PLN3-PLN3 variants.This function compares the output buffer of pln3 format with its reference output in pkd3 format.
@@ -997,6 +1005,8 @@ void compare_outputs_pln3(Rpp8u* output, Rpp8u* refOutput, RpptDescPtr dstDescPt
                     int diff = abs(*outVal - *outRefVal);
                     if(diff <= CUTOFF)
                         matchedIdx++;
+                    else
+                        std::cout<<" \n mismatches row : "<<i <<" col : "<<j<<" image : "<<imageCnt<<" act val : "<<(int)*outVal<<" refVal : "<<(int)*outRefVal;
                 }
             }
         }
