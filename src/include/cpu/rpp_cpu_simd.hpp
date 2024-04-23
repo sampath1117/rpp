@@ -265,7 +265,7 @@ inline void rpp_mm256_print_ps(__m256 vPrintArray)
     printf("\n");
     for (int ct = 0; ct < 8; ct++)
     {
-        printf("%0.10f ", printArray[ct]);
+        printf("%0.6f ", printArray[ct]);
     }
 }
 

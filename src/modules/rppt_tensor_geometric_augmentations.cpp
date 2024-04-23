@@ -205,7 +205,7 @@ RppStatus rppt_warp_affine_host(RppPtr_t srcPtr,
                                 RpptDescPtr srcDescPtr,
                                 RppPtr_t dstPtr,
                                 RpptDescPtr dstDescPtr,
-                                Rpp32f *affineTensor,
+                                Rpp64f *affineTensor,
                                 RpptInterpolationType interpolationType,
                                 RpptROIPtr roiTensorPtrSrc,
                                 RpptRoiType roiType,
@@ -777,7 +777,7 @@ RppStatus rppt_rotate_host(RppPtr_t srcPtr,
                            RpptDescPtr srcDescPtr,
                            RppPtr_t dstPtr,
                            RpptDescPtr dstDescPtr,
-                           Rpp32f *angle,
+                           Rpp64f *angle,
                            RpptInterpolationType interpolationType,
                            RpptROIPtr roiTensorPtrSrc,
                            RpptRoiType roiType,
@@ -789,7 +789,7 @@ RppStatus rppt_rotate_host(RppPtr_t srcPtr,
     RppLayoutParams layoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
 
     // Compute affine transformation matrix from rotate angle
-    Rpp32f *affineTensor = rpp::deref(rppHandle).GetInitHandle()->mem.mcpu.tempFloatmem;
+    Rpp64f *affineTensor = reinterpret_cast<Rpp64f *>(rpp::deref(rppHandle).GetInitHandle()->mem.mcpu.tempFloatmem);
     for(int idx = 0; idx < srcDescPtr->n; idx++)
     {
         Rpp32f angleInRad = angle[idx] * PI_OVER_180;

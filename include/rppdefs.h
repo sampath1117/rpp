@@ -192,7 +192,7 @@ typedef struct
  */
 typedef struct
 {
-    Rpp32f data[6];
+    Rpp64f data[6];
 } Rpp32f6;
 
 /*! \brief RPP 24 signed int vector

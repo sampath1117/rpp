@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 
     bool additionalParamCase = (testCase == 8 || testCase == 21 || testCase == 23 || testCase == 24);
     bool dualInputCase = (testCase == 2 || testCase == 30 || testCase == 61 || testCase == 63);
-    bool randomOutputCase = (testCase == 84);
+    bool randomOutputCase = (testCase == 8 || testCase == 84);
     bool interpolationTypeCase = (testCase == 21 || testCase == 23 || testCase == 24);
     bool noiseTypeCase = (testCase == 8);
     bool pln1OutTypeCase = (testCase == 86);
@@ -484,6 +484,83 @@ int main(int argc, char **argv)
 
                     break;
                 }
+                case 8:
+                {
+                    testCaseName = "noise";
+
+                    switch(additionalParam)
+                    {
+                        case 0:
+                        {
+                            Rpp32f noiseProbabilityTensor[batchSize];
+                            Rpp32f saltProbabilityTensor[batchSize];
+                            Rpp32f saltValueTensor[batchSize];
+                            Rpp32f pepperValueTensor[batchSize];
+                            Rpp32u seed = 1255459;
+                            for (i = 0; i < batchSize; i++)
+                            {
+                                noiseProbabilityTensor[i] = 0.1f;
+                                saltProbabilityTensor[i] = 0.5f;
+                                saltValueTensor[i] = 1.0f;
+                                pepperValueTensor[i] = 0.0f;
+                            }
+
+                            startWallTime = omp_get_wtime();
+                            startCpuTime = clock();
+                            if (inputBitDepth == 0 || inputBitDepth == 1 || inputBitDepth == 2 || inputBitDepth == 5)
+                                rppt_salt_and_pepper_noise_host(input, srcDescPtr, output, dstDescPtr, noiseProbabilityTensor, saltProbabilityTensor, saltValueTensor, pepperValueTensor, seed, roiTensorPtrSrc, roiTypeSrc, handle);
+                            else
+                                missingFuncFlag = 1;
+
+                            break;
+                        }
+                        case 1:
+                        {
+                            Rpp32f meanTensor[batchSize];
+                            Rpp32f stdDevTensor[batchSize];
+                            Rpp32u seed = 1255459;
+                            for (i = 0; i < batchSize; i++)
+                            {
+                                meanTensor[i] = 0.0f;
+                                stdDevTensor[i] = 0.2f;
+                            }
+
+                            startWallTime = omp_get_wtime();
+                            startCpuTime = clock();
+                            if (inputBitDepth == 0 || inputBitDepth == 1 || inputBitDepth == 2 || inputBitDepth == 5)
+                                rppt_gaussian_noise_host(input, srcDescPtr, output, dstDescPtr, meanTensor, stdDevTensor, seed, roiTensorPtrSrc, roiTypeSrc, handle);
+                            else
+                                missingFuncFlag = 1;
+
+                            break;
+                        }
+                        case 2:
+                        {
+                            Rpp32f shotNoiseFactorTensor[batchSize];
+                            Rpp32u seed = 1255459;
+                            for (i = 0; i < batchSize; i++)
+                            {
+                                shotNoiseFactorTensor[i] = 80.0f;
+                            }
+
+                            startWallTime = omp_get_wtime();
+                            startCpuTime = clock();
+                            if (inputBitDepth == 0 || inputBitDepth == 1 || inputBitDepth == 2 || inputBitDepth == 5)
+                                rppt_shot_noise_host(input, srcDescPtr, output, dstDescPtr, shotNoiseFactorTensor, seed, roiTensorPtrSrc, roiTypeSrc, handle);
+                            else
+                                missingFuncFlag = 1;
+
+                            break;
+                        }
+                        default:
+                        {
+                            missingFuncFlag = 1;
+                            break;
+                        }
+                    }
+
+                    break;
+                }
                 case 13:
                 {
                     testCaseName = "exposure";
@@ -551,7 +628,7 @@ int main(int argc, char **argv)
                         break;
                     }
 
-                    Rpp32f angle[batchSize];
+                    Rpp64f angle[batchSize];
                     for (i = 0; i < batchSize; i++)
                         angle[i] = 50;
 
@@ -575,7 +652,7 @@ int main(int argc, char **argv)
                     }
 
                     Rpp32f6 affineTensor_f6[batchSize];
-                    Rpp32f *affineTensor = (Rpp32f *)affineTensor_f6;
+                    Rpp64f *affineTensor = (Rpp64f *)affineTensor_f6;
                     for (i = 0; i < batchSize; i++)
                     {
                         affineTensor_f6[i].data[0] = 1.23;
@@ -585,6 +662,9 @@ int main(int argc, char **argv)
                         affineTensor_f6[i].data[4] = 0.83;
                         affineTensor_f6[i].data[5] = 0.0;
                     }
+
+                    for(int i = 0; i < 6; i ++)
+                        printf("\n affine data at test suite %d, %0.6f", i, affineTensor_f6[0].data[i]);
 
                     startWallTime = omp_get_wtime();
                     startCpuTime = clock();

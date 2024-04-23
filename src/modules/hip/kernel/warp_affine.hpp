@@ -19,8 +19,10 @@ __device__ void warp_affine_roi_and_srclocs_hip_compute(int4 *srcRoiPtr_i4, int 
     int roiHalfHeight = (srcRoiPtr_i4->w - srcRoiPtr_i4->y + 1) >> 1;
     locDst_f2.x = (float) (id_x - roiHalfWidth);
     locDst_f2.y = (float) (id_y - roiHalfHeight);
-    locSrc_f2.x = fmaf(locDst_f2.x, affineMatrix_f6->f1[0], fmaf(locDst_f2.y, affineMatrix_f6->f1[1], affineMatrix_f6->f1[2])) + roiHalfWidth;
-    locSrc_f2.y = fmaf(locDst_f2.x, affineMatrix_f6->f1[3], fmaf(locDst_f2.y, affineMatrix_f6->f1[4], affineMatrix_f6->f1[5])) + roiHalfHeight;
+    // locSrc_f2.x = fmaf(locDst_f2.x, affineMatrix_f6->f1[0], fmaf(locDst_f2.y, affineMatrix_f6->f1[1], affineMatrix_f6->f1[2])) + roiHalfWidth;
+    // locSrc_f2.y = fmaf(locDst_f2.x, affineMatrix_f6->f1[3], fmaf(locDst_f2.y, affineMatrix_f6->f1[4], affineMatrix_f6->f1[5])) + roiHalfHeight;
+    locSrc_f2.x = (locDst_f2.x * affineMatrix_f6->f1[0] + ((locDst_f2.y * affineMatrix_f6->f1[1]) + affineMatrix_f6->f1[2])) + roiHalfWidth;
+    locSrc_f2.y = (locDst_f2.x * affineMatrix_f6->f1[3] + ((locDst_f2.y * affineMatrix_f6->f1[4]) + affineMatrix_f6->f1[5])) + roiHalfHeight;
     warp_affine_srclocs_hip_compute(affineMatrix_f6->f1[0], (float4)locSrc_f2.x, &(locSrc_f16->f8[0]));    // Compute 8 locSrcX
     warp_affine_srclocs_hip_compute(affineMatrix_f6->f1[3], (float4)locSrc_f2.y, &(locSrc_f16->f8[1]));    // Compute 8 locSrcY
 }
@@ -84,22 +86,6 @@ __global__ void warp_affine_bilinear_pln_hip_tensor(T *srcPtr,
     int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
     d_float16 locSrc_f16;
     warp_affine_roi_and_srclocs_hip_compute(&srcRoi_i4, id_x, id_y, &affineMatrix_f6, &locSrc_f16);
-
-    for(int i = id_x; i < id_x + 8; i++)
-    {
-        printf(" \n affine matrix data with multiple i %0.6f", affineMatrix_f6.f1[0] * i);
-    }
-
-    if(id_z == 0 && id_y == 0 && id_x == 8)
-    {
-        for(int i = 0; i < 4; i++)
-        {
-            printf(" x - %f\n", (float)locSrc_f16.f4[i].x);
-            printf(" y - %f\n", (float)locSrc_f16.f4[i].y);
-            printf(" z - %f\n", (float)locSrc_f16.f4[i].z);
-            printf(" w - %f\n", (float)locSrc_f16.f4[i].w);
-        }
-    }
 
     d_float8 dst_f8;
     rpp_hip_interpolate8_bilinear_pln1(srcPtr + srcIdx, srcStridesNCH.z, &locSrc_f16, &srcRoi_i4, &dst_f8);
@@ -243,30 +229,8 @@ __global__ void warp_affine_nearest_neighbor_pln_hip_tensor(T *srcPtr,
     d_float16 locSrc_f16;
     warp_affine_roi_and_srclocs_hip_compute(&srcRoi_i4, id_x, id_y, &affineMatrix_f6, &locSrc_f16);
 
-    if(id_z == 1 && id_y == 0 && id_x == 32)
-    {
-        for(int i = 0; i < 4; i++)
-        {
-            printf(" x - %f\n", (float)locSrc_f16.f4[i].x);
-            printf(" y - %f\n", (float)locSrc_f16.f4[i].y);
-            printf(" z - %f\n", (float)locSrc_f16.f4[i].z);
-            printf(" w - %f\n", (float)locSrc_f16.f4[i].w);
-        }
-    }
-
     d_float8 dst_f8;
     rpp_hip_interpolate8_nearest_neighbor_pln1(srcPtr + srcIdx, srcStridesNCH.z, &locSrc_f16, &srcRoi_i4, &dst_f8);
-    if(id_z == 1 && id_y == 0 && id_x == 32)
-    {
-        printf("\n dst values ");
-        for(int i = 0; i < 2; i++)
-        {
-            printf(" dst x - %f\n", (float)dst_f8.f4[i].x);
-            printf(" dst y - %f\n", (float)dst_f8.f4[i].y);
-            printf(" dst z - %f\n", (float)dst_f8.f4[i].z);
-            printf(" dst w - %f\n", (float)dst_f8.f4[i].w);
-        }
-    }
     rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &dst_f8);
 
     if (channelsDst == 3)
