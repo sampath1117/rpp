@@ -166,6 +166,7 @@ else()
     # STD Filesystem
     set(LINK_LIBRARY_LIST ${LINK_LIBRARY_LIST} stdc++fs)
 endif()
+set(LINK_LIBRARY_LIST ${LINK_LIBRARY_LIST} fftw3 fftw3f fftw3l)
 include_directories(${OpenMP_INCLUDE_DIRS})
 set(LINK_LIBRARY_LIST ${LINK_LIBRARY_LIST} OpenMP::OpenMP_CXX)
 
@@ -173,6 +174,13 @@ set(LINK_LIBRARY_LIST ${LINK_LIBRARY_LIST} OpenMP::OpenMP_CXX)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 set(LINK_LIBRARY_LIST ${LINK_LIBRARY_LIST} Threads::Threads)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(FFTW IMPORTED_TARGET REQUIRED fftw3)
+if(NOT FFTW_ROOT AND DEFINED ENV{FFTWDIR})
+    set(FFTW_ROOT $ENV{FFTWDIR})
+endif()
+# set(LINK_LIBRARY_LIST ${LINK_LIBRARY_LIST} PkgConfig::FFTW)
 
 # set global compiler flags for the project
 # -fPIC -- Generate position-independent code if possible.
@@ -301,6 +309,7 @@ target_link_libraries(${PROJECT_NAME} ${LINK_LIBRARY_LIST})
 set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/libs/third_party/ffts/libffts.a)
+target_link_libraries(${PROJECT_NAME} PkgConfig::FFTW)
 set_target_properties(${PROJECT_NAME} PROPERTIES
                       VERSION ${PROJECT_VERSION}
                       SOVERSION ${PROJECT_VERSION_MAJOR})

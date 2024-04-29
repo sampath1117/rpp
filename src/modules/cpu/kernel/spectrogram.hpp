@@ -26,6 +26,7 @@ SOFTWARE.
 #include "third_party/ffts/ffts.h"
 #include "third_party/ffts/ffts_attributes.h"
 #include <complex>
+#include <fftw3.h>
 
 bool is_pow2(Rpp64s n) { return (n & (n-1)) == 0; }
 inline bool can_use_real_impl(Rpp64s n) { return is_pow2(n); }
@@ -107,8 +108,8 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
     Rpp32u numThreads = handle.GetNumThreads();
 
     // Get windows output
-    omp_set_dynamic(0);
-#pragma omp parallel for num_threads(numThreads)
+//     omp_set_dynamic(0);
+// #pragma omp parallel for num_threads(numThreads)
     for (Rpp32s batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
     {
         Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
@@ -162,51 +163,34 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
             }
         }
 
-        // Generate FFT output
-        ffts_plan_t *p;
-        if(useRealImpl)
-            p = ffts_init_1d_real(nfft, FFTS_FORWARD);
-        else
-            p = ffts_init_1d(nfft, FFTS_FORWARD);
-
-        if (!p)
-        {
-            printf("FFT Plan is unsupported. Exiting the code\n");
-            exit(0);
-        }
-
         // Set temporary buffers to 0
-        Rpp32f FFTS_ALIGN(32) *fftInBuf = static_cast<Rpp32f*>(_mm_malloc(fftInSize * sizeof(Rpp32f), 32)); // ffts requires 32-byte aligned memory
-        Rpp32f FFTS_ALIGN(32) *fftOutBuf = static_cast<Rpp32f*>(_mm_malloc(fftOutSize * sizeof(Rpp32f), 32)); // ffts requires 32-byte aligned memory
+        fftwf_plan p;
+        float *fftInBuf;
+        fftwf_complex *fftOutBuf;
+        fftInBuf = static_cast<float *>(fftwf_malloc(sizeof(float) * fftInSize));
+        fftOutBuf = static_cast<fftwf_complex *>(fftwf_malloc(sizeof(fftwf_complex) * fftOutSize));
+        p = fftwf_plan_dft_r2c_1d(nfft, fftInBuf, fftOutBuf, FFTW_ESTIMATE);
 
         for (Rpp32s w = 0; w < numWindows; w++)
         {
             Rpp32f *dstPtrBinTemp = dstPtrTemp + (w * hStride);
             Rpp32f *windowOutputTemp = windowOutput + (w * nfft);
+            Rpp32s inWindowStart = windowLength < nfft ? (nfft - windowLength) / 2 : 0;
+
             for(int k = 0; k < fftInSize; k++)
                 fftInBuf[k] = 0.0f;
 
             for(int k = 0; k < fftOutSize; k++)
-                fftOutBuf[k] = 0.0f;
+            {
+                fftOutBuf[k][0] = 0.0f;
+                fftOutBuf[k][1] = 0.0f;
+            }
 
-            Rpp32s inWindowStart = windowLength < nfft ? (nfft - windowLength) / 2 : 0;
             // Copy the window input to fftInBuf
-            if (useRealImpl)
-            {
-                for (int i = 0; i < windowLength; i++)
-                    fftInBuf[inWindowStart + i] = windowOutputTemp[i];
-            }
-            else
-            {
-                for (int i = 0; i < windowLength; i++)
-                {
-                    Rpp32s off = 2 * (inWindowStart + i);
-                    fftInBuf[off] = windowOutputTemp[i];
-                    fftInBuf[off + 1] = 0.0f;
-                }
-            }
+            for (int i = 0; i < windowLength; i++)
+                fftInBuf[inWindowStart + i] = windowOutputTemp[i];
 
-            ffts_execute(p, fftInBuf, fftOutBuf);
+            fftwf_execute(p);
             auto *complexFft = reinterpret_cast<std::complex<Rpp32f> *>(fftOutBuf);
             Rpp32s outIdx = w;
             if (vertical)
@@ -236,9 +220,9 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
                 }
             }
         }
-        ffts_free(p);
-        _mm_free(fftInBuf);
-        _mm_free(fftOutBuf);
+        fftwf_free(fftInBuf);
+        fftwf_free(fftOutBuf);
+        fftwf_destroy_plan(p);
     }
     if(windowFn)
         free(windowFn);
