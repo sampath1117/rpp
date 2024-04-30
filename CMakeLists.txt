@@ -174,6 +174,10 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 set(LINK_LIBRARY_LIST ${LINK_LIBRARY_LIST} Threads::Threads)
 
+find_library(ffts_LIBS
+     NAMES ffts libffts
+     PATHS ${CMAKE_SYSTEM_PREFIX_PATH} ${FFTS_ROOT_DIR} "/usr/local")
+
 # set global compiler flags for the project
 # -fPIC -- Generate position-independent code if possible.
 # -mavx2 -- Support MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, AVX and AVX2 built-in functions and code generation.
@@ -300,7 +304,13 @@ message("-- ${White}${PROJECT_NAME} -- Link Libraries: ${LINK_LIBRARY_LIST}${Col
 target_link_libraries(${PROJECT_NAME} ${LINK_LIBRARY_LIST})
 set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/libs/third_party/ffts/libffts.a)
+if(ffts_LIBS)
+    message("-- ${Green}${PROJECT_NAME}${FFTS_ROOT_DIR} FFTS found")
+    link_directories(/usr/local/include/ffts)
+    target_link_libraries(${PROJECT_NAME} /usr/local/lib/libffts.a)
+else()
+    message("-- ${Yellow}${PROJECT_NAME} Warning: FFTS must be installed for building ${PROJECT_NAME}")
+endif(ffts_LIBS)
 set_target_properties(${PROJECT_NAME} PROPERTIES
                       VERSION ${PROJECT_VERSION}
                       SOVERSION ${PROJECT_VERSION_MAJOR})

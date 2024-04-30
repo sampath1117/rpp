@@ -23,8 +23,8 @@ SOFTWARE.
 */
 
 #include "rppdefs.h"
-#include "third_party/ffts/ffts.h"
-#include "third_party/ffts/ffts_attributes.h"
+#include <ffts/ffts.h>
+#include <ffts/ffts_attributes.h>
 #include <complex>
 
 bool is_pow2(Rpp64s n) { return (n & (n-1)) == 0; }
