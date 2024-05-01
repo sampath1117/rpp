@@ -108,8 +108,8 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
     Rpp32u numThreads = handle.GetNumThreads();
 
     // Get windows output
-//     omp_set_dynamic(0);
-// #pragma omp parallel for num_threads(numThreads)
+    omp_set_dynamic(0);
+#pragma omp parallel for num_threads(numThreads)
     for (Rpp32s batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
     {
         Rpp32f *srcPtrTemp = srcPtr + batchCount * srcDescPtr->strides.nStride;
@@ -169,7 +169,8 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
         fftwf_complex *fftOutBuf;
         fftInBuf = static_cast<float *>(fftwf_malloc(sizeof(float) * fftInSize));
         fftOutBuf = static_cast<fftwf_complex *>(fftwf_malloc(sizeof(fftwf_complex) * fftOutSize));
-        p = fftwf_plan_dft_r2c_1d(nfft, fftInBuf, fftOutBuf, FFTW_ESTIMATE);
+        #pragma omp critical
+            p = fftwf_plan_dft_r2c_1d(nfft, fftInBuf, fftOutBuf, FFTW_ESTIMATE);
 
         for (Rpp32s w = 0; w < numWindows; w++)
         {
@@ -222,7 +223,8 @@ RppStatus spectrogram_host_tensor(Rpp32f *srcPtr,
         }
         fftwf_free(fftInBuf);
         fftwf_free(fftOutBuf);
-        fftwf_destroy_plan(p);
+        #pragma omp critical
+            fftwf_destroy_plan(p);
     }
     if(windowFn)
         free(windowFn);
