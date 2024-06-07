@@ -329,8 +329,8 @@ RppStatus hip_exec_warp_affine_tensor(T *srcPtr,
     int globalThreads_y = dstDescPtr->h;
     int globalThreads_z = handle.GetBatchSize();
 
-    float *affineTensorPtr = handle.GetInitHandle()->mem.mgpu.maskArr.floatmem;
-    hipMemcpy(affineTensorPtr, affineTensor, 6 * handle.GetBatchSize() * sizeof(float), hipMemcpyHostToDevice);
+    float *affineTensorPtr = handle.GetInitHandle()->mem.mgpu.scratchBufferHip.floatmem;
+    CHECK_RETURN_STATUS(hipMemcpy(affineTensorPtr, affineTensor, 6 * handle.GetBatchSize() * sizeof(float), hipMemcpyHostToDevice));
 
     if (interpolationType == RpptInterpolationType::BILINEAR)
     {

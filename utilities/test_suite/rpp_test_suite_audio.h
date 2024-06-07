@@ -40,6 +40,10 @@ std::map<int, string> audioAugmentationMap =
     {1, "to_decibels"},
     {2, "pre_emphasis_filter"},
     {3, "down_mixing"},
+    {4, "spectrogram"},
+    {5, "slice"},
+    {6, "resample"},
+    {7, "mel_filter_bank"}
 };
 
 // Golden outputs for Non Silent Region Detection
@@ -62,6 +66,22 @@ inline void set_audio_descriptor_dims_and_strides(RpptDescPtr descPtr, int batch
 
     // Optionally set w stride as a multiple of 8 for src/dst
     descPtr->w = ((descPtr->w / 8) * 8) + 8;
+    descPtr->strides.nStride = descPtr->c * descPtr->w * descPtr->h;
+    descPtr->strides.hStride = descPtr->c * descPtr->w;
+    descPtr->strides.wStride = descPtr->c;
+    descPtr->strides.cStride = 1;
+}
+
+// sets descriptor dimensions and strides of src/dst
+inline void set_audio_descriptor_dims_and_strides_nostriding(RpptDescPtr descPtr, int batchSize, int maxHeight, int maxWidth, int maxChannels, int offsetInBytes)
+{
+    descPtr->numDims = 4;
+    descPtr->offsetInBytes = offsetInBytes;
+    descPtr->n = batchSize;
+    descPtr->h = maxHeight;
+    descPtr->w = maxWidth;
+    descPtr->c = maxChannels;
+
     descPtr->strides.nStride = descPtr->c * descPtr->w * descPtr->h;
     descPtr->strides.hStride = descPtr->c * descPtr->w;
     descPtr->strides.wStride = descPtr->c;
@@ -128,6 +148,50 @@ void read_audio_batch_and_fill_dims(RpptDescPtr descPtr, Rpp32f *inputf32, vecto
         // Close input
         sf_close (infile);
     }
+}
+
+void read_from_bin_file(Rpp32f *srcPtr, RpptDescPtr srcDescPtr, Rpp32s *srcDims, string testCase, string scriptPath)
+{
+    // read data from golden outputs
+    Rpp64u oBufferSize = srcDescPtr->n * srcDescPtr->strides.nStride;
+    Rpp32f *refInput = static_cast<Rpp32f *>(malloc(oBufferSize * sizeof(float)));
+    string outFile = scriptPath + "/../REFERENCE_OUTPUTS_AUDIO/" + testCase + "/" + testCase + ".bin";
+    std::fstream fin(outFile, std::ios::in | std::ios::binary);
+    if(fin.is_open())
+    {
+        for(Rpp64u i = 0; i < oBufferSize; i++)
+        {
+            if(!fin.eof())
+                fin.read(reinterpret_cast<char*>(&refInput[i]), sizeof(float));
+            else
+            {
+                std::cout<<"\nUnable to read all data from golden outputs\n";
+                return;
+            }
+        }
+    }
+    else
+    {
+        std::cout<<"\nCould not open the reference output. Please check the path specified\n";
+        return;
+    }
+    for (int batchCount = 0; batchCount < srcDescPtr->n; batchCount++)
+    {
+        Rpp32f *srcPtrCurrent = srcPtr + batchCount * srcDescPtr->strides.nStride;
+        Rpp32f *refPtrCurrent = refInput + batchCount * srcDescPtr->strides.nStride;
+        Rpp32f *srcPtrRow = srcPtrCurrent;
+        Rpp32f *refPtrRow = refPtrCurrent;
+        for(int i = 0; i < srcDims[batchCount * 2]; i++)
+        {
+            Rpp32f *srcPtrTemp = srcPtrRow;
+            Rpp32f *refPtrTemp = refPtrRow;
+            for(int j = 0; j < srcDims[(batchCount * 2) + 1]; j++)
+                srcPtrTemp[j] = refPtrTemp[j];
+            srcPtrRow += srcDescPtr->strides.hStride;
+            refPtrRow += srcDescPtr->strides.hStride;
+        }
+    }
+    free(refInput);
 }
 
 void verify_output(Rpp32f *dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dstDims, string testCase, string dst, string scriptPath)
@@ -213,7 +277,7 @@ void verify_output(Rpp32f *dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dst
     free(refOutput);
 }
 
-void verify_non_silent_region_detection(float *detectedIndex, float *detectionLength, string testCase, int bs, vector<string> audioNames, string dst)
+void verify_non_silent_region_detection(int *detectedIndex, int *detectionLength, string testCase, int bs, vector<string> audioNames, string dst)
 {
     int fileMatch = 0;
     for (int i = 0; i < bs; i++)
@@ -255,4 +319,39 @@ void verify_non_silent_region_detection(float *detectedIndex, float *detectionLe
         qaResults << status << std::endl;
         qaResults.close();
     }
+}
+
+inline Rpp32f sinc(Rpp32f x)
+{
+    x *= M_PI;
+    return (std::abs(x) < 1e-5f) ? (1.0f - x * x * (1.0f / 6)) : std::sin(x) / x;
+}
+
+inline Rpp64f hann(Rpp64f x)
+{
+    return 0.5 * (1 + std::cos(x * M_PI));
+}
+
+// initialization function used for filling the values in Resampling window (RpptResamplingWindow)
+// using the coeffs and lobes value this function generates a LUT (look up table) which is further used in Resample audio augmentation
+inline void windowed_sinc(RpptResamplingWindow &window, Rpp32s coeffs, Rpp32s lobes)
+{
+    Rpp32f scale = 2.0f * lobes / (coeffs - 1);
+    Rpp32f scale_envelope = 2.0f / coeffs;
+    window.coeffs = coeffs;
+    window.lobes = lobes;
+    window.lookup.clear();
+    window.lookup.resize(coeffs + 5);
+    window.lookupSize = window.lookup.size();
+    Rpp32s center = (coeffs - 1) * 0.5f;
+    for (int i = 0; i < coeffs; i++) {
+        Rpp32f x = (i - center) * scale;
+        Rpp32f y = (i - center) * scale_envelope;
+        Rpp32f w = sinc(x) * hann(y);
+        window.lookup[i + 1] = w;
+    }
+    window.center = center + 1;
+    window.scale = 1 / scale;
+    window.pCenter = _mm_set1_ps(window.center);
+    window.pScale = _mm_set1_ps(window.scale);
 }
