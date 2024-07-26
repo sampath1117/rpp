@@ -1083,6 +1083,21 @@ int main(int argc, char **argv)
 
                     break;
                 }
+                case 50:
+                {
+                    testCaseName = "sobel_filter";
+                    Rpp32u kernelSize = 3;
+                    Rpp32u sobelType = 0;
+
+                    startWallTime = omp_get_wtime();
+                    startCpuTime = clock();
+                    if (inputBitDepth == 0 || inputBitDepth == 1 || inputBitDepth == 2 || inputBitDepth == 3 || inputBitDepth == 4 || inputBitDepth == 5)
+                        rppt_sobel_filter_host(input, srcDescPtr, output, dstDescPtr, sobelType, kernelSize, roiTensorPtrSrc, roiTypeSrc, handle);
+                    else
+                        missingFuncFlag = 1;
+
+                    break;
+                }
                 case 61:
                 {
                     testCaseName = "magnitude";

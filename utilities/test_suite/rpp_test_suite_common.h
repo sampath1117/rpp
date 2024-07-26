@@ -97,6 +97,7 @@ std::map<int, string> augmentationMap =
     {45, "color_temperature"},
     {46, "vignette"},
     {49, "box_filter"},
+    {50, "sobel_filter"},
     {54, "gaussian_filter"},
     {61, "magnitude"},
     {63, "phase"},
