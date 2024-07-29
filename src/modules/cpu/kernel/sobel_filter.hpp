@@ -27,9 +27,10 @@ SOFTWARE.
 #include "rpp_cpu_common.hpp"
 #include "rpp_cpu_filter.hpp"
 
-inline void sobel_filter_generic_tensor(Rpp8u **srcPtrTemp, Rpp8u *dstPtrTemp, Rpp32s columnIndex,
-                                        Rpp32u kernelSize, Rpp32u padLength, Rpp32u unpaddedWidth, Rpp32s rowKernelLoopLimit,
-                                        Rpp32f *filterTensor, Rpp32u channels = 1)
+template<typename T>
+inline void sobel_filter_unidirection_generic_tensor(T **srcPtrTemp, T *dstPtrTemp, Rpp32s columnIndex,
+                                                     Rpp32u kernelSize, Rpp32u padLength, Rpp32u unpaddedWidth, Rpp32s rowKernelLoopLimit,
+                                                     Rpp32f *filterTensor, Rpp32u channels = 1)
 {
     Rpp32f accum = 0.0f;
     Rpp32s columnKernelLoopLimit = kernelSize;
@@ -40,7 +41,7 @@ inline void sobel_filter_generic_tensor(Rpp8u **srcPtrTemp, Rpp8u *dstPtrTemp, R
         for (int j = 0, k = 0 ; j < columnKernelLoopLimit; j++, k += channels)
             accum += static_cast<Rpp32f>(srcPtrTemp[i][k]) * filterTensor[i * kernelSize + j];
 
-    saturate_pixel(std::nearbyintf(accum), dstPtrTemp);
+    saturate_pixel(accum, dstPtrTemp);
 }
 
 // process padLength number of columns in each row
@@ -50,14 +51,15 @@ inline void process_left_border_columns_pln_pln(Rpp8u **srcPtrTemp, Rpp8u *dstPt
 {
     for (int k = 0; k < padLength; k++)
     {
-        sobel_filter_generic_tensor(srcPtrTemp, dstPtrTemp, k, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filterTensor, 1);
+        sobel_filter_unidirection_generic_tensor(srcPtrTemp, dstPtrTemp, k, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filterTensor, 1);
         dstPtrTemp++;
     }
 }
 
-inline void sobel_filter_generic_tensor(Rpp8u **srcPtrTemp, Rpp8u *dstPtrTemp, Rpp32s columnIndex,
-                                        Rpp32u kernelSize, Rpp32u padLength, Rpp32u unpaddedWidth, Rpp32s rowKernelLoopLimit,
-                                        Rpp32f *filterXTensor, Rpp32f *filterYTensor, Rpp32u channels = 1)
+template<typename T>
+inline void sobel_filter_bidirection_generic_tensor(T **srcPtrTemp, T *dstPtrTemp, Rpp32s columnIndex,
+                                                    Rpp32u kernelSize, Rpp32u padLength, Rpp32u unpaddedWidth, Rpp32s rowKernelLoopLimit,
+                                                    Rpp32f *filterXTensor, Rpp32f *filterYTensor, Rpp32u channels = 1)
 {
     Rpp32f accumX = 0.0f;
     Rpp32f accumY = 0.0f;
@@ -73,11 +75,21 @@ inline void sobel_filter_generic_tensor(Rpp8u **srcPtrTemp, Rpp8u *dstPtrTemp, R
             accumY += static_cast<Rpp32f>(srcPtrTemp[i][k]) * filterYTensor[i * kernelSize + j];
         }
     }
-    accumX = RPPPIXELCHECK(accumX);
-    accumY = RPPPIXELCHECK(accumY);
+
+    // saturate the values of accumX and accumY to the range of datatype
+    if constexpr (std::is_same<T, Rpp8u>::value || std::is_same<T, Rpp8s>::value)
+    {
+        accumX = RPPPIXELCHECK(accumX);
+        accumY = RPPPIXELCHECK(accumY);
+    }
+    else
+    {
+        accumX = RPPPIXELCHECKF32(accumX);
+        accumY = RPPPIXELCHECKF32(accumY);
+    }
 
     Rpp32f accum = sqrt((accumX * accumX) + (accumY * accumY));
-    saturate_pixel(std::nearbyintf(accum), dstPtrTemp);
+    saturate_pixel(accum, dstPtrTemp);
 }
 
 // process padLength number of columns in each row
@@ -87,7 +99,7 @@ inline void process_left_border_columns_pln_pln(Rpp8u **srcPtrTemp, Rpp8u *dstPt
 {
     for (int k = 0; k < padLength; k++)
     {
-        sobel_filter_generic_tensor(srcPtrTemp, dstPtrTemp, k, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filterXTensor, filterYTensor, 1);
+        sobel_filter_bidirection_generic_tensor(srcPtrTemp, dstPtrTemp, k, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filterXTensor, filterYTensor, 1);
         dstPtrTemp++;
     }
 }
@@ -232,7 +244,7 @@ RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                         vectorLoopCount += padLength;
                         for (; vectorLoopCount < bufferLength; vectorLoopCount++)
                         {
-                            sobel_filter_generic_tensor(srcPtrTemp, dstPtrTemp, vectorLoopCount, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filterX, filterY);
+                            sobel_filter_bidirection_generic_tensor(srcPtrTemp, dstPtrTemp, vectorLoopCount, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filterX, filterY);
                             increment_row_ptrs(srcPtrTemp, kernelSize, 1);
                             dstPtrTemp++;
                         }
@@ -301,7 +313,7 @@ RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                         vectorLoopCount += padLength;
                         for (; vectorLoopCount < bufferLength; vectorLoopCount++)
                         {
-                            sobel_filter_generic_tensor(srcPtrTemp, dstPtrTemp, vectorLoopCount, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filter);
+                            sobel_filter_unidirection_generic_tensor(srcPtrTemp, dstPtrTemp, vectorLoopCount, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filter);
                             increment_row_ptrs(srcPtrTemp, kernelSize, 1);
                             dstPtrTemp++;
                         }
