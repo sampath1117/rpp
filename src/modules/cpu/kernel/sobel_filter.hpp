@@ -181,7 +181,7 @@ RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
 #endif
                 /* exclude 2 * padLength number of columns from alignedLength calculation
                    since padLength number of columns from the beginning and end of each row will be computed using raw c code */
-                Rpp32u alignedLength = ((bufferLength - (2 * padLength)) / 8) * 8;
+                Rpp32u alignedLength = ((bufferLength - (2 * padLength)) / 16) * 16;
                 for (int c = 0; c < srcDescPtr->c; c++)
                 {
                     srcPtrRow[0] = srcPtrChannel;
@@ -202,7 +202,7 @@ RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                         dstPtrTemp += padLength;
 #if __AVX2__
                         // process alignedLength number of columns in each row
-                        for (; vectorLoopCount < alignedLength; vectorLoopCount += 8)
+                        for (; vectorLoopCount < alignedLength; vectorLoopCount += 14)
                         {
                             __m256 pRow[6], pDst[2], pDstX[2], pDstY[2];
                             rpp_load_sobel_filter_char_3x3_host(pRow, srcPtrTemp, rowKernelLoopLimit);
@@ -229,6 +229,18 @@ RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                                 pTemp[1] = _mm256_mul_ps(pRowShift[0], pFilterY[filterIndex + 1]);
                                 pTemp[2] = _mm256_mul_ps(pRowShift[1], pFilterY[filterIndex + 2]);
                                 pDstY[0] = _mm256_add_ps(pDstY[0], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
+
+                                pRowShift[0] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 1), avx_pxMaskRotate0To1);
+                                pRowShift[1] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 3), avx_pxMaskRotate0To2);
+                                pTemp[0] = _mm256_mul_ps(pRow[rowIndex + 1], pFilterX[filterIndex]);
+                                pTemp[1] = _mm256_mul_ps(pRowShift[0], pFilterX[filterIndex + 1]);
+                                pTemp[2] = _mm256_mul_ps(pRowShift[1], pFilterX[filterIndex + 2]);
+                                pDstX[1] = _mm256_add_ps(pDstX[1], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
+
+                                pTemp[0] = _mm256_mul_ps(pRow[rowIndex + 1], pFilterY[filterIndex]);
+                                pTemp[1] = _mm256_mul_ps(pRowShift[0], pFilterY[filterIndex + 1]);
+                                pTemp[2] = _mm256_mul_ps(pRowShift[1], pFilterY[filterIndex + 2]);
+                                pDstY[1] = _mm256_add_ps(pDstY[1], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
                             }
                             pDstX[0] = _mm256_min_ps(_mm256_max_ps(pDstX[0], avx_p0), avx_p255);
                             pDstY[0] = _mm256_min_ps(_mm256_max_ps(pDstY[0], avx_p0), avx_p255);
@@ -236,9 +248,15 @@ RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                             pDstY[0] = _mm256_mul_ps(pDstY[0], pDstY[0]);
                             pDst[0] =  _mm256_sqrt_ps(_mm256_add_ps(pDstX[0], pDstY[0]));
 
+                            pDstX[1] = _mm256_min_ps(_mm256_max_ps(pDstX[1], avx_p0), avx_p255);
+                            pDstY[1] = _mm256_min_ps(_mm256_max_ps(pDstY[1], avx_p0), avx_p255);
+                            pDstX[1] = _mm256_mul_ps(pDstX[1], pDstX[1]);
+                            pDstY[1] = _mm256_mul_ps(pDstY[1], pDstY[1]);
+                            pDst[1] =  _mm256_sqrt_ps(_mm256_add_ps(pDstX[1], pDstY[1]));
+
                             rpp_store16_f32_to_u8_avx(dstPtrTemp, pDst);
-                            increment_row_ptrs(srcPtrTemp, kernelSize, 8);
-                            dstPtrTemp += 8;
+                            increment_row_ptrs(srcPtrTemp, kernelSize, 14);
+                            dstPtrTemp += 14;
                         }
 #endif
                         vectorLoopCount += padLength;
@@ -264,10 +282,9 @@ RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                 for (int i = 0; i < 9; i++)
                     pFilter[i] = _mm256_set1_ps(filter[i]);
 #endif
-
                 /* exclude 2 * padLength number of columns from alignedLength calculation
                    since padLength number of columns from the beginning and end of each row will be computed using raw c code */
-                Rpp32u alignedLength = ((bufferLength - (2 * padLength)) / 8) * 8;
+                Rpp32u alignedLength = ((bufferLength - (2 * padLength)) / 16) * 16;
                 for (int c = 0; c < srcDescPtr->c; c++)
                 {
                     srcPtrRow[0] = srcPtrChannel;
@@ -288,7 +305,7 @@ RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                         dstPtrTemp += padLength;
 #if __AVX2__
                         // process alignedLength number of columns in each row
-                        for (; vectorLoopCount < alignedLength; vectorLoopCount += 8)
+                        for (; vectorLoopCount < alignedLength; vectorLoopCount += 14)
                         {
                             __m256 pRow[6], pDst[2];
                             rpp_load_sobel_filter_char_3x3_host(pRow, srcPtrTemp, rowKernelLoopLimit);
@@ -304,10 +321,15 @@ RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                                 pTemp[1] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 1), avx_pxMaskRotate0To1), pFilter[filterIndex + 1]);
                                 pTemp[2] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 3), avx_pxMaskRotate0To2), pFilter[filterIndex + 2]);
                                 pDst[0] = _mm256_add_ps(pDst[0], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
+
+                                pTemp[0] = _mm256_mul_ps(pRow[rowIndex + 1], pFilter[filterIndex]);
+                                pTemp[1] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 1), avx_pxMaskRotate0To1), pFilter[filterIndex + 1]);
+                                pTemp[2] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 3), avx_pxMaskRotate0To2), pFilter[filterIndex + 2]);
+                                pDst[1] = _mm256_add_ps(pDst[1], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
                             }
                             rpp_store16_f32_to_u8_avx(dstPtrTemp, pDst);
-                            increment_row_ptrs(srcPtrTemp, kernelSize, 8);
-                            dstPtrTemp += 8;
+                            increment_row_ptrs(srcPtrTemp, kernelSize, 14);
+                            dstPtrTemp += 14;
                         }
 #endif
                         vectorLoopCount += padLength;
