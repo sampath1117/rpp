@@ -37,16 +37,26 @@ inline void sobel_filter_unidirection_generic_tensor(T **srcPtrTemp, T *dstPtrTe
 
     // find the colKernelLoopLimit based on columnIndex
     get_kernel_loop_limit(columnIndex, columnKernelLoopLimit, padLength, unpaddedWidth);
-    for (int i = 0; i < rowKernelLoopLimit; i++)
-        for (int j = 0, k = 0 ; j < columnKernelLoopLimit; j++, k += channels)
-            accum += static_cast<Rpp32f>(srcPtrTemp[i][k]) * filterTensor[i * kernelSize + j];
+    if constexpr (std::is_same<T, Rpp8s>::value)
+    {
+        for (int i = 0; i < rowKernelLoopLimit; i++)
+            for (int j = 0, k = 0 ; j < columnKernelLoopLimit; j++, k += channels)
+                accum += static_cast<Rpp32f>(srcPtrTemp[i][k] + 128) * filterTensor[i * kernelSize + j];
+    }
+    else
+    {
+        for (int i = 0; i < rowKernelLoopLimit; i++)
+            for (int j = 0, k = 0 ; j < columnKernelLoopLimit; j++, k += channels)
+                accum += static_cast<Rpp32f>(srcPtrTemp[i][k]) * filterTensor[i * kernelSize + j];
+    }
 
     saturate_pixel(accum, dstPtrTemp);
 }
 
 // process padLength number of columns in each row
 // left border pixels in image which does not have required pixels in 3x3 kernel, process them separately
-inline void process_left_border_columns_pln_pln(Rpp8u **srcPtrTemp, Rpp8u *dstPtrTemp, Rpp32u kernelSize, Rpp32u padLength,
+template<typename T>
+inline void process_left_border_columns_pln_pln(T **srcPtrTemp, T *dstPtrTemp, Rpp32u kernelSize, Rpp32u padLength,
                                                 Rpp32u unpaddedWidth, Rpp32s rowKernelLoopLimit, Rpp32f *filterTensor)
 {
     for (int k = 0; k < padLength; k++)
@@ -67,12 +77,26 @@ inline void sobel_filter_bidirection_generic_tensor(T **srcPtrTemp, T *dstPtrTem
 
     // find the colKernelLoopLimit based on columnIndex
     get_kernel_loop_limit(columnIndex, columnKernelLoopLimit, padLength, unpaddedWidth);
-    for (int i = 0; i < rowKernelLoopLimit; i++)
+    if constexpr (std::is_same<T, Rpp8s>::value)
     {
-        for (int j = 0, k = 0 ; j < columnKernelLoopLimit; j++, k += channels)
+        for (int i = 0; i < rowKernelLoopLimit; i++)
         {
-            accumX += static_cast<Rpp32f>(srcPtrTemp[i][k]) * filterXTensor[i * kernelSize + j];
-            accumY += static_cast<Rpp32f>(srcPtrTemp[i][k]) * filterYTensor[i * kernelSize + j];
+            for (int j = 0, k = 0 ; j < columnKernelLoopLimit; j++, k += channels)
+            {
+                accumX += static_cast<Rpp32f>(srcPtrTemp[i][k] + 128) * filterXTensor[i * kernelSize + j];
+                accumY += static_cast<Rpp32f>(srcPtrTemp[i][k] + 128) * filterYTensor[i * kernelSize + j];
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < rowKernelLoopLimit; i++)
+        {
+            for (int j = 0, k = 0 ; j < columnKernelLoopLimit; j++, k += channels)
+            {
+                accumX += static_cast<Rpp32f>(srcPtrTemp[i][k]) * filterXTensor[i * kernelSize + j];
+                accumY += static_cast<Rpp32f>(srcPtrTemp[i][k]) * filterYTensor[i * kernelSize + j];
+            }
         }
     }
 
@@ -94,7 +118,8 @@ inline void sobel_filter_bidirection_generic_tensor(T **srcPtrTemp, T *dstPtrTem
 
 // process padLength number of columns in each row
 // left border pixels in image which does not have required pixels in 3x3 kernel, process them separately
-inline void process_left_border_columns_pln_pln(Rpp8u **srcPtrTemp, Rpp8u *dstPtrTemp, Rpp32u kernelSize, Rpp32u padLength,
+template<typename T>
+inline void process_left_border_columns_pln_pln(T **srcPtrTemp, T *dstPtrTemp, Rpp32u kernelSize, Rpp32u padLength,
                                                 Rpp32u unpaddedWidth, Rpp32s rowKernelLoopLimit, Rpp32f *filterXTensor, Rpp32f *filterYTensor)
 {
     for (int k = 0; k < padLength; k++)
@@ -108,7 +133,7 @@ Rpp32f sobel3x3X[9] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
 Rpp32f sobel3x3Y[9] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
 
 // load function for 3x3 kernel size
-inline void rpp_load_sobel_filter_char_3x3_host(__m256 *pRow, Rpp8u **srcPtrTemp, Rpp32s rowKernelLoopLimit)
+inline void rpp_load_sobel_filter_3x3_host(__m256 *pRow, Rpp8u **srcPtrTemp, Rpp32s rowKernelLoopLimit)
 {
     // irrespective of row location, we need to load 2 rows for 3x3 kernel
     rpp_load16_u8_to_f32_avx(srcPtrTemp[0], &pRow[0]);
@@ -124,16 +149,91 @@ inline void rpp_load_sobel_filter_char_3x3_host(__m256 *pRow, Rpp8u **srcPtrTemp
     }
 }
 
-RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
-                                         RpptDescPtr srcDescPtr,
-                                         Rpp8u *dstPtr,
-                                         RpptDescPtr dstDescPtr,
-                                         Rpp32u sobelType,
-                                         Rpp32u kernelSize,
-                                         RpptROIPtr roiTensorPtrSrc,
-                                         RpptRoiType roiType,
-                                         RppLayoutParams layoutParams,
-                                         rpp::Handle& handle)
+inline void rpp_load_sobel_filter_3x3_host(__m256 *pRow, Rpp8s **srcPtrTemp, Rpp32s rowKernelLoopLimit)
+{
+    // irrespective of row location, we need to load 2 rows for 3x3 kernel
+    rpp_load16_i8_to_f32_avx(srcPtrTemp[0], &pRow[0]);
+    rpp_load16_i8_to_f32_avx(srcPtrTemp[1], &pRow[2]);
+
+    // if rowKernelLoopLimit is 3 load values from 3rd row pointer else set it 0
+    if (rowKernelLoopLimit == 3)
+        rpp_load16_i8_to_f32_avx(srcPtrTemp[2], &pRow[4]);
+    else
+    {
+        pRow[4] = avx_p0;
+        pRow[5] = avx_p0;
+    }
+}
+
+inline void rpp_load_sobel_filter_3x3_host(__m256 *pRow, Rpp32f **srcPtrTemp, Rpp32s rowKernelLoopLimit)
+{
+    // irrespective of row location, we need to load 2 rows for 3x3 kernel
+    rpp_load16_f32_to_f32_avx(srcPtrTemp[0], &pRow[0]);
+    rpp_load16_f32_to_f32_avx(srcPtrTemp[1], &pRow[2]);
+
+    // if rowKernelLoopLimit is 3 load values from 3rd row pointer else set it 0
+    if (rowKernelLoopLimit == 3)
+        rpp_load16_f32_to_f32_avx(srcPtrTemp[2], &pRow[4]);
+    else
+    {
+        pRow[4] = avx_p0;
+        pRow[5] = avx_p0;
+    }
+}
+
+// load function for 3x3 kernel size
+inline void rpp_load_sobel_filter_3x3_host(__m256 *pRow, Rpp16f **srcPtrTemp, Rpp32s rowKernelLoopLimit)
+{
+    // irrespective of row location, we need to load 2 rows for 3x3 kernel
+    pRow[0] = _mm256_cvtph_ps(_mm_castps_si128(_mm_loadu_ps(reinterpret_cast<Rpp32f *>(srcPtrTemp[0]))));
+    pRow[1] = _mm256_cvtph_ps(_mm_castps_si128(_mm_loadu_ps(reinterpret_cast<Rpp32f *>(srcPtrTemp[0] + 8))));
+    pRow[2] = _mm256_cvtph_ps(_mm_castps_si128(_mm_loadu_ps(reinterpret_cast<Rpp32f *>(srcPtrTemp[1]))));
+    pRow[3] = _mm256_cvtph_ps(_mm_castps_si128(_mm_loadu_ps(reinterpret_cast<Rpp32f *>(srcPtrTemp[1] + 8))));
+
+    // if rowKernelLoopLimit is 3 load values from 3rd row pointer else set it 0
+    if (rowKernelLoopLimit == 3)
+    {
+        pRow[4] = _mm256_cvtph_ps(_mm_castps_si128(_mm_loadu_ps(reinterpret_cast<Rpp32f *>(srcPtrTemp[2]))));
+        pRow[5] = _mm256_cvtph_ps(_mm_castps_si128(_mm_loadu_ps(reinterpret_cast<Rpp32f *>(srcPtrTemp[2] + 8))));
+    }
+    else
+    {
+        pRow[4] = avx_px0;
+        pRow[5] = avx_px0;
+    }
+}
+
+inline void rpp_sobel_store16(Rpp8u *dstPtrTemp, __m256 *pDst)
+{
+    rpp_store16_f32_to_u8_avx(dstPtrTemp, pDst);
+}
+
+inline void rpp_sobel_store16(Rpp8s *dstPtrTemp, __m256 *pDst)
+{
+    rpp_store16_f32_to_i8_avx(dstPtrTemp, pDst);
+}
+
+inline void rpp_sobel_store16(Rpp32f *dstPtrTemp, __m256 *pDst)
+{
+    rpp_store16_f32_to_f32_avx(dstPtrTemp, pDst);
+}
+
+inline void rpp_sobel_store16(Rpp16f *dstPtrTemp, __m256 *pDst)
+{
+    rpp_store16_f32_to_f16_avx(dstPtrTemp, pDst);
+}
+
+template<typename T>
+RppStatus sobel_filter_host_tensor(T *srcPtr,
+                                   RpptDescPtr srcDescPtr,
+                                   T *dstPtr,
+                                   RpptDescPtr dstDescPtr,
+                                   Rpp32u sobelType,
+                                   Rpp32u kernelSize,
+                                   RpptROIPtr roiTensorPtrSrc,
+                                   RpptRoiType roiType,
+                                   RppLayoutParams layoutParams,
+                                   rpp::Handle& handle)
 {
     RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
     Rpp32u numThreads = handle.GetNumThreads();
@@ -146,7 +246,7 @@ RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
         RpptROIPtr roiPtrInput = &roiTensorPtrSrc[batchCount];
         compute_roi_validation_host(roiPtrInput, &roi, &roiDefault, roiType);
 
-        Rpp8u *srcPtrImage, *dstPtrImage;
+        T *srcPtrImage, *dstPtrImage;
         srcPtrImage = srcPtr + batchCount * srcDescPtr->strides.nStride;
         dstPtrImage = dstPtr + batchCount * dstDescPtr->strides.nStride;
 
@@ -157,12 +257,26 @@ RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
         bool combined = (sobelType == 2);
         Rpp32f *filter, *filterX, *filterY;
 
-        Rpp8u *srcPtrChannel, *dstPtrChannel;
+#if __AVX2__
+        __m256 pMax, pMin;
+        if constexpr (std::is_same<T, Rpp8u>::value || std::is_same<T, Rpp8s>::value)
+        {
+            pMax = avx_p255;
+            pMin = avx_p0;
+        }
+        else
+        {
+            pMax = avx_p1;
+            pMin = avx_p0;
+        }
+#endif
+
+        T *srcPtrChannel, *dstPtrChannel;
         srcPtrChannel = srcPtrImage + (roi.xywhROI.xy.y * srcDescPtr->strides.hStride) + (roi.xywhROI.xy.x * layoutParams.bufferMultiplier);
         dstPtrChannel = dstPtrImage;
         if ((kernelSize == 3) && (srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW) && (srcDescPtr->c == 1))
         {
-            Rpp8u *srcPtrRow[3], *dstPtrRow;
+            T *srcPtrRow[3], *dstPtrRow;
             for (int i = 0; i < 3; i++)
                 srcPtrRow[i] = srcPtrChannel + i * srcDescPtr->strides.hStride;
             dstPtrRow = dstPtrChannel;
@@ -192,8 +306,8 @@ RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                     {
                         int vectorLoopCount = 0;
                         bool padLengthRows = (i < padLength) ? 1: 0;
-                        Rpp8u *srcPtrTemp[3] = {srcPtrRow[0], srcPtrRow[1], srcPtrRow[2]};
-                        Rpp8u *dstPtrTemp = dstPtrRow;
+                        T *srcPtrTemp[3] = {srcPtrRow[0], srcPtrRow[1], srcPtrRow[2]};
+                        T *dstPtrTemp = dstPtrRow;
 
                         // get the number of rows needs to be loaded for the corresponding row
                         Rpp32s rowKernelLoopLimit = kernelSize;
@@ -205,7 +319,7 @@ RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                         for (; vectorLoopCount < alignedLength; vectorLoopCount += 14)
                         {
                             __m256 pRow[6], pDst[2], pDstX[2], pDstY[2];
-                            rpp_load_sobel_filter_char_3x3_host(pRow, srcPtrTemp, rowKernelLoopLimit);
+                            rpp_load_sobel_filter_3x3_host(pRow, srcPtrTemp, rowKernelLoopLimit);
                             for (int k = 0; k < 2; k++)
                             {
                                 pDstX[k] = avx_p0;
@@ -242,19 +356,19 @@ RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                                 pTemp[2] = _mm256_mul_ps(pRowShift[1], pFilterY[filterIndex + 2]);
                                 pDstY[1] = _mm256_add_ps(pDstY[1], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
                             }
-                            pDstX[0] = _mm256_min_ps(_mm256_max_ps(pDstX[0], avx_p0), avx_p255);
-                            pDstY[0] = _mm256_min_ps(_mm256_max_ps(pDstY[0], avx_p0), avx_p255);
+                            pDstX[0] = _mm256_min_ps(_mm256_max_ps(pDstX[0], pMin), pMax);
+                            pDstY[0] = _mm256_min_ps(_mm256_max_ps(pDstY[0], pMin), pMax);
                             pDstX[0] = _mm256_mul_ps(pDstX[0], pDstX[0]);
                             pDstY[0] = _mm256_mul_ps(pDstY[0], pDstY[0]);
                             pDst[0] =  _mm256_sqrt_ps(_mm256_add_ps(pDstX[0], pDstY[0]));
 
-                            pDstX[1] = _mm256_min_ps(_mm256_max_ps(pDstX[1], avx_p0), avx_p255);
-                            pDstY[1] = _mm256_min_ps(_mm256_max_ps(pDstY[1], avx_p0), avx_p255);
+                            pDstX[1] = _mm256_min_ps(_mm256_max_ps(pDstX[1], pMin), pMax);
+                            pDstY[1] = _mm256_min_ps(_mm256_max_ps(pDstY[1], pMin), pMax);
                             pDstX[1] = _mm256_mul_ps(pDstX[1], pDstX[1]);
                             pDstY[1] = _mm256_mul_ps(pDstY[1], pDstY[1]);
                             pDst[1] =  _mm256_sqrt_ps(_mm256_add_ps(pDstX[1], pDstY[1]));
 
-                            rpp_store16_f32_to_u8_avx(dstPtrTemp, pDst);
+                            rpp_sobel_store16(dstPtrTemp, pDst);
                             increment_row_ptrs(srcPtrTemp, kernelSize, 14);
                             dstPtrTemp += 14;
                         }
@@ -295,8 +409,8 @@ RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                     {
                         int vectorLoopCount = 0;
                         bool padLengthRows = (i < padLength) ? 1: 0;
-                        Rpp8u *srcPtrTemp[3] = {srcPtrRow[0], srcPtrRow[1], srcPtrRow[2]};
-                        Rpp8u *dstPtrTemp = dstPtrRow;
+                        T *srcPtrTemp[3] = {srcPtrRow[0], srcPtrRow[1], srcPtrRow[2]};
+                        T *dstPtrTemp = dstPtrRow;
 
                         // get the number of rows needs to be loaded for the corresponding row
                         Rpp32s rowKernelLoopLimit = kernelSize;
@@ -308,7 +422,7 @@ RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                         for (; vectorLoopCount < alignedLength; vectorLoopCount += 14)
                         {
                             __m256 pRow[6], pDst[2];
-                            rpp_load_sobel_filter_char_3x3_host(pRow, srcPtrTemp, rowKernelLoopLimit);
+                            rpp_load_sobel_filter_3x3_host(pRow, srcPtrTemp, rowKernelLoopLimit);
                             pDst[0] = avx_p0;
                             pDst[1] = avx_p0;
                             for (int k = 0; k < 3; k++)
@@ -327,7 +441,7 @@ RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                                 pTemp[2] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 3), avx_pxMaskRotate0To2), pFilter[filterIndex + 2]);
                                 pDst[1] = _mm256_add_ps(pDst[1], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
                             }
-                            rpp_store16_f32_to_u8_avx(dstPtrTemp, pDst);
+                            rpp_sobel_store16(dstPtrTemp, pDst);
                             increment_row_ptrs(srcPtrTemp, kernelSize, 14);
                             dstPtrTemp += 14;
                         }
