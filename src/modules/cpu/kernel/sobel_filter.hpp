@@ -73,6 +73,8 @@ inline void sobel_filter_generic_tensor(Rpp8u **srcPtrTemp, Rpp8u *dstPtrTemp, R
             accumY += static_cast<Rpp32f>(srcPtrTemp[i][k]) * filterYTensor[i * kernelSize + j];
         }
     }
+    accumX = RPPPIXELCHECK(accumX);
+    accumY = RPPPIXELCHECK(accumY);
 
     Rpp32f accum = sqrt((accumX * accumX) + (accumY * accumY));
     saturate_pixel(std::nearbyintf(accum), dstPtrTemp);
@@ -250,6 +252,8 @@ RppStatus sobel_filter_u8_u8_host_tensor(Rpp8u *srcPtr,
                                     pTemp[2] = _mm256_mul_ps(pRowShift[1], pFilterY[filterIndex + 2]);
                                     pDstY[0] = _mm256_add_ps(pDstY[0], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
                                 }
+                                pDstX[0] = _mm256_min_ps(_mm256_max_ps(pDstX[0], avx_p0), avx_p255);
+                                pDstY[0] = _mm256_min_ps(_mm256_max_ps(pDstY[0], avx_p0), avx_p255);
                                 pDstX[0] = _mm256_mul_ps(pDstX[0], pDstX[0]);
                                 pDstY[0] = _mm256_mul_ps(pDstY[0], pDstY[0]);
                                 pDst[0] =  _mm256_sqrt_ps(_mm256_add_ps(pDstX[0], pDstY[0]));
