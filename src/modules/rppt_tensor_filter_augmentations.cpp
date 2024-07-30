@@ -44,58 +44,61 @@ RppStatus rppt_sobel_filter_host(RppPtr_t srcPtr,
                                  RpptRoiType roiType,
                                  rppHandle_t rppHandle)
 {
-    RppLayoutParams layoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
+    // convert image to grey scale if input is RGB image
+    RppPtr_t tempPtr = srcPtr;
+    if (srcDescPtr->c == 3)
+    {
+        RpptSubpixelLayout srcSubpixelLayout = RpptSubpixelLayout::RGBtype;
+        tempPtr = rpp::deref(rppHandle).GetInitHandle()->mem.mcpu.scratchBufferHost;
+        rppt_color_to_greyscale_host(srcPtr, srcDescPtr, tempPtr, dstDescPtr, srcSubpixelLayout, rppHandle);
+    }
 
     if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
     {
-        sobel_filter_host_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
-                                 srcDescPtr,
+        sobel_filter_host_tensor(static_cast<Rpp8u*>(tempPtr) + srcDescPtr->offsetInBytes,
+                                 dstDescPtr,
                                  static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
                                  dstDescPtr,
                                  sobelType,
                                  kernelSize,
                                  roiTensorPtrSrc,
                                  roiType,
-                                 layoutParams,
                                  rpp::deref(rppHandle));
     }
     else if ((srcDescPtr->dataType == RpptDataType::F16) && (dstDescPtr->dataType == RpptDataType::F16))
     {
-        sobel_filter_host_tensor(reinterpret_cast<Rpp16f*>(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes),
-                                 srcDescPtr,
+        sobel_filter_host_tensor(reinterpret_cast<Rpp16f*>(static_cast<Rpp8u*>(tempPtr) + srcDescPtr->offsetInBytes),
+                                 dstDescPtr,
                                  reinterpret_cast<Rpp16f*>(static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes),
                                  dstDescPtr,
                                  sobelType,
                                  kernelSize,
                                  roiTensorPtrSrc,
                                  roiType,
-                                 layoutParams,
                                  rpp::deref(rppHandle));
     }
     else if ((srcDescPtr->dataType == RpptDataType::F32) && (dstDescPtr->dataType == RpptDataType::F32))
     {
-        sobel_filter_host_tensor(reinterpret_cast<Rpp32f*>(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes),
-                                 srcDescPtr,
+        sobel_filter_host_tensor(reinterpret_cast<Rpp32f*>(static_cast<Rpp8u*>(tempPtr) + srcDescPtr->offsetInBytes),
+                                 dstDescPtr,
                                  reinterpret_cast<Rpp32f*>(static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes),
                                  dstDescPtr,
                                  sobelType,
                                  kernelSize,
                                  roiTensorPtrSrc,
                                  roiType,
-                                 layoutParams,
                                  rpp::deref(rppHandle));
     }
     else if ((srcDescPtr->dataType == RpptDataType::I8) && (dstDescPtr->dataType == RpptDataType::I8))
     {
-        sobel_filter_host_tensor(static_cast<Rpp8s*>(srcPtr) + srcDescPtr->offsetInBytes,
-                                 srcDescPtr,
+        sobel_filter_host_tensor(static_cast<Rpp8s*>(tempPtr) + srcDescPtr->offsetInBytes,
+                                 dstDescPtr,
                                  static_cast<Rpp8s*>(dstPtr) + dstDescPtr->offsetInBytes,
                                  dstDescPtr,
                                  sobelType,
                                  kernelSize,
                                  roiTensorPtrSrc,
                                  roiType,
-                                 layoutParams,
                                  rpp::deref(rppHandle));
     }
     return RPP_SUCCESS;
