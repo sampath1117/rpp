@@ -129,8 +129,22 @@ inline void process_left_border_columns_pln_pln(T **srcPtrTemp, T *dstPtrTemp, R
     }
 }
 
-Rpp32f sobel3x3X[9] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
-Rpp32f sobel3x3Y[9] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
+Rpp32f sobel3x3X[9] = {-1, 0, 1,
+                       -2, 0, 2,
+                       -1, 0, 1};
+Rpp32f sobel3x3Y[9] = {-1, -2, -1,
+                       0, 0, 0,
+                       1, 2, 1};
+Rpp32f sobel5x5X[25] = {-5, -4, 0, 4, 5,
+                        -8, -10, 0, 10, 8,
+                        -10, -20, 0, 20, 10,
+                        -8, -10, 0, 10, 8,
+                        -5, -4, 0, 4, 5};
+Rpp32f sobel5x5Y[25] = {-5, -8, -10 -8, -5,
+                        -4, -10, -20, -10, -4,
+                        0, 0, 0, 0, 0,
+                        4, 10, 20, 10, 4,
+                        5, 8, 10, 8, 5};
 
 // load function for 3x3 kernel size
 inline void rpp_load_sobel_filter_3x3_host(__m256 *pRow, Rpp8u **srcPtrTemp, Rpp32s rowKernelLoopLimit)
@@ -185,21 +199,82 @@ inline void rpp_load_sobel_filter_3x3_host(__m256 *pRow, Rpp32f **srcPtrTemp, Rp
 inline void rpp_load_sobel_filter_3x3_host(__m256 *pRow, Rpp16f **srcPtrTemp, Rpp32s rowKernelLoopLimit)
 {
     // irrespective of row location, we need to load 2 rows for 3x3 kernel
-    pRow[0] = _mm256_cvtph_ps(_mm_castps_si128(_mm_loadu_ps(reinterpret_cast<Rpp32f *>(srcPtrTemp[0]))));
-    pRow[1] = _mm256_cvtph_ps(_mm_castps_si128(_mm_loadu_ps(reinterpret_cast<Rpp32f *>(srcPtrTemp[0] + 8))));
-    pRow[2] = _mm256_cvtph_ps(_mm_castps_si128(_mm_loadu_ps(reinterpret_cast<Rpp32f *>(srcPtrTemp[1]))));
-    pRow[3] = _mm256_cvtph_ps(_mm_castps_si128(_mm_loadu_ps(reinterpret_cast<Rpp32f *>(srcPtrTemp[1] + 8))));
+    rpp_load16_f16_to_f32_avx(srcPtrTemp[0], &pRow[0]);
+    rpp_load16_f16_to_f32_avx(srcPtrTemp[1], &pRow[2]);
 
     // if rowKernelLoopLimit is 3 load values from 3rd row pointer else set it 0
     if (rowKernelLoopLimit == 3)
-    {
-        pRow[4] = _mm256_cvtph_ps(_mm_castps_si128(_mm_loadu_ps(reinterpret_cast<Rpp32f *>(srcPtrTemp[2]))));
-        pRow[5] = _mm256_cvtph_ps(_mm_castps_si128(_mm_loadu_ps(reinterpret_cast<Rpp32f *>(srcPtrTemp[2] + 8))));
-    }
+        rpp_load16_f16_to_f32_avx(srcPtrTemp[2], &pRow[4]);
     else
     {
-        pRow[4] = avx_px0;
-        pRow[5] = avx_px0;
+        pRow[4] = avx_p0;
+        pRow[5] = avx_p0;
+    }
+}
+
+// load function for 5x5 kernel size
+inline void rpp_load_sobel_filter_5x5_host(__m256 *pRow, Rpp8u **srcPtrTemp, Rpp32s rowKernelLoopLimit)
+{
+    // irrespective of row location, we need to load 3 rows for 5x5 kernel
+    rpp_load16_u8_to_f32_avx(srcPtrTemp[0], &pRow[0]);
+    rpp_load16_u8_to_f32_avx(srcPtrTemp[1], &pRow[2]);
+    rpp_load16_u8_to_f32_avx(srcPtrTemp[2], &pRow[4]);
+
+    for (int k = 3; k < rowKernelLoopLimit; k++)
+        rpp_load16_u8_to_f32_avx(srcPtrTemp[k], &pRow[k * 2]);
+    for (int k = rowKernelLoopLimit; k < 5; k++)
+    {
+        pRow[k * 2] = avx_p0;
+        pRow[k * 2 + 1] = avx_p0;
+    }
+}
+
+inline void rpp_load_sobel_filter_5x5_host(__m256 *pRow, Rpp8s **srcPtrTemp, Rpp32s rowKernelLoopLimit)
+{
+    // irrespective of row location, we need to load 2 rows for 3x3 kernel
+    rpp_load16_i8_to_f32_avx(srcPtrTemp[0], &pRow[0]);
+    rpp_load16_i8_to_f32_avx(srcPtrTemp[1], &pRow[2]);
+    rpp_load16_i8_to_f32_avx(srcPtrTemp[2], &pRow[4]);
+
+    for (int k = 3; k < rowKernelLoopLimit; k++)
+        rpp_load16_i8_to_f32_avx(srcPtrTemp[k], &pRow[k * 2]);
+    for (int k = rowKernelLoopLimit; k < 5; k++)
+    {
+        pRow[k * 2] = avx_p0;
+        pRow[k * 2 + 1] = avx_p0;
+    }
+}
+
+inline void rpp_load_sobel_filter_5x5_host(__m256 *pRow, Rpp32f **srcPtrTemp, Rpp32s rowKernelLoopLimit)
+{
+    // irrespective of row location, we need to load 2 rows for 3x3 kernel
+    rpp_load16_f32_to_f32_avx(srcPtrTemp[0], &pRow[0]);
+    rpp_load16_f32_to_f32_avx(srcPtrTemp[1], &pRow[2]);
+    rpp_load16_f32_to_f32_avx(srcPtrTemp[2], &pRow[4]);
+
+    for (int k = 3; k < rowKernelLoopLimit; k++)
+        rpp_load16_f32_to_f32_avx(srcPtrTemp[k], &pRow[k * 2]);
+    for (int k = rowKernelLoopLimit; k < 5; k++)
+    {
+        pRow[k * 2] = avx_p0;
+        pRow[k * 2 + 1] = avx_p0;
+    }
+}
+
+// load function for 3x3 kernel size
+inline void rpp_load_sobel_filter_5x5_host(__m256 *pRow, Rpp16f **srcPtrTemp, Rpp32s rowKernelLoopLimit)
+{
+    // irrespective of row location, we need to load 2 rows for 3x3 kernel
+    rpp_load16_f16_to_f32_avx(srcPtrTemp[0], &pRow[0]);
+    rpp_load16_f16_to_f32_avx(srcPtrTemp[1], &pRow[2]);
+    rpp_load16_f16_to_f32_avx(srcPtrTemp[2], &pRow[4]);
+
+    for (int k = 3; k < rowKernelLoopLimit; k++)
+        rpp_load16_f16_to_f32_avx(srcPtrTemp[k], &pRow[k * 2]);
+    for (int k = rowKernelLoopLimit; k < 5; k++)
+    {
+        pRow[k * 2] = avx_p0;
+        pRow[k * 2 + 1] = avx_p0;
     }
 }
 
@@ -273,173 +348,362 @@ RppStatus sobel_filter_host_tensor(T *srcPtr,
         T *srcPtrChannel, *dstPtrChannel;
         srcPtrChannel = srcPtrImage + (roi.xywhROI.xy.y * srcDescPtr->strides.hStride) + roi.xywhROI.xy.x;
         dstPtrChannel = dstPtrImage;
-        if ((kernelSize == 3) && (srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW) && (srcDescPtr->c == 1))
+        if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW) && (srcDescPtr->c == 1))
         {
-            T *srcPtrRow[3], *dstPtrRow;
-            for (int i = 0; i < 3; i++)
-                srcPtrRow[i] = srcPtrChannel + i * srcDescPtr->strides.hStride;
-            dstPtrRow = dstPtrChannel;
-
-            if (combined)
+            if (kernelSize == 3)
             {
-#if __AVX2__
-                __m256 pFilterX[9], pFilterY[9];
-                filterX = sobel3x3X;
-                filterY = sobel3x3Y;
-                for (int i = 0; i < 9; i++)
+                T *srcPtrRow[3], *dstPtrRow;
+                for (int i = 0; i < 3; i++)
+                    srcPtrRow[i] = srcPtrChannel + i * srcDescPtr->strides.hStride;
+                dstPtrRow = dstPtrChannel;
+
+                if (combined)
                 {
-                    pFilterX[i] = _mm256_set1_ps(filterX[i]);
-                    pFilterY[i] = _mm256_set1_ps(filterY[i]);
+#if __AVX2__
+                    __m256 pFilterX[9], pFilterY[9];
+                    filterX = sobel3x3X;
+                    filterY = sobel3x3Y;
+                    for (int i = 0; i < 9; i++)
+                    {
+                        pFilterX[i] = _mm256_set1_ps(filterX[i]);
+                        pFilterY[i] = _mm256_set1_ps(filterY[i]);
+                    }
+#endif
+                    /* exclude 2 * padLength number of columns from alignedLength calculation
+                    since padLength number of columns from the beginning and end of each row will be computed using raw c code */
+                    Rpp32u alignedLength = ((bufferLength - (2 * padLength)) / 16) * 16;
+                    for(int i = 0; i < roi.xywhROI.roiHeight; i++)
+                    {
+                        int vectorLoopCount = 0;
+                        bool padLengthRows = (i < padLength) ? 1: 0;
+                        T *srcPtrTemp[3] = {srcPtrRow[0], srcPtrRow[1], srcPtrRow[2]};
+                        T *dstPtrTemp = dstPtrRow;
+
+                        // get the number of rows needs to be loaded for the corresponding row
+                        Rpp32s rowKernelLoopLimit = kernelSize;
+                        get_kernel_loop_limit(i, rowKernelLoopLimit, padLength, unpaddedHeight);
+                        process_left_border_columns_pln_pln(srcPtrTemp, dstPtrTemp, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filterX, filterY);
+                        dstPtrTemp += padLength;
+#if __AVX2__
+                        // process alignedLength number of columns in each row
+                        for (; vectorLoopCount < alignedLength; vectorLoopCount += 14)
+                        {
+                            __m256 pRow[6], pDst[2], pDstX[2], pDstY[2];
+                            rpp_load_sobel_filter_3x3_host(pRow, srcPtrTemp, rowKernelLoopLimit);
+                            for (int k = 0; k < 2; k++)
+                            {
+                                pDstX[k] = avx_p0;
+                                pDstY[k] = avx_p0;
+                                pDst[k] = avx_p0;
+                            }
+                            for (int k = 0; k < 3; k++)
+                            {
+                                __m256 pTemp[3], pRowShift[2];
+                                Rpp32s filterIndex =  k * 3;
+                                Rpp32s rowIndex = k * 2;
+
+                                pRowShift[0] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 1), avx_pxMaskRotate0To1);
+                                pRowShift[1] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 3), avx_pxMaskRotate0To2);
+                                pTemp[0] = _mm256_mul_ps(pRow[rowIndex], pFilterX[filterIndex]);
+                                pTemp[1] = _mm256_mul_ps(pRowShift[0], pFilterX[filterIndex + 1]);
+                                pTemp[2] = _mm256_mul_ps(pRowShift[1], pFilterX[filterIndex + 2]);
+                                pDstX[0] = _mm256_add_ps(pDstX[0], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
+
+                                pTemp[0] = _mm256_mul_ps(pRow[rowIndex], pFilterY[filterIndex]);
+                                pTemp[1] = _mm256_mul_ps(pRowShift[0], pFilterY[filterIndex + 1]);
+                                pTemp[2] = _mm256_mul_ps(pRowShift[1], pFilterY[filterIndex + 2]);
+                                pDstY[0] = _mm256_add_ps(pDstY[0], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
+
+                                pRowShift[0] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 1), avx_pxMaskRotate0To1);
+                                pRowShift[1] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 3), avx_pxMaskRotate0To2);
+                                pTemp[0] = _mm256_mul_ps(pRow[rowIndex + 1], pFilterX[filterIndex]);
+                                pTemp[1] = _mm256_mul_ps(pRowShift[0], pFilterX[filterIndex + 1]);
+                                pTemp[2] = _mm256_mul_ps(pRowShift[1], pFilterX[filterIndex + 2]);
+                                pDstX[1] = _mm256_add_ps(pDstX[1], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
+
+                                pTemp[0] = _mm256_mul_ps(pRow[rowIndex + 1], pFilterY[filterIndex]);
+                                pTemp[1] = _mm256_mul_ps(pRowShift[0], pFilterY[filterIndex + 1]);
+                                pTemp[2] = _mm256_mul_ps(pRowShift[1], pFilterY[filterIndex + 2]);
+                                pDstY[1] = _mm256_add_ps(pDstY[1], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
+                            }
+                            pDstX[0] = _mm256_min_ps(_mm256_max_ps(pDstX[0], pMin), pMax);
+                            pDstY[0] = _mm256_min_ps(_mm256_max_ps(pDstY[0], pMin), pMax);
+                            pDstX[0] = _mm256_mul_ps(pDstX[0], pDstX[0]);
+                            pDstY[0] = _mm256_mul_ps(pDstY[0], pDstY[0]);
+                            pDst[0] =  _mm256_sqrt_ps(_mm256_add_ps(pDstX[0], pDstY[0]));
+
+                            pDstX[1] = _mm256_min_ps(_mm256_max_ps(pDstX[1], pMin), pMax);
+                            pDstY[1] = _mm256_min_ps(_mm256_max_ps(pDstY[1], pMin), pMax);
+                            pDstX[1] = _mm256_mul_ps(pDstX[1], pDstX[1]);
+                            pDstY[1] = _mm256_mul_ps(pDstY[1], pDstY[1]);
+                            pDst[1] =  _mm256_sqrt_ps(_mm256_add_ps(pDstX[1], pDstY[1]));
+
+                            rpp_sobel_store16(dstPtrTemp, pDst);
+                            increment_row_ptrs(srcPtrTemp, kernelSize, 14);
+                            dstPtrTemp += 14;
+                        }
+#endif
+                        vectorLoopCount += padLength;
+                        for (; vectorLoopCount < bufferLength; vectorLoopCount++)
+                        {
+                            sobel_filter_bidirection_generic_tensor(srcPtrTemp, dstPtrTemp, vectorLoopCount, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filterX, filterY);
+                            increment_row_ptrs(srcPtrTemp, kernelSize, 1);
+                            dstPtrTemp++;
+                        }
+                        // for the first padLength rows, we need not increment the src row pointers to next rows
+                        increment_row_ptrs(srcPtrRow, kernelSize, (!padLengthRows) ? srcDescPtr->strides.hStride : 0);
+                        dstPtrRow += dstDescPtr->strides.hStride;
+                    }
                 }
-#endif
-                /* exclude 2 * padLength number of columns from alignedLength calculation
-                   since padLength number of columns from the beginning and end of each row will be computed using raw c code */
-                Rpp32u alignedLength = ((bufferLength - (2 * padLength)) / 16) * 16;
-                for(int i = 0; i < roi.xywhROI.roiHeight; i++)
+                else
                 {
-                    int vectorLoopCount = 0;
-                    bool padLengthRows = (i < padLength) ? 1: 0;
-                    T *srcPtrTemp[3] = {srcPtrRow[0], srcPtrRow[1], srcPtrRow[2]};
-                    T *dstPtrTemp = dstPtrRow;
-
-                    // get the number of rows needs to be loaded for the corresponding row
-                    Rpp32s rowKernelLoopLimit = kernelSize;
-                    get_kernel_loop_limit(i, rowKernelLoopLimit, padLength, unpaddedHeight);
-                    process_left_border_columns_pln_pln(srcPtrTemp, dstPtrTemp, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filterX, filterY);
-                    dstPtrTemp += padLength;
 #if __AVX2__
-                    // process alignedLength number of columns in each row
-                    for (; vectorLoopCount < alignedLength; vectorLoopCount += 14)
-                    {
-                        __m256 pRow[6], pDst[2], pDstX[2], pDstY[2];
-                        rpp_load_sobel_filter_3x3_host(pRow, srcPtrTemp, rowKernelLoopLimit);
-                        for (int k = 0; k < 2; k++)
-                        {
-                            pDstX[k] = avx_p0;
-                            pDstY[k] = avx_p0;
-                            pDst[k] = avx_p0;
-                        }
-                        for (int k = 0; k < 3; k++)
-                        {
-                            __m256 pTemp[3], pRowShift[2];
-                            Rpp32s filterIndex =  k * 3;
-                            Rpp32s rowIndex = k * 2;
-
-                            pRowShift[0] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 1), avx_pxMaskRotate0To1);
-                            pRowShift[1] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 3), avx_pxMaskRotate0To2);
-                            pTemp[0] = _mm256_mul_ps(pRow[rowIndex], pFilterX[filterIndex]);
-                            pTemp[1] = _mm256_mul_ps(pRowShift[0], pFilterX[filterIndex + 1]);
-                            pTemp[2] = _mm256_mul_ps(pRowShift[1], pFilterX[filterIndex + 2]);
-                            pDstX[0] = _mm256_add_ps(pDstX[0], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
-
-                            pTemp[0] = _mm256_mul_ps(pRow[rowIndex], pFilterY[filterIndex]);
-                            pTemp[1] = _mm256_mul_ps(pRowShift[0], pFilterY[filterIndex + 1]);
-                            pTemp[2] = _mm256_mul_ps(pRowShift[1], pFilterY[filterIndex + 2]);
-                            pDstY[0] = _mm256_add_ps(pDstY[0], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
-
-                            pRowShift[0] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 1), avx_pxMaskRotate0To1);
-                            pRowShift[1] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 3), avx_pxMaskRotate0To2);
-                            pTemp[0] = _mm256_mul_ps(pRow[rowIndex + 1], pFilterX[filterIndex]);
-                            pTemp[1] = _mm256_mul_ps(pRowShift[0], pFilterX[filterIndex + 1]);
-                            pTemp[2] = _mm256_mul_ps(pRowShift[1], pFilterX[filterIndex + 2]);
-                            pDstX[1] = _mm256_add_ps(pDstX[1], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
-
-                            pTemp[0] = _mm256_mul_ps(pRow[rowIndex + 1], pFilterY[filterIndex]);
-                            pTemp[1] = _mm256_mul_ps(pRowShift[0], pFilterY[filterIndex + 1]);
-                            pTemp[2] = _mm256_mul_ps(pRowShift[1], pFilterY[filterIndex + 2]);
-                            pDstY[1] = _mm256_add_ps(pDstY[1], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
-                        }
-                        pDstX[0] = _mm256_min_ps(_mm256_max_ps(pDstX[0], pMin), pMax);
-                        pDstY[0] = _mm256_min_ps(_mm256_max_ps(pDstY[0], pMin), pMax);
-                        pDstX[0] = _mm256_mul_ps(pDstX[0], pDstX[0]);
-                        pDstY[0] = _mm256_mul_ps(pDstY[0], pDstY[0]);
-                        pDst[0] =  _mm256_sqrt_ps(_mm256_add_ps(pDstX[0], pDstY[0]));
-
-                        pDstX[1] = _mm256_min_ps(_mm256_max_ps(pDstX[1], pMin), pMax);
-                        pDstY[1] = _mm256_min_ps(_mm256_max_ps(pDstY[1], pMin), pMax);
-                        pDstX[1] = _mm256_mul_ps(pDstX[1], pDstX[1]);
-                        pDstY[1] = _mm256_mul_ps(pDstY[1], pDstY[1]);
-                        pDst[1] =  _mm256_sqrt_ps(_mm256_add_ps(pDstX[1], pDstY[1]));
-
-                        rpp_sobel_store16(dstPtrTemp, pDst);
-                        increment_row_ptrs(srcPtrTemp, kernelSize, 14);
-                        dstPtrTemp += 14;
-                    }
+                    __m256 pFilter[9];
+                    filter = (!sobelType) ? sobel3x3X : sobel3x3Y;
+                    for (int i = 0; i < 9; i++)
+                        pFilter[i] = _mm256_set1_ps(filter[i]);
 #endif
-                    vectorLoopCount += padLength;
-                    for (; vectorLoopCount < bufferLength; vectorLoopCount++)
+                    /* exclude 2 * padLength number of columns from alignedLength calculation
+                    since padLength number of columns from the beginning and end of each row will be computed using raw c code */
+                    Rpp32u alignedLength = ((bufferLength - (2 * padLength)) / 16) * 16;
+                    for(int i = 0; i < roi.xywhROI.roiHeight; i++)
                     {
-                        sobel_filter_bidirection_generic_tensor(srcPtrTemp, dstPtrTemp, vectorLoopCount, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filterX, filterY);
-                        increment_row_ptrs(srcPtrTemp, kernelSize, 1);
-                        dstPtrTemp++;
+                        int vectorLoopCount = 0;
+                        bool padLengthRows = (i < padLength) ? 1: 0;
+                        T *srcPtrTemp[3] = {srcPtrRow[0], srcPtrRow[1], srcPtrRow[2]};
+                        T *dstPtrTemp = dstPtrRow;
+
+                        // get the number of rows needs to be loaded for the corresponding row
+                        Rpp32s rowKernelLoopLimit = kernelSize;
+                        get_kernel_loop_limit(i, rowKernelLoopLimit, padLength, unpaddedHeight);
+                        process_left_border_columns_pln_pln(srcPtrTemp, dstPtrTemp, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filter);
+                        dstPtrTemp += padLength;
+#if __AVX2__
+                        // process alignedLength number of columns in each row
+                        for (; vectorLoopCount < alignedLength; vectorLoopCount += 14)
+                        {
+                            __m256 pRow[6], pDst[2];
+                            rpp_load_sobel_filter_3x3_host(pRow, srcPtrTemp, rowKernelLoopLimit);
+                            pDst[0] = avx_p0;
+                            pDst[1] = avx_p0;
+                            for (int k = 0; k < 3; k++)
+                            {
+                                __m256 pTemp[3];
+                                Rpp32s filterIndex =  k * 3;
+                                Rpp32s rowIndex = k * 2;
+
+                                pTemp[0] = _mm256_mul_ps(pRow[rowIndex], pFilter[filterIndex]);
+                                pTemp[1] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 1), avx_pxMaskRotate0To1), pFilter[filterIndex + 1]);
+                                pTemp[2] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 3), avx_pxMaskRotate0To2), pFilter[filterIndex + 2]);
+                                pDst[0] = _mm256_add_ps(pDst[0], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
+
+                                pTemp[0] = _mm256_mul_ps(pRow[rowIndex + 1], pFilter[filterIndex]);
+                                pTemp[1] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 1), avx_pxMaskRotate0To1), pFilter[filterIndex + 1]);
+                                pTemp[2] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 3), avx_pxMaskRotate0To2), pFilter[filterIndex + 2]);
+                                pDst[1] = _mm256_add_ps(pDst[1], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
+                            }
+                            rpp_sobel_store16(dstPtrTemp, pDst);
+                            increment_row_ptrs(srcPtrTemp, kernelSize, 14);
+                            dstPtrTemp += 14;
+                        }
+#endif
+                        vectorLoopCount += padLength;
+                        for (; vectorLoopCount < bufferLength; vectorLoopCount++)
+                        {
+                            sobel_filter_unidirection_generic_tensor(srcPtrTemp, dstPtrTemp, vectorLoopCount, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filter);
+                            increment_row_ptrs(srcPtrTemp, kernelSize, 1);
+                            dstPtrTemp++;
+                        }
+                        // for the first padLength rows, we need not increment the src row pointers to next rows
+                        increment_row_ptrs(srcPtrRow, kernelSize, (!padLengthRows) ? srcDescPtr->strides.hStride : 0);
+                        dstPtrRow += dstDescPtr->strides.hStride;
                     }
-                    // for the first padLength rows, we need not increment the src row pointers to next rows
-                    increment_row_ptrs(srcPtrRow, kernelSize, (!padLengthRows) ? srcDescPtr->strides.hStride : 0);
-                    dstPtrRow += dstDescPtr->strides.hStride;
                 }
             }
-            else
+            else if (kernelSize == 5)
             {
-#if __AVX2__
-                __m256 pFilter[9];
-                filter = (!sobelType) ? sobel3x3Y : sobel3x3X;
-                for (int i = 0; i < 9; i++)
-                    pFilter[i] = _mm256_set1_ps(filter[i]);
-#endif
-                /* exclude 2 * padLength number of columns from alignedLength calculation
-                   since padLength number of columns from the beginning and end of each row will be computed using raw c code */
-                Rpp32u alignedLength = ((bufferLength - (2 * padLength)) / 16) * 16;
-                for(int i = 0; i < roi.xywhROI.roiHeight; i++)
+                T *srcPtrRow[5], *dstPtrRow;
+                for (int i = 0; i < 5; i++)
+                    srcPtrRow[i] = srcPtrChannel + i * srcDescPtr->strides.hStride;
+                dstPtrRow = dstPtrChannel;
+
+                if (combined)
                 {
-                    int vectorLoopCount = 0;
-                    bool padLengthRows = (i < padLength) ? 1: 0;
-                    T *srcPtrTemp[3] = {srcPtrRow[0], srcPtrRow[1], srcPtrRow[2]};
-                    T *dstPtrTemp = dstPtrRow;
-
-                    // get the number of rows needs to be loaded for the corresponding row
-                    Rpp32s rowKernelLoopLimit = kernelSize;
-                    get_kernel_loop_limit(i, rowKernelLoopLimit, padLength, unpaddedHeight);
-                    process_left_border_columns_pln_pln(srcPtrTemp, dstPtrTemp, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filter);
-                    dstPtrTemp += padLength;
 #if __AVX2__
-                    // process alignedLength number of columns in each row
-                    for (; vectorLoopCount < alignedLength; vectorLoopCount += 14)
+                    __m256 pFilterX[25], pFilterY[25];
+                    filterX = sobel5x5X;
+                    filterY = sobel5x5Y;
+                    for (int i = 0; i < 25; i++)
                     {
-                        __m256 pRow[6], pDst[2];
-                        rpp_load_sobel_filter_3x3_host(pRow, srcPtrTemp, rowKernelLoopLimit);
-                        pDst[0] = avx_p0;
-                        pDst[1] = avx_p0;
-                        for (int k = 0; k < 3; k++)
-                        {
-                            __m256 pTemp[3];
-                            Rpp32s filterIndex =  k * 3;
-                            Rpp32s rowIndex = k * 2;
-
-                            pTemp[0] = _mm256_mul_ps(pRow[rowIndex], pFilter[filterIndex]);
-                            pTemp[1] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 1), avx_pxMaskRotate0To1), pFilter[filterIndex + 1]);
-                            pTemp[2] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 3), avx_pxMaskRotate0To2), pFilter[filterIndex + 2]);
-                            pDst[0] = _mm256_add_ps(pDst[0], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
-
-                            pTemp[0] = _mm256_mul_ps(pRow[rowIndex + 1], pFilter[filterIndex]);
-                            pTemp[1] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 1), avx_pxMaskRotate0To1), pFilter[filterIndex + 1]);
-                            pTemp[2] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 3), avx_pxMaskRotate0To2), pFilter[filterIndex + 2]);
-                            pDst[1] = _mm256_add_ps(pDst[1], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
-                        }
-                        rpp_sobel_store16(dstPtrTemp, pDst);
-                        increment_row_ptrs(srcPtrTemp, kernelSize, 14);
-                        dstPtrTemp += 14;
+                        pFilterX[i] = _mm256_set1_ps(filterX[i]);
+                        pFilterY[i] = _mm256_set1_ps(filterY[i]);
                     }
 #endif
-                    vectorLoopCount += padLength;
-                    for (; vectorLoopCount < bufferLength; vectorLoopCount++)
+                    /* exclude 2 * padLength number of columns from alignedLength calculation
+                    since padLength number of columns from the beginning and end of each row will be computed using raw c code */
+                    Rpp32u alignedLength = ((bufferLength - (2 * padLength)) / 16) * 16;
+                    for(int i = 0; i < roi.xywhROI.roiHeight; i++)
                     {
-                        sobel_filter_unidirection_generic_tensor(srcPtrTemp, dstPtrTemp, vectorLoopCount, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filter);
-                        increment_row_ptrs(srcPtrTemp, kernelSize, 1);
-                        dstPtrTemp++;
+                        int vectorLoopCount = 0;
+                        bool padLengthRows = (i < padLength) ? 1: 0;
+                        T *srcPtrTemp[5] = {srcPtrRow[0], srcPtrRow[1], srcPtrRow[2],  srcPtrRow[3],  srcPtrRow[4]};
+                        T *dstPtrTemp = dstPtrRow;
+
+                        // get the number of rows needs to be loaded for the corresponding row
+                        Rpp32s rowKernelLoopLimit = kernelSize;
+                        get_kernel_loop_limit(i, rowKernelLoopLimit, padLength, unpaddedHeight);
+                        process_left_border_columns_pln_pln(srcPtrTemp, dstPtrTemp, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filterX, filterY);
+                        dstPtrTemp += padLength;
+#if __AVX2__
+                        // process alignedLength number of columns in each row
+                        for (; vectorLoopCount < alignedLength; vectorLoopCount += 12)
+                        {
+                            __m256 pRow[10], pDst[2], pDstX[2], pDstY[2];
+                            rpp_load_sobel_filter_5x5_host(pRow, srcPtrTemp, rowKernelLoopLimit);
+                            for (int k = 0; k < 2; k++)
+                            {
+                                pDstX[k] = avx_p0;
+                                pDstY[k] = avx_p0;
+                                pDst[k] = avx_p0;
+                            }
+                            for (int k = 0; k < 5; k++)
+                            {
+                                __m256 pTemp[5], pRowShift[4];
+                                Rpp32s filterIndex =  k * 5;
+                                Rpp32s rowIndex = k * 2;
+
+                                pRowShift[0] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 1), avx_pxMaskRotate0To1);
+                                pRowShift[1] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 3), avx_pxMaskRotate0To2);
+                                pRowShift[2] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 7), avx_pxMaskRotate0To3);
+                                pRowShift[3] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 15), avx_pxMaskRotate0To4);
+                                pTemp[0] = _mm256_mul_ps(pRow[rowIndex], pFilterX[filterIndex]);
+                                pTemp[1] = _mm256_mul_ps(pRowShift[0], pFilterX[filterIndex + 1]);
+                                pTemp[2] = _mm256_mul_ps(pRowShift[1], pFilterX[filterIndex + 2]);
+                                pTemp[3] = _mm256_mul_ps(pRowShift[2], pFilterX[filterIndex + 3]);
+                                pTemp[4] = _mm256_mul_ps(pRowShift[3], pFilterX[filterIndex + 4]);
+                                pDstX[0] = _mm256_add_ps(pDstX[0], _mm256_add_ps(_mm256_add_ps(pTemp[0], _mm256_add_ps(pTemp[1], pTemp[2])), _mm256_add_ps(pTemp[3], pTemp[4])));
+
+                                pTemp[0] = _mm256_mul_ps(pRow[rowIndex], pFilterY[filterIndex]);
+                                pTemp[1] = _mm256_mul_ps(pRowShift[0], pFilterY[filterIndex + 1]);
+                                pTemp[2] = _mm256_mul_ps(pRowShift[1], pFilterY[filterIndex + 2]);
+                                pTemp[3] = _mm256_mul_ps(pRowShift[2], pFilterY[filterIndex + 3]);
+                                pTemp[4] = _mm256_mul_ps(pRowShift[3], pFilterY[filterIndex + 4]);
+                                pDstY[0] = _mm256_add_ps(pDstY[0], _mm256_add_ps(_mm256_add_ps(pTemp[0], _mm256_add_ps(pTemp[1], pTemp[2])), _mm256_add_ps(pTemp[3], pTemp[4])));
+
+                                pRowShift[0] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 1), avx_pxMaskRotate0To1);
+                                pRowShift[1] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 3), avx_pxMaskRotate0To2);
+                                pRowShift[2] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 7), avx_pxMaskRotate0To3);
+                                pRowShift[3] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 15), avx_pxMaskRotate0To4);
+                                pTemp[0] = _mm256_mul_ps(pRow[rowIndex + 1], pFilterX[filterIndex]);
+                                pTemp[1] = _mm256_mul_ps(pRowShift[0], pFilterX[filterIndex + 1]);
+                                pTemp[2] = _mm256_mul_ps(pRowShift[1], pFilterX[filterIndex + 2]);
+                                pTemp[3] = _mm256_mul_ps(pRowShift[2], pFilterX[filterIndex + 3]);
+                                pTemp[4] = _mm256_mul_ps(pRowShift[3], pFilterX[filterIndex + 4]);
+                                pDstX[1] = _mm256_add_ps(pDstX[1], _mm256_add_ps(_mm256_add_ps(pTemp[0], _mm256_add_ps(pTemp[1], pTemp[2])), _mm256_add_ps(pTemp[3], pTemp[4])));
+
+                                pTemp[0] = _mm256_mul_ps(pRow[rowIndex + 1], pFilterY[filterIndex]);
+                                pTemp[1] = _mm256_mul_ps(pRowShift[0], pFilterY[filterIndex + 1]);
+                                pTemp[2] = _mm256_mul_ps(pRowShift[1], pFilterY[filterIndex + 2]);
+                                pTemp[3] = _mm256_mul_ps(pRowShift[2], pFilterY[filterIndex + 3]);
+                                pTemp[4] = _mm256_mul_ps(pRowShift[3], pFilterY[filterIndex + 4]);
+                                pDstY[1] = _mm256_add_ps(pDstY[1], _mm256_add_ps(_mm256_add_ps(pTemp[0], _mm256_add_ps(pTemp[1], pTemp[2])), _mm256_add_ps(pTemp[3], pTemp[4])));
+                            }
+                            pDstX[0] = _mm256_min_ps(_mm256_max_ps(pDstX[0], pMin), pMax);
+                            pDstY[0] = _mm256_min_ps(_mm256_max_ps(pDstY[0], pMin), pMax);
+                            pDstX[0] = _mm256_mul_ps(pDstX[0], pDstX[0]);
+                            pDstY[0] = _mm256_mul_ps(pDstY[0], pDstY[0]);
+                            pDst[0] =  _mm256_sqrt_ps(_mm256_add_ps(pDstX[0], pDstY[0]));
+
+                            pDstX[1] = _mm256_min_ps(_mm256_max_ps(pDstX[1], pMin), pMax);
+                            pDstY[1] = _mm256_min_ps(_mm256_max_ps(pDstY[1], pMin), pMax);
+                            pDstX[1] = _mm256_mul_ps(pDstX[1], pDstX[1]);
+                            pDstY[1] = _mm256_mul_ps(pDstY[1], pDstY[1]);
+                            pDst[1] =  _mm256_sqrt_ps(_mm256_add_ps(pDstX[1], pDstY[1]));
+
+                            rpp_sobel_store16(dstPtrTemp, pDst);
+                            increment_row_ptrs(srcPtrTemp, kernelSize, 12);
+                            dstPtrTemp += 12;
+                        }
+#endif
+                        vectorLoopCount += padLength;
+                        for (; vectorLoopCount < bufferLength; vectorLoopCount++)
+                        {
+                            sobel_filter_bidirection_generic_tensor(srcPtrTemp, dstPtrTemp, vectorLoopCount, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filterX, filterY);
+                            increment_row_ptrs(srcPtrTemp, kernelSize, 1);
+                            dstPtrTemp++;
+                        }
+                        // for the first padLength rows, we need not increment the src row pointers to next rows
+                        increment_row_ptrs(srcPtrRow, kernelSize, (!padLengthRows) ? srcDescPtr->strides.hStride : 0);
+                        dstPtrRow += dstDescPtr->strides.hStride;
                     }
-                    // for the first padLength rows, we need not increment the src row pointers to next rows
-                    increment_row_ptrs(srcPtrRow, kernelSize, (!padLengthRows) ? srcDescPtr->strides.hStride : 0);
-                    dstPtrRow += dstDescPtr->strides.hStride;
+                }
+                else
+                {
+#if __AVX2__
+                    __m256 pFilter[25];
+                    filter = (!sobelType) ? sobel5x5X : sobel5x5Y;
+                    for (int i = 0; i < 25; i++)
+                        pFilter[i] = _mm256_set1_ps(filter[i]);
+#endif
+                    /* exclude 2 * padLength number of columns from alignedLength calculation
+                    since padLength number of columns from the beginning and end of each row will be computed using raw c code */
+                    Rpp32u alignedLength = ((bufferLength - (2 * padLength)) / 16) * 16;
+                    for(int i = 0; i < roi.xywhROI.roiHeight; i++)
+                    {
+                        int vectorLoopCount = 0;
+                        bool padLengthRows = (i < padLength) ? 1: 0;
+                        T *srcPtrTemp[5] = {srcPtrRow[0], srcPtrRow[1], srcPtrRow[2], srcPtrRow[3], srcPtrRow[4]};
+                        T *dstPtrTemp = dstPtrRow;
+
+                        // get the number of rows needs to be loaded for the corresponding row
+                        Rpp32s rowKernelLoopLimit = kernelSize;
+                        get_kernel_loop_limit(i, rowKernelLoopLimit, padLength, unpaddedHeight);
+                        process_left_border_columns_pln_pln(srcPtrTemp, dstPtrTemp, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filter);
+                        dstPtrTemp += padLength;
+#if __AVX2__
+                        // process alignedLength number of columns in each row
+                        for (; vectorLoopCount < alignedLength; vectorLoopCount += 12)
+                        {
+                            __m256 pRow[10], pDst[2];
+                            rpp_load_sobel_filter_5x5_host(pRow, srcPtrTemp, rowKernelLoopLimit);
+                            pDst[0] = avx_p0;
+                            pDst[1] = avx_p0;
+                            for (int k = 0; k < 5; k++)
+                            {
+                                __m256 pTemp[5];
+                                Rpp32s filterIndex =  k * 5;
+                                Rpp32s rowIndex = k * 2;
+
+                                pTemp[0] = _mm256_mul_ps(pRow[rowIndex], pFilter[filterIndex]);
+                                pTemp[1] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 1), avx_pxMaskRotate0To1), pFilter[filterIndex + 1]);
+                                pTemp[2] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 3), avx_pxMaskRotate0To2), pFilter[filterIndex + 2]);
+                                pTemp[3] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 7), avx_pxMaskRotate0To3), pFilter[filterIndex + 3]);
+                                pTemp[4] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 15), avx_pxMaskRotate0To4), pFilter[filterIndex + 4]);
+                                pDst[0] = _mm256_add_ps(pDst[0], _mm256_add_ps(_mm256_add_ps(pTemp[0], _mm256_add_ps(pTemp[1], pTemp[2])), _mm256_add_ps(pTemp[3], pTemp[4])));
+
+                                pTemp[0] = _mm256_mul_ps(pRow[rowIndex + 1], pFilter[filterIndex]);
+                                pTemp[1] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 1), avx_pxMaskRotate0To1), pFilter[filterIndex + 1]);
+                                pTemp[2] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 3), avx_pxMaskRotate0To2), pFilter[filterIndex + 2]);
+                                pTemp[3] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 7), avx_pxMaskRotate0To3), pFilter[filterIndex + 3]);
+                                pTemp[4] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 15), avx_pxMaskRotate0To4), pFilter[filterIndex + 4]);
+                                pDst[1] = _mm256_add_ps(pDst[1], _mm256_add_ps(_mm256_add_ps(pTemp[0], _mm256_add_ps(pTemp[1], pTemp[2])), _mm256_add_ps(pTemp[3], pTemp[4])));
+                            }
+                            rpp_sobel_store16(dstPtrTemp, pDst);
+                            increment_row_ptrs(srcPtrTemp, kernelSize, 12);
+                            dstPtrTemp += 12;
+                        }
+#endif
+                        vectorLoopCount += padLength;
+                        for (; vectorLoopCount < bufferLength; vectorLoopCount++)
+                        {
+                            sobel_filter_unidirection_generic_tensor(srcPtrTemp, dstPtrTemp, vectorLoopCount, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, filter);
+                            increment_row_ptrs(srcPtrTemp, kernelSize, 1);
+                            dstPtrTemp++;
+                        }
+                        // for the first padLength rows, we need not increment the src row pointers to next rows
+                        increment_row_ptrs(srcPtrRow, kernelSize, (!padLengthRows) ? srcDescPtr->strides.hStride : 0);
+                        dstPtrRow += dstDescPtr->strides.hStride;
+                    }
                 }
             }
         }
