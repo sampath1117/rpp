@@ -529,12 +529,14 @@ RppStatus sobel_filter_host_tensor(T *srcPtr,
                             pDstX[0] = _mm256_mul_ps(pDstX[0], pDstX[0]);
                             pDstY[0] = _mm256_mul_ps(pDstY[0], pDstY[0]);
                             pDst[0] =  _mm256_sqrt_ps(_mm256_add_ps(pDstX[0], pDstY[0]));
+                            pDst[0] = _mm256_min_ps(_mm256_max_ps(pDst[0], pMin), pMax);
 
                             pDstX[1] = _mm256_min_ps(_mm256_max_ps(pDstX[1], pMin), pMax);
                             pDstY[1] = _mm256_min_ps(_mm256_max_ps(pDstY[1], pMin), pMax);
                             pDstX[1] = _mm256_mul_ps(pDstX[1], pDstX[1]);
                             pDstY[1] = _mm256_mul_ps(pDstY[1], pDstY[1]);
                             pDst[1] =  _mm256_sqrt_ps(_mm256_add_ps(pDstX[1], pDstY[1]));
+                            pDst[1] = _mm256_min_ps(_mm256_max_ps(pDst[1], pMin), pMax);
 
                             rpp_sobel_store16(dstPtrTemp, pDst);
                             increment_row_ptrs(srcPtrTemp, kernelSize, 14);
@@ -600,6 +602,8 @@ RppStatus sobel_filter_host_tensor(T *srcPtr,
                                 pTemp[2] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 3), avx_pxMaskRotate0To2), pFilter[filterIndex + 2]);
                                 pDst[1] = _mm256_add_ps(pDst[1], _mm256_add_ps(_mm256_add_ps(pTemp[0], pTemp[1]), pTemp[2]));
                             }
+                            pDst[0] = _mm256_min_ps(_mm256_max_ps(pDst[0], pMin), pMax);
+                            pDst[1] = _mm256_min_ps(_mm256_max_ps(pDst[1], pMin), pMax);
                             rpp_sobel_store16(dstPtrTemp, pDst);
                             increment_row_ptrs(srcPtrTemp, kernelSize, 14);
                             dstPtrTemp += 14;
@@ -711,12 +715,14 @@ RppStatus sobel_filter_host_tensor(T *srcPtr,
                             pDstX[0] = _mm256_mul_ps(pDstX[0], pDstX[0]);
                             pDstY[0] = _mm256_mul_ps(pDstY[0], pDstY[0]);
                             pDst[0] =  _mm256_sqrt_ps(_mm256_add_ps(pDstX[0], pDstY[0]));
+                            pDst[0] = _mm256_min_ps(_mm256_max_ps(pDst[0], pMin), pMax);
 
                             pDstX[1] = _mm256_min_ps(_mm256_max_ps(pDstX[1], pMin), pMax);
                             pDstY[1] = _mm256_min_ps(_mm256_max_ps(pDstY[1], pMin), pMax);
                             pDstX[1] = _mm256_mul_ps(pDstX[1], pDstX[1]);
                             pDstY[1] = _mm256_mul_ps(pDstY[1], pDstY[1]);
                             pDst[1] =  _mm256_sqrt_ps(_mm256_add_ps(pDstX[1], pDstY[1]));
+                            pDst[1] = _mm256_min_ps(_mm256_max_ps(pDst[1], pMin), pMax);
 
                             rpp_sobel_store16(dstPtrTemp, pDst);
                             increment_row_ptrs(srcPtrTemp, kernelSize, 12);
@@ -786,6 +792,8 @@ RppStatus sobel_filter_host_tensor(T *srcPtr,
                                 pTemp[4] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex + 1], avx_p0, 15), avx_pxMaskRotate0To4), pFilter[filterIndex + 4]);
                                 pDst[1] = _mm256_add_ps(pDst[1], _mm256_add_ps(_mm256_add_ps(pTemp[0], _mm256_add_ps(pTemp[1], pTemp[2])), _mm256_add_ps(pTemp[3], pTemp[4])));
                             }
+                            pDst[0] = _mm256_min_ps(_mm256_max_ps(pDst[0], pMin), pMax);
+                            pDst[1] = _mm256_min_ps(_mm256_max_ps(pDst[1], pMin), pMax);
                             rpp_sobel_store16(dstPtrTemp, pDst);
                             increment_row_ptrs(srcPtrTemp, kernelSize, 12);
                             dstPtrTemp += 12;
@@ -857,7 +865,7 @@ RppStatus sobel_filter_host_tensor(T *srcPtr,
                                 pRowShift[1] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 3), avx_pxMaskRotate0To2);
                                 pRowShift[2] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 7), avx_pxMaskRotate0To3);
                                 pRowShift[3] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 15), avx_pxMaskRotate0To4);
-                                pRowShift[4] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 31), avx_pxMaskRotate0To4);
+                                pRowShift[4] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 31), avx_pxMaskRotate0To5);
                                 pRowShift[5] = _mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 63), avx_pxMaskRotate0To6);
                                 pTemp[0] = _mm256_mul_ps(pRow[rowIndex], pFilterX[filterIndex]);
                                 pTemp[1] = _mm256_mul_ps(pRowShift[0], pFilterX[filterIndex + 1]);
@@ -882,6 +890,7 @@ RppStatus sobel_filter_host_tensor(T *srcPtr,
                             pDstX = _mm256_mul_ps(pDstX, pDstX);
                             pDstY = _mm256_mul_ps(pDstY, pDstY);
                             pDst =  _mm256_sqrt_ps(_mm256_add_ps(pDstX, pDstY));
+                            pDst = _mm256_min_ps(_mm256_max_ps(pDst, pMin), pMax);
 
                             rpp_sobel_store8(dstPtrTemp, &pDst);
                             increment_row_ptrs(srcPtrTemp, kernelSize, 8);
@@ -945,6 +954,7 @@ RppStatus sobel_filter_host_tensor(T *srcPtr,
                                 pTemp[6] = _mm256_mul_ps(_mm256_permutevar8x32_ps(_mm256_blend_ps(pRow[rowIndex], pRow[rowIndex + 1], 63), avx_pxMaskRotate0To6), pFilter[filterIndex + 6]);
                                 pDst =  _mm256_add_ps(pDst, _mm256_add_ps(_mm256_add_ps(pTemp[0], _mm256_add_ps(pTemp[1], pTemp[2])), _mm256_add_ps(_mm256_add_ps(pTemp[3], pTemp[4]), _mm256_add_ps(pTemp[5], pTemp[6]))));
                             }
+                            pDst = _mm256_min_ps(_mm256_max_ps(pDst, pMin), pMax);
                             rpp_sobel_store8(dstPtrTemp, &pDst);
                             increment_row_ptrs(srcPtrTemp, kernelSize, 8);
                             dstPtrTemp += 8;

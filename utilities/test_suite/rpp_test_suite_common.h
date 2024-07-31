@@ -261,11 +261,21 @@ inline std::string get_kernel_size_and_gradient_type(unsigned int val, Rpp32u &k
     GradientType = val % 3;
     switch(x)
     {
-        case 0: kernelSize = 3;
-        case 1: kernelSize = 5;
-        case 2: kernelSize = 7;
-        case 3: kernelSize = 9;
-        default: kernelSize = 3;
+        case 0:
+            kernelSize = 3;
+            break;
+        case 1:
+            kernelSize = 5;
+            break;
+        case 2:
+            kernelSize = 7;
+            break;
+        case 3:
+            kernelSize = 9;
+            break;
+        default:
+            kernelSize = 3;
+            break;
     }
     return ("_kernelSize" + std::to_string(kernelSize) + "_Gradient" + get_gradient_type(GradientType));
 }
