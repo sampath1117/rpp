@@ -1205,7 +1205,7 @@ inline void compare_output(T* output, string funcName, RpptDescPtr srcDescPtr, R
         Rpp32u kernelSize, GradientType;
         get_kernel_size_and_gradient_type(additionalParam, kernelSize, GradientType);
         binFile += "_kernelSize" + std::to_string(kernelSize);
-        pln1RefStride += GradientType * dstDescPtr->strides.nStride * dstDescPtr->n;
+        pln1RefStride += (GradientType * dstDescPtr->strides.nStride * dstDescPtr->n);
     }
     refFile = scriptPath + "/../REFERENCE_OUTPUT/" + funcName + "/"+ binFile + ".bin";
     int fileMatch = 0;

@@ -218,10 +218,6 @@ int main(int argc, char **argv)
     {
         kernelSizeAndGradientName = get_kernel_size_and_gradient_type(additionalParam, kernelSize, GradientType);
         func += kernelSizeAndGradientName;
-        std::cout << "kernelSizeAndGradientName: " << kernelSizeAndGradientName << std::endl;
-        std::cout << "func: " << func << std::endl;
-        std::cout << "kernelSize: " << kernelSize << std::endl;
-        std::cout << "GradientType: " << GradientType << std::endl;
     }
 
     if(!qaFlag)
@@ -1098,8 +1094,6 @@ int main(int argc, char **argv)
                 case 50:
                 {
                     testCaseName = "sobel_filter";
-                    // GradientType = 0;
-                    // kernelSize = 3;
 
                     startWallTime = omp_get_wtime();
                     startCpuTime = clock();
@@ -1606,7 +1600,7 @@ int main(int argc, char **argv)
                 3.source and destination layout are the same
                 4.augmentation case does not generate random output*/
                 if(qaFlag && inputBitDepth == 0 && ((srcDescPtr->layout == dstDescPtr->layout) || pln1OutTypeCase) && !(randomOutputCase) && !(nonQACase))
-                    compare_output<Rpp8u>(outputu8, testCaseName, srcDescPtr, dstDescPtr, dstImgSizes, batchSize, interpolationTypeName, noiseTypeName, kernelSizeAndGradientName, testCase, dst, scriptPath);
+                    compare_output<Rpp8u>(outputu8, testCaseName, srcDescPtr, dstDescPtr, dstImgSizes, batchSize, interpolationTypeName, noiseTypeName, kernelSizeAndGradientName, testCase, dst, scriptPath, additionalParam);
 
                 // Calculate exact dstROI in XYWH format for OpenCV dump
                 if (roiTypeSrc == RpptRoiType::LTRB)
