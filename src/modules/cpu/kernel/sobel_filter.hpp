@@ -457,10 +457,10 @@ RppStatus sobel_filter_host_tensor(T *srcPtr,
 
                 if (combined)
                 {
-#if __AVX2__
-                    __m256 pFilterX[9], pFilterY[9];
                     filterX = sobel3x3X;
                     filterY = sobel3x3Y;
+#if __AVX2__
+                    __m256 pFilterX[9], pFilterY[9];
                     for (int i = 0; i < 9; i++)
                     {
                         pFilterX[i] = _mm256_set1_ps(filterX[i]);
@@ -555,9 +555,9 @@ RppStatus sobel_filter_host_tensor(T *srcPtr,
                 }
                 else
                 {
+                    filter = (!sobelType) ? sobel3x3X : sobel3x3Y;
 #if __AVX2__
                     __m256 pFilter[9];
-                    filter = (!sobelType) ? sobel3x3X : sobel3x3Y;
                     for (int i = 0; i < 9; i++)
                         pFilter[i] = _mm256_set1_ps(filter[i]);
 #endif
@@ -627,10 +627,10 @@ RppStatus sobel_filter_host_tensor(T *srcPtr,
 
                 if (combined)
                 {
-#if __AVX2__
-                    __m256 pFilterX[25], pFilterY[25];
                     filterX = sobel5x5X;
                     filterY = sobel5x5Y;
+#if __AVX2__
+                    __m256 pFilterX[25], pFilterY[25];
                     for (int i = 0; i < 25; i++)
                     {
                         pFilterX[i] = _mm256_set1_ps(filterX[i]);
@@ -737,9 +737,9 @@ RppStatus sobel_filter_host_tensor(T *srcPtr,
                 }
                 else
                 {
+                    filter = (!sobelType) ? sobel5x5X : sobel5x5Y;
 #if __AVX2__
                     __m256 pFilter[25];
-                    filter = (!sobelType) ? sobel5x5X : sobel5x5Y;
                     for (int i = 0; i < 25; i++)
                         pFilter[i] = _mm256_set1_ps(filter[i]);
 #endif
@@ -813,10 +813,10 @@ RppStatus sobel_filter_host_tensor(T *srcPtr,
 
                 if (combined)
                 {
-#if __AVX2__
-                    __m256 pFilterX[49], pFilterY[49];
                     filterX = sobel7x7X;
                     filterY = sobel7x7Y;
+#if __AVX2__
+                    __m256 pFilterX[49], pFilterY[49];
                     for (int i = 0; i < 49; i++)
                     {
                         pFilterX[i] = _mm256_set1_ps(filterX[i]);
@@ -902,9 +902,9 @@ RppStatus sobel_filter_host_tensor(T *srcPtr,
                 }
                 else
                 {
+                    filter = (!sobelType) ? sobel7x7X : sobel7x7Y;
 #if __AVX2__
                     __m256 pFilter[49];
-                    filter = (!sobelType) ? sobel7x7X : sobel7x7Y;
                     for (int i = 0; i < 49; i++)
                         pFilter[i] = _mm256_set1_ps(filter[i]);
 #endif
