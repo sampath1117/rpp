@@ -242,6 +242,34 @@ inline std::string get_noise_type(unsigned int val)
     }
 }
 
+// returns the gradient type applied to an image
+inline std::string get_gradient_type(unsigned int val)
+{
+    switch(val)
+    {
+        case 0: return "X";
+        case 1: return "Y";
+        case 2: return "XY";
+        default:return "X";
+    }
+}
+
+// returns the interpolation type used for image resizing or scaling operations.
+inline std::string get_kernel_size_and_gradient_type(unsigned int val, Rpp32u &kernelSize, Rpp32u &GradientType)
+{
+    unsigned int x = val / 3;
+    GradientType = val % 3;
+    switch(x)
+    {
+        case 0: kernelSize = 3;
+        case 1: kernelSize = 5;
+        case 2: kernelSize = 7;
+        case 3: kernelSize = 9;
+        default: kernelSize = 3;
+    }
+    return ("_kernelSize" + std::to_string(kernelSize) + "_Gradient" + get_gradient_type(GradientType));
+}
+
 // returns number of input channels according to layout type
 inline int set_input_channels(int layoutType)
 {
@@ -1095,7 +1123,7 @@ void compare_outputs_pln3(Rpp8u* output, Rpp8u* refOutput, RpptDescPtr dstDescPt
 }
 
 template <typename T>
-inline void compare_output(T* output, string funcName, RpptDescPtr srcDescPtr, RpptDescPtr dstDescPtr, RpptImagePatch *dstImgSizes, int noOfImages, string interpolationTypeName, string noiseTypeName, int testCase, string dst, string scriptPath)
+inline void compare_output(T* output, string funcName, RpptDescPtr srcDescPtr, RpptDescPtr dstDescPtr, RpptImagePatch *dstImgSizes, int noOfImages, string interpolationTypeName, string noiseTypeName, string kernelSizeAndGradientName, int testCase, string dst, string scriptPath, int additionalParam = 0)
 {
     string func = funcName;
     string refFile = "";
@@ -1111,7 +1139,7 @@ inline void compare_output(T* output, string funcName, RpptDescPtr srcDescPtr, R
         refOutputHeight = GOLDEN_OUTPUT_MAX_HEIGHT;
     }
     int refOutputSize = refOutputHeight * refOutputWidth * dstDescPtr->c;
-    Rpp64u binOutputSize = refOutputHeight * refOutputWidth * dstDescPtr->n * 4;
+    Rpp64u binOutputSize = refOutputHeight * refOutputWidth * dstDescPtr->n * 6;
     int pln1RefStride = dstDescPtr->strides.nStride * dstDescPtr->n * 3;
 
     string dataType[4] = {"_u8_", "_f16_", "_f32_", "_i8_"};
@@ -1142,6 +1170,21 @@ inline void compare_output(T* output, string funcName, RpptDescPtr srcDescPtr, R
                     func += "Tensor_PLN3";
                 pln1RefStride = 0;
             }
+            else if(testCase == 50)
+            {
+                if(srcDescPtr->layout == RpptLayout::NHWC)
+                {
+                    pln1RefStride = 0;
+                    func += "Tensor_PKD3";
+                }
+                else if (srcDescPtr->c == 3 && srcDescPtr->layout == RpptLayout::NCHW)
+                {
+                    pln1RefStride = 0;
+                    func += "Tensor_PLN3";
+                }
+                else if (srcDescPtr->c == 1 && srcDescPtr->layout == RpptLayout::NCHW)
+                    func += "Tensor_PLN1";
+            }
             else
                 func += "Tensor_PLN1";
         }
@@ -1155,6 +1198,14 @@ inline void compare_output(T* output, string funcName, RpptDescPtr srcDescPtr, R
     {
         func += "_noiseType" + noiseTypeName;
         binFile += "_noiseType" + noiseTypeName;
+    }
+    else if(testCase == 50)
+    {
+        func += kernelSizeAndGradientName;
+        Rpp32u kernelSize, GradientType;
+        get_kernel_size_and_gradient_type(additionalParam, kernelSize, GradientType);
+        binFile += "_kernelSize" + std::to_string(kernelSize);
+        pln1RefStride += GradientType * dstDescPtr->strides.nStride * dstDescPtr->n;
     }
     refFile = scriptPath + "/../REFERENCE_OUTPUT/" + funcName + "/"+ binFile + ".bin";
     int fileMatch = 0;
