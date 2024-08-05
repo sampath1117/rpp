@@ -44,6 +44,11 @@ RppStatus rppt_sobel_filter_host(RppPtr_t srcPtr,
                                  RpptRoiType roiType,
                                  rppHandle_t rppHandle)
 {
+    if ((kernelSize != 3) && (kernelSize != 5) && (kernelSize != 7))
+        return RPP_ERROR_INVALID_ARGUMENTS;
+    if ((sobelType != 0) && (sobelType != 1) && (sobelType != 2))
+        return RPP_ERROR_INVALID_ARGUMENTS;
+
     // convert image to grey scale if input is RGB image
     RppPtr_t tempPtr = srcPtr;
     if (srcDescPtr->c == 3)
