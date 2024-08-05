@@ -255,10 +255,10 @@ inline std::string get_gradient_type(unsigned int val)
 }
 
 // returns the interpolation type used for image resizing or scaling operations.
-inline std::string get_kernel_size_and_gradient_type(unsigned int val, Rpp32u &kernelSize, Rpp32u &GradientType)
+inline std::string get_kernel_size_and_gradient_type(unsigned int val, Rpp32u &kernelSize, Rpp32u &gradientType)
 {
     unsigned int x = val / 3;
-    GradientType = val % 3;
+    gradientType = val % 3;
     switch(x)
     {
         case 0:
@@ -270,14 +270,11 @@ inline std::string get_kernel_size_and_gradient_type(unsigned int val, Rpp32u &k
         case 2:
             kernelSize = 7;
             break;
-        case 3:
-            kernelSize = 9;
-            break;
         default:
             kernelSize = 3;
             break;
     }
-    return ("_kernelSize" + std::to_string(kernelSize) + "_Gradient" + get_gradient_type(GradientType));
+    return ("_kernelSize" + std::to_string(kernelSize) + "_gradient" + get_gradient_type(gradientType));
 }
 
 // returns number of input channels according to layout type
@@ -1014,6 +1011,27 @@ inline void read_bin_file(string refFile, T *binaryContent)
     fclose(fp);
 }
 
+// returns the size of binary file passed
+inline long get_bin_file_size(string refFile)
+{
+    FILE *fp;
+    fp = fopen(refFile.c_str(), "rb");
+    if(!fp)
+    {
+        std::cout << "\n unable to open file : "<<refFile;
+        exit(0);
+    }
+
+    fseek(fp, 0, SEEK_END);
+    long fsize = ftell(fp);
+    if (!fsize)
+    {
+        std::cout << "File is empty";
+        exit(0);
+    }
+    return fsize;
+}
+
 // Write a batch of images using the OpenCV library
 inline void write_image_batch_opencv(string outputFolder, Rpp8u *output, RpptDescPtr dstDescPtr, vector<string>::const_iterator imagesNamesStart, RpptImagePatch *dstImgSizes, int maxImageDump)
 {
@@ -1149,7 +1167,6 @@ inline void compare_output(T* output, string funcName, RpptDescPtr srcDescPtr, R
         refOutputHeight = GOLDEN_OUTPUT_MAX_HEIGHT;
     }
     int refOutputSize = refOutputHeight * refOutputWidth * dstDescPtr->c;
-    Rpp64u binOutputSize = refOutputHeight * refOutputWidth * dstDescPtr->n * 6;
     int pln1RefStride = dstDescPtr->strides.nStride * dstDescPtr->n * 3;
 
     string dataType[4] = {"_u8_", "_f16_", "_f32_", "_i8_"};
@@ -1212,15 +1229,16 @@ inline void compare_output(T* output, string funcName, RpptDescPtr srcDescPtr, R
     else if(testCase == 50)
     {
         func += kernelSizeAndGradientName;
-        Rpp32u kernelSize, GradientType;
-        get_kernel_size_and_gradient_type(additionalParam, kernelSize, GradientType);
+        Rpp32u kernelSize, gradientType;
+        get_kernel_size_and_gradient_type(additionalParam, kernelSize, gradientType);
         binFile += "_kernelSize" + std::to_string(kernelSize);
-        pln1RefStride += (GradientType * dstDescPtr->strides.nStride * dstDescPtr->n);
+        pln1RefStride += (gradientType * dstDescPtr->strides.nStride * dstDescPtr->n);
     }
     refFile = scriptPath + "/../REFERENCE_OUTPUT/" + funcName + "/"+ binFile + ".bin";
     int fileMatch = 0;
 
-    Rpp8u *binaryContent = (Rpp8u *)malloc(binOutputSize * sizeof(Rpp8u));
+    Rpp64u binOutputSize = get_bin_file_size(refFile);
+    Rpp8u *binaryContent = static_cast<Rpp8u *>(malloc(binOutputSize * sizeof(Rpp8u)));
     read_bin_file(refFile, binaryContent);
 
     if(dstDescPtr->layout == RpptLayout::NHWC)
