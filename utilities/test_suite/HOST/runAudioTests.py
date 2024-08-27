@@ -209,4 +209,3 @@ if (testType == 1):
     log_file_list = get_log_file_list()
     for log_file in log_file_list:
         print_performance_tests_summary(log_file, "", numRuns)
-

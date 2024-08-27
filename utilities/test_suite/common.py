@@ -35,18 +35,6 @@ except ImportError:
     # Python 2 compatibility
     FileExistsError = OSError
 
-try:
-    from errno import FileExistsError
-except ImportError:
-    # Python 2 compatibility
-    FileExistsError = OSError
-
-try:
-    from errno import FileExistsError
-except ImportError:
-    # Python 2 compatibility
-    FileExistsError = OSError
-
 imageAugmentationMap = {
     0: ["brightness", "HOST", "HIP"],
     1: ["gamma_correction", "HOST", "HIP"],
@@ -99,7 +87,7 @@ audioAugmentationMap = {
     3: ["down_mixing", "HOST"],
     4: ["spectrogram", "HOST"],
     5: ["slice", "HOST"],
-    6: ["resample", "HOST"],
+    6: ["resample", "HOST", "HIP"],
     7: ["mel_filter_bank", "HOST"]
 }
 
