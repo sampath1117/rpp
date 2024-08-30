@@ -48,6 +48,8 @@ RppStatus rppt_sobel_filter_host(RppPtr_t srcPtr,
         return RPP_ERROR_INVALID_ARGUMENTS;
     if ((sobelType != 0) && (sobelType != 1) && (sobelType != 2))
         return RPP_ERROR_INVALID_ARGUMENTS;
+    if (dstDescPtr->c == 3)
+        return RPP_ERROR_INVALID_DST_CHANNELS;
 
     // convert image to grey scale if input is RGB image
     RppPtr_t tempPtr = srcPtr;
