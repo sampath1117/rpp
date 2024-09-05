@@ -242,8 +242,8 @@ RppStatus erode_char_host_tensor(T *srcPtr,
     Rpp32u numThreads = handle.GetNumThreads();
     static_assert((std::is_same<T, Rpp8u>::value || std::is_same<T, Rpp8s>::value), "T must be Rpp8u or Rpp8s");
 
-    // if ((kernelSize != 3) && (kernelSize != 5) && (kernelSize != 7) && (kernelSize != 9))
-    //     return erode_generic_host_tensor(srcPtr, srcDescPtr, dstPtr, dstDescPtr, kernelSize, roiTensorPtrSrc, roiType, layoutParams, handle);
+    if ((kernelSize != 3) && (kernelSize != 5) && (kernelSize != 7) && (kernelSize != 9))
+        return erode_generic_host_tensor(srcPtr, srcDescPtr, dstPtr, dstDescPtr, kernelSize, roiTensorPtrSrc, roiType, layoutParams, handle);
 
     // set the required masks array needed for shuffle operations 
 #if __AVX2__
@@ -1468,8 +1468,8 @@ RppStatus erode_float_host_tensor(T *srcPtr,
     Rpp32u numThreads = handle.GetNumThreads();
     static_assert((std::is_same<T, Rpp32f>::value || std::is_same<T, Rpp16f>::value), "T must be Rpp32f or Rpp16f");
 
-    // if ((kernelSize != 3) && (kernelSize != 5) && (kernelSize != 7) && (kernelSize != 9))
-    //     return erode_generic_host_tensor(srcPtr, srcDescPtr, dstPtr, dstDescPtr, kernelSize, roiTensorPtrSrc, roiType, layoutParams, handle);
+    if ((kernelSize != 3) && (kernelSize != 5) && (kernelSize != 7) && (kernelSize != 9))
+        return erode_generic_host_tensor(srcPtr, srcDescPtr, dstPtr, dstDescPtr, kernelSize, roiTensorPtrSrc, roiType, layoutParams, handle);
 
     // set the required masks array needed for permute operations 
 #if __AVX2__
@@ -2584,5 +2584,192 @@ RppStatus erode_float_host_tensor(T *srcPtr,
         }
     }
 
+    return RPP_SUCCESS;
+}
+
+template<typename T>
+RppStatus erode_generic_host_tensor(T *srcPtr,
+                                    RpptDescPtr srcDescPtr,
+                                    T *dstPtr,
+                                    RpptDescPtr dstDescPtr,
+                                    Rpp32u kernelSize,
+                                    RpptROIPtr roiTensorPtrSrc,
+                                    RpptRoiType roiType,
+                                    RppLayoutParams layoutParams,
+                                    rpp::Handle& handle)
+{
+    RpptROI roiDefault = {0, 0, (Rpp32s)srcDescPtr->w, (Rpp32s)srcDescPtr->h};
+    Rpp32u numThreads = handle.GetNumThreads();
+
+    omp_set_dynamic(0);
+#pragma omp parallel for num_threads(numThreads)
+    for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
+    {
+        RpptROI roi;
+        RpptROIPtr roiPtrInput = &roiTensorPtrSrc[batchCount];
+        compute_roi_validation_host(roiPtrInput, &roi, &roiDefault, roiType);
+
+        T *srcPtrImage, *dstPtrImage;
+        srcPtrImage = srcPtr + batchCount * srcDescPtr->strides.nStride;
+        dstPtrImage = dstPtr + batchCount * dstDescPtr->strides.nStride;
+
+        Rpp32u padLength = kernelSize / 2;
+        Rpp32u bufferLength = roi.xywhROI.roiWidth * layoutParams.bufferMultiplier;
+        Rpp32f kernelSizeInverseSquare = 1.0 / (kernelSize * kernelSize);
+        Rpp32u unpaddedHeight = roi.xywhROI.roiHeight - padLength;
+        Rpp32u unpaddedWidth = roi.xywhROI.roiWidth - padLength;
+
+        T *srcPtrChannel, *dstPtrChannel;
+        srcPtrChannel = srcPtrImage + (roi.xywhROI.xy.y * srcDescPtr->strides.hStride) + (roi.xywhROI.xy.x * layoutParams.bufferMultiplier);
+        dstPtrChannel = dstPtrImage;
+
+        T *srcPtrRow[kernelSize], *dstPtrRow;
+        for (int k = 0; k < kernelSize; k++)
+            srcPtrRow[k] = srcPtrChannel + k * srcDescPtr->strides.hStride;
+        dstPtrRow = dstPtrChannel;
+        if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
+        {
+            for (int c = 0; c < srcDescPtr->c; c++)
+            {
+                srcPtrRow[0] = srcPtrChannel;
+                for (int k = 1; k < kernelSize; k++)
+                    srcPtrRow[k] = srcPtrRow[k - 1] + srcDescPtr->strides.hStride;
+                dstPtrRow = dstPtrChannel;
+                for(int i = 0; i < roi.xywhROI.roiHeight; i++)
+                {
+                    int vectorLoopCount = 0;
+                    bool padLengthRows = (i < padLength) ? 1: 0;
+                    T *srcPtrTemp[kernelSize];
+                    for (int k = 0; k < kernelSize; k++)
+                        srcPtrTemp[k] = srcPtrRow[k];
+                    T *dstPtrTemp = dstPtrRow;
+
+                    Rpp32s rowKernelLoopLimit = kernelSize;
+                    get_kernel_loop_limit(i, rowKernelLoopLimit, padLength, unpaddedHeight);
+                    process_left_border_columns_pln_pln(srcPtrTemp, dstPtrTemp, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, kernelSizeInverseSquare);
+                    dstPtrTemp += padLength;
+                    vectorLoopCount += padLength;
+
+                    // process remaining columns in each row
+                    for (; vectorLoopCount < bufferLength; vectorLoopCount++)
+                    {
+                        erode_generic_tensor(srcPtrTemp, dstPtrTemp, vectorLoopCount, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, kernelSizeInverseSquare);
+                        increment_row_ptrs(srcPtrTemp, kernelSize, 1);
+                        dstPtrTemp++;
+                    }
+                    // for the first padLength rows, we need not increment the src row pointers to next rows
+                    increment_row_ptrs(srcPtrRow, kernelSize, (!padLengthRows) ? srcDescPtr->strides.hStride : 0);
+                    dstPtrRow += dstDescPtr->strides.hStride;
+                }
+                srcPtrChannel += srcDescPtr->strides.cStride;
+                dstPtrChannel += dstDescPtr->strides.cStride;
+            }
+        }
+        else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
+        {
+            for(int i = 0; i < roi.xywhROI.roiHeight; i++)
+            {
+                int vectorLoopCount = 0;
+                bool padLengthRows = (i < padLength) ? 1: 0;
+                T *srcPtrTemp[kernelSize];
+                for (int k = 0; k < kernelSize; k++)
+                    srcPtrTemp[k] = srcPtrRow[k];
+                T *dstPtrTemp = dstPtrRow;
+
+                Rpp32s rowKernelLoopLimit = kernelSize;
+                get_kernel_loop_limit(i, rowKernelLoopLimit, padLength, unpaddedHeight);
+                process_left_border_columns_pkd_pkd(srcPtrTemp, srcPtrRow, dstPtrTemp, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, kernelSizeInverseSquare);
+                dstPtrTemp += padLength * 3;
+                vectorLoopCount += padLength * 3;
+
+                // process remaining columns in each row
+                for (; vectorLoopCount < bufferLength; vectorLoopCount++)
+                {
+                    erode_generic_tensor(srcPtrTemp, dstPtrTemp, vectorLoopCount / 3, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, kernelSizeInverseSquare, 3);
+                    increment_row_ptrs(srcPtrTemp, kernelSize, 1);
+                    dstPtrTemp++;
+                }
+                // for the first padLength rows, we need not increment the src row pointers to next rows
+                increment_row_ptrs(srcPtrRow, kernelSize, (!padLengthRows) ? srcDescPtr->strides.hStride : 0);
+                dstPtrRow += dstDescPtr->strides.hStride;
+            }
+        }
+        else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NHWC))
+        {
+            for(int i = 0; i < roi.xywhROI.roiHeight; i++)
+            {
+                int vectorLoopCount = 0;
+                bool padLengthRows = (i < padLength) ? 1: 0;
+                T *srcPtrTemp[3][kernelSize];
+                for (int c = 0; c < 3; c++)
+                {
+                    Rpp32u channelStride = c * srcDescPtr->strides.cStride;
+                    for (int k = 0; k < kernelSize; k++)
+                        srcPtrTemp[c][k] = srcPtrRow[k] + channelStride;
+                }
+                T *dstPtrTemp = dstPtrRow;
+
+                Rpp32s rowKernelLoopLimit = kernelSize;
+                get_kernel_loop_limit(i, rowKernelLoopLimit, padLength, unpaddedHeight);
+
+                // process padLength number of columns in each row
+                for (int k = 0; k < padLength; k++)
+                {
+                    for (int c = 0; c < 3; c++)
+                    {
+                        erode_generic_tensor(srcPtrTemp[c], dstPtrTemp, k, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, kernelSizeInverseSquare);
+                        dstPtrTemp++;
+                    }
+                }
+                vectorLoopCount += padLength;
+
+                // process remaining columns in each row
+                for (; vectorLoopCount < bufferLength; vectorLoopCount++)
+                {
+                    for (int c = 0; c < srcDescPtr->c; c++)
+                    {
+                        erode_generic_tensor(srcPtrTemp[c], dstPtrTemp, vectorLoopCount, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, kernelSizeInverseSquare);
+                        increment_row_ptrs(srcPtrTemp[c], kernelSize, 1);
+                        dstPtrTemp++;
+                    }
+                }
+                // for the first padLength rows, we need not increment the src row pointers to next rows
+                increment_row_ptrs(srcPtrRow, kernelSize, (!padLengthRows) ? srcDescPtr->strides.hStride : 0);
+                dstPtrRow += dstDescPtr->strides.hStride;
+            }
+        }
+        else if ((srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NCHW))
+        {
+            T *dstPtrChannels[3];
+            for (int c = 0; c < 3; c++)
+                dstPtrChannels[c] = dstPtrChannel + c * dstDescPtr->strides.cStride;
+            for(int i = 0; i < roi.xywhROI.roiHeight; i++)
+            {
+                int vectorLoopCount = 0;
+                bool padLengthRows = (i < padLength) ? 1: 0;
+                T *srcPtrTemp[kernelSize];
+                for (int k = 0; k < kernelSize; k++)
+                    srcPtrTemp[k] = srcPtrRow[k];
+                T *dstPtrTempChannels[3] = {dstPtrChannels[0], dstPtrChannels[1], dstPtrChannels[2]};
+
+                Rpp32s rowKernelLoopLimit = kernelSize;
+                get_kernel_loop_limit(i, rowKernelLoopLimit, padLength, unpaddedHeight);
+                process_left_border_columns_pkd_pln(srcPtrTemp, srcPtrRow, dstPtrTempChannels, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, kernelSizeInverseSquare);
+                vectorLoopCount += padLength * 3;
+
+                // process remaining columns in each row
+                for (; vectorLoopCount < bufferLength; vectorLoopCount++)
+                {
+                    int channel = vectorLoopCount % 3;
+                    erode_generic_tensor(srcPtrTemp, dstPtrTempChannels[channel], vectorLoopCount / 3, kernelSize, padLength, unpaddedWidth, rowKernelLoopLimit, kernelSizeInverseSquare, 3);
+                    increment_row_ptrs(srcPtrTemp, kernelSize, 1);
+                    dstPtrTempChannels[channel]++;
+                }
+                // for the first padLength rows, we need not increment the src row pointers to next rows
+                increment_row_ptrs(srcPtrRow, kernelSize, (!padLengthRows) ? srcDescPtr->strides.hStride : 0);
+                increment_row_ptrs(dstPtrChannels, 3, dstDescPtr->strides.hStride);
+            }
+        }
+    }
     return RPP_SUCCESS;
 }
