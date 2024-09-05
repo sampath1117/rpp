@@ -1091,6 +1091,19 @@ int main(int argc, char **argv)
 
                     break;
                 }
+                case 40:
+                {
+                    testCaseName = "erode";
+                    Rpp32u kernelSize = additionalParam;
+
+                    startWallTime = omp_get_wtime();
+                    if (inputBitDepth == 0 || inputBitDepth == 1 || inputBitDepth == 2 || inputBitDepth == 5)
+                        rppt_erode_gpu(d_input, srcDescPtr, d_output, dstDescPtr, kernelSize, roiTensorPtrSrc, roiTypeSrc, handle);
+                    else
+                        missingFuncFlag = 1;
+
+                    break;
+                }
                 case 45:
                 {
                     testCaseName = "color_temperature";

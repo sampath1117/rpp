@@ -45,18 +45,18 @@ RppStatus rppt_erode_host(RppPtr_t srcPtr,
 {
     RppLayoutParams layoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
 
-    // if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
-    // {
-    //     erode_char_host_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
-    //                            srcDescPtr,
-    //                            static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
-    //                            dstDescPtr,
-    //                            kernelSize,
-    //                            roiTensorPtrSrc,
-    //                            roiType,
-    //                            layoutParams,
-    //                            rpp::deref(rppHandle));
-    // }
+    if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
+    {
+        erode_char_host_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
+                               srcDescPtr,
+                               static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
+                               dstDescPtr,
+                               kernelSize,
+                               roiTensorPtrSrc,
+                               roiType,
+                               layoutParams,
+                               rpp::deref(rppHandle));
+    }
     // else if ((srcDescPtr->dataType == RpptDataType::F16) && (dstDescPtr->dataType == RpptDataType::F16))
     // {
     //     erode_float_host_tensor(reinterpret_cast<Rpp16f*>(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes),
