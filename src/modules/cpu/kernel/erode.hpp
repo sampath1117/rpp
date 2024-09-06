@@ -26,7 +26,7 @@ SOFTWARE.
 #include "rpp_cpu_common.hpp"
 #include "rpp_cpu_filter.hpp"
 
-// generic raw c code for box filter 
+// generic raw c code for erode 
 template<typename T>
 inline void erode_generic_tensor(T **srcPtrTemp, T *dstPtrTemp, Rpp32s columnIndex,
                                  Rpp32u kernelSize, Rpp32u padLength, Rpp32u unpaddedWidth, Rpp32s rowKernelLoopLimit,
@@ -224,9 +224,6 @@ inline void min_rows_9x9(__m256 *pRow, __m256 *pDst)
     pDst[0] = _mm256_min_ps(pDst[0], _mm256_min_ps(_mm256_min_ps(pRow[6], pRow[7]), pRow[8]));
 }
 
-// #undef __AVX2__
-// #define __AVX2__ 0
-
 template<typename T>
 RppStatus erode_char_host_tensor(T *srcPtr,
                                  RpptDescPtr srcDescPtr,
@@ -285,7 +282,7 @@ RppStatus erode_char_host_tensor(T *srcPtr,
                 srcPtrRow[i] = srcPtrChannel + i * srcDescPtr->strides.hStride;
             dstPtrRow = dstPtrChannel;
 
-            // box filter without fused output-layout toggle (NCHW -> NCHW)
+            // erode without fused output-layout toggle (NCHW -> NCHW)
             if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
             {
                 /* exclude 2 * padLength number of columns from alignedLength calculation
@@ -583,7 +580,7 @@ RppStatus erode_char_host_tensor(T *srcPtr,
                 srcPtrRow[i] = srcPtrChannel + i * srcDescPtr->strides.hStride;
             dstPtrRow = dstPtrChannel;
 
-            // box filter without fused output-layout toggle (NCHW -> NCHW)
+            // erode without fused output-layout toggle (NCHW -> NCHW)
             if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
             {
                 /* exclude (2 * padLength) number of columns from alignedLength calculation
@@ -871,7 +868,7 @@ RppStatus erode_char_host_tensor(T *srcPtr,
                 srcPtrRow[i] = srcPtrChannel + i * srcDescPtr->strides.hStride;
             dstPtrRow = dstPtrChannel;
 
-            // box filter without fused output-layout toggle (NCHW -> NCHW)
+            // erode without fused output-layout toggle (NCHW -> NCHW)
             if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
             {
                 /* exclude (2 * padLength) number of columns from alignedLength calculation
@@ -1512,7 +1509,7 @@ RppStatus erode_float_host_tensor(T *srcPtr,
                 srcPtrRow[i] = srcPtrChannel + i * srcDescPtr->strides.hStride;
             dstPtrRow = dstPtrChannel;
 
-            // box filter without fused output-layout toggle (NCHW -> NCHW)
+            // erode without fused output-layout toggle (NCHW -> NCHW)
             if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
             {
                 /* exclude (2 * padLength) number of columns from alignedLength calculation
@@ -1765,7 +1762,7 @@ RppStatus erode_float_host_tensor(T *srcPtr,
                 srcPtrRow[i] = srcPtrChannel + i * srcDescPtr->strides.hStride;
             dstPtrRow = dstPtrChannel;
 
-            // box filter without fused output-layout toggle (NCHW -> NCHW)
+            // erode without fused output-layout toggle (NCHW -> NCHW)
             if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
             {
                 /* exclude (2 * padLength) number of columns from alignedLength calculation
@@ -2024,7 +2021,7 @@ RppStatus erode_float_host_tensor(T *srcPtr,
                 srcPtrRow[i] = srcPtrChannel + i * srcDescPtr->strides.hStride;
             dstPtrRow = dstPtrChannel;
 
-            // box filter without fused output-layout toggle (NCHW -> NCHW)
+            // erode without fused output-layout toggle (NCHW -> NCHW)
             if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
             {
                 /* exclude (2 * padLength) number of columns from alignedLength calculation
@@ -2305,7 +2302,7 @@ RppStatus erode_float_host_tensor(T *srcPtr,
                 srcPtrRow[i] = srcPtrChannel + i * srcDescPtr->strides.hStride;
             dstPtrRow = dstPtrChannel;
 
-            // box filter without fused output-layout toggle (NCHW -> NCHW)
+            // erode without fused output-layout toggle (NCHW -> NCHW)
             if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
             {
                 /* exclude (2 * padLength) number of columns from alignedLength calculation
@@ -2439,7 +2436,7 @@ RppStatus erode_float_host_tensor(T *srcPtr,
                     dstPtrRow += dstDescPtr->strides.hStride;
                 }
             }
-            // box filter with fused output-layout toggle (NCHW -> NHWC)
+            // erode with fused output-layout toggle (NCHW -> NHWC)
             else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NHWC))
             {
                 /* exclude (2 * padLength) number of columns from alignedLength calculation
