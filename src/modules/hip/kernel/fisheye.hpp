@@ -11,13 +11,13 @@ __device__ void fisheye_srcloc_hip_compute(int index, int2 *widthHeight_i2, int4
     float dist = dist_f8->f1[index];
     if ((dist >= 0.0) && (dist <= 1.0))
     {
-        float newDist = sqrtf(1.0 - dist * dist);
-        newDist = (dist + (1.0 - newDist)) * 0.5f;
-        if (newDist <= 1.0)
+        float distNew = sqrtf(1.0 - dist * dist);
+        distNew = (dist + (1.0 - distNew)) * 0.5f;
+        if (distNew <= 1.0)
         {
             float theta = atan2f(normY_f8->f1[index], normX_f8->f1[index]);
-            float newX = newDist * cosf(theta);
-            float newY = newDist * sinf(theta);
+            float newX = distNew * cosf(theta);
+            float newY = distNew * sinf(theta);
             locSrc_f16->f8[0].f1[index] = (((newX + 1) * widthHeight_i2->x) * 0.5f) + static_cast<float>(srcRoiPtr_i4->x);
             locSrc_f16->f8[1].f1[index] = (((newY + 1) * widthHeight_i2->y) * 0.5f) + static_cast<float>(srcRoiPtr_i4->y);
         }
@@ -96,32 +96,41 @@ __global__ void fisheye_pln_hip_tensor(T *srcPtr,
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
+    int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
+    int width = (srcRoi_i4.z - srcRoi_i4.x) + 1;
+    int height =  (srcRoi_i4.w - srcRoi_i4.y) + 1;
 
-    if ((id_y >= roiTensorPtrSrc[id_z].xywhROI.roiHeight) || (id_x >= roiTensorPtrSrc[id_z].xywhROI.roiWidth))
-    {
+    if ((id_y >= height) || (id_x >= width))
         return;
-    }
 
-    uint srcIdx = (id_z * srcStridesNCH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x);
+    uint srcIdx = (id_z * srcStridesNCH.x);
     uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + id_x;
 
-    d_float8 src1_f8, src2_f8, dst_f8;
+    int2 idxy_i2 = make_int2(id_x, id_y);
+    int2 widthHeight_i2 = make_int2(width, height);
+   
+    d_float16 locSrc_f16;
+    locSrc_f16.f8[0].f4[0] = static_cast<float4>(-1);
+    locSrc_f16.f8[0].f4[1] = static_cast<float4>(-1);
+    locSrc_f16.f8[1].f4[0] = static_cast<float4>(-1);
+    locSrc_f16.f8[1].f4[1] = static_cast<float4>(-1);
+    fisheye_roi_and_srclocs_hip_compute(&idxy_i2, &widthHeight_i2, &srcRoi_i4, &locSrc_f16);
 
-    rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx, &src1_f8);
-    rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &dst_f8);
+    d_float8 pix_f8;
+    rpp_hip_interpolate8_nearest_neighbor_pln1(srcPtr + srcIdx, srcStridesNCH.z, &locSrc_f16, &srcRoi_i4, &pix_f8);
+    rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &pix_f8);    
     if (channelsDst == 3)
     {
         srcIdx += srcStridesNCH.y;
         dstIdx += dstStridesNCH.y;
 
-        rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx, &src1_f8);
-        rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &dst_f8);
+        rpp_hip_interpolate8_nearest_neighbor_pln1(srcPtr + srcIdx, srcStridesNCH.z, &locSrc_f16, &srcRoi_i4, &pix_f8);
+        rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &pix_f8);
 
         srcIdx += srcStridesNCH.y;
         dstIdx += dstStridesNCH.y;
-
-        rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx, &src1_f8);
-        rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &dst_f8);
+        rpp_hip_interpolate8_nearest_neighbor_pln1(srcPtr + srcIdx, srcStridesNCH.z, &locSrc_f16, &srcRoi_i4, &pix_f8);
+        rpp_hip_pack_float8_and_store8(dstPtr + dstIdx, &pix_f8);
     }
 }
 
@@ -135,18 +144,29 @@ __global__ void fisheye_pkd3_pln3_hip_tensor(T *srcPtr,
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
+    int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
+    int width = (srcRoi_i4.z - srcRoi_i4.x) + 1;
+    int height =  (srcRoi_i4.w - srcRoi_i4.y) + 1;
 
-    if ((id_y >= roiTensorPtrSrc[id_z].xywhROI.roiHeight) || (id_x >= roiTensorPtrSrc[id_z].xywhROI.roiWidth))
-    {
+    if ((id_y >= height) || (id_x >= width))
         return;
-    }
 
-    uint srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + ((id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x) * 3);
+    uint srcIdx = (id_z * srcStridesNH.x);
     uint dstIdx = (id_z * dstStridesNCH.x) + (id_y * dstStridesNCH.z) + id_x;
 
-    d_float24 src1_f24, src2_f24, dst_f24;
-    rpp_hip_load24_pkd3_and_unpack_to_float24_pln3(srcPtr + srcIdx, &src1_f24);
-    rpp_hip_pack_float24_pln3_and_store24_pln3(dstPtr + dstIdx, dstStridesNCH.y, &dst_f24);
+    int2 idxy_i2 = make_int2(id_x, id_y);
+    int2 widthHeight_i2 = make_int2(width, height);
+   
+    d_float16 locSrc_f16;
+    locSrc_f16.f8[0].f4[0] = static_cast<float4>(-1);
+    locSrc_f16.f8[0].f4[1] = static_cast<float4>(-1);
+    locSrc_f16.f8[1].f4[0] = static_cast<float4>(-1);
+    locSrc_f16.f8[1].f4[1] = static_cast<float4>(-1);
+    fisheye_roi_and_srclocs_hip_compute(&idxy_i2, &widthHeight_i2, &srcRoi_i4, &locSrc_f16);
+
+    d_float24 pix_f24;
+    rpp_hip_interpolate24_nearest_neighbor_pkd3(srcPtr + srcIdx, srcStridesNH.y, &locSrc_f16, &srcRoi_i4, &pix_f24);
+    rpp_hip_pack_float24_pkd3_and_store24_pln3(dstPtr + dstIdx, dstStridesNCH.y, &pix_f24);    
 }
 
 template <typename T>
@@ -159,18 +179,29 @@ __global__ void fisheye_pln3_pkd3_hip_tensor(T *srcPtr,
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
+    int4 srcRoi_i4 = *(int4 *)&roiTensorPtrSrc[id_z];
+    int width = (srcRoi_i4.z - srcRoi_i4.x) + 1;
+    int height =  (srcRoi_i4.w - srcRoi_i4.y) + 1;
 
-    if ((id_y >= roiTensorPtrSrc[id_z].xywhROI.roiHeight) || (id_x >= roiTensorPtrSrc[id_z].xywhROI.roiWidth))
-    {
+    if ((id_y >= height) || (id_x >= width))
         return;
-    }
 
-    uint srcIdx = (id_z * srcStridesNCH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x);
+    uint srcIdx = (id_z * srcStridesNCH.x);
     uint dstIdx = (id_z * dstStridesNH.x) + (id_y * dstStridesNH.y) + id_x * 3;
 
-    d_float24 src1_f24, src2_f24, dst_f24;
-    rpp_hip_load24_pln3_and_unpack_to_float24_pkd3(srcPtr + srcIdx, srcStridesNCH.y, &src1_f24);
-    rpp_hip_pack_float24_pkd3_and_store24_pkd3(dstPtr + dstIdx, &dst_f24);
+    int2 idxy_i2 = make_int2(id_x, id_y);
+    int2 widthHeight_i2 = make_int2(width, height);
+   
+    d_float16 locSrc_f16;
+    locSrc_f16.f8[0].f4[0] = static_cast<float4>(-1);
+    locSrc_f16.f8[0].f4[1] = static_cast<float4>(-1);
+    locSrc_f16.f8[1].f4[0] = static_cast<float4>(-1);
+    locSrc_f16.f8[1].f4[1] = static_cast<float4>(-1);
+    fisheye_roi_and_srclocs_hip_compute(&idxy_i2, &widthHeight_i2, &srcRoi_i4, &locSrc_f16);
+
+    d_float24 pix_f24;
+    rpp_hip_interpolate24_nearest_neighbor_pln3(srcPtr + srcIdx, &srcStridesNCH, &locSrc_f16, &srcRoi_i4, &pix_f24);
+    rpp_hip_pack_float24_pln3_and_store24_pkd3(dstPtr + dstIdx, &pix_f24);
 }
 
 template <typename T>
