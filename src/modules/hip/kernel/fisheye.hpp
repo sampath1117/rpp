@@ -1,9 +1,10 @@
 #include <hip/hip_runtime.h>
 #include "rpp_hip_common.hpp"
 
-
 __device__ __constant__ float4 TWO_F4 = static_cast<float4>(2.0);
 __device__ __constant__ float4 ONE_F4 = static_cast<float4>(1.0);
+
+// -------------------- Set 0 - fisheye kernel device helpers --------------------
 
 __device__ void fisheye_srcloc_hip_compute(int index, int2 *widthHeight_i2, int4 *srcRoiPtr_i4, d_float8 *normX_f8,
                                            d_float8 *normY_f8, d_float8 *dist_f8, d_float16 *locSrc_f16)
@@ -30,7 +31,7 @@ __device__ void fisheye_roi_and_srclocs_hip_compute(int2 *idxy_i2, int2 *widthHe
     increment_f8.f4[0] = make_float4(0.0f, 1.0f, 2.0f, 3.0f);
     increment_f8.f4[1] = make_float4(4.0f, 5.0f, 6.0f, 7.0f);
 
-    // compute the normalized X and Y coordinates
+    // compute the normalized x and y coordinates
     normY_f8.f4[0] = static_cast<float4>(((static_cast<float>(2 * idxy_i2->y) / widthHeight_i2->y)) - 1);
     normY_f8.f4[1] = normY_f8.f4[0];    
     normX_f8.f4[0] = (TWO_F4 * (static_cast<float4>(idxy_i2->x) + increment_f8.f4[0]) / static_cast<float4>(widthHeight_i2->x)) - ONE_F4;
@@ -41,6 +42,7 @@ __device__ void fisheye_roi_and_srclocs_hip_compute(int2 *idxy_i2, int2 *widthHe
     dist_f8.f4[1] = ((normX_f8.f4[1] * normX_f8.f4[1]) + (normY_f8.f4[1] * normY_f8.f4[1]));
     rpp_hip_math_sqrt8(&dist_f8, &dist_f8);
 
+    // compute src locations for the given dst locations
     fisheye_srcloc_hip_compute(0, widthHeight_i2, srcRoiPtr_i4, &normX_f8, &normY_f8, &dist_f8, locSrc_f16);
     fisheye_srcloc_hip_compute(1, widthHeight_i2, srcRoiPtr_i4, &normX_f8, &normY_f8, &dist_f8, locSrc_f16);
     fisheye_srcloc_hip_compute(2, widthHeight_i2, srcRoiPtr_i4, &normX_f8, &normY_f8, &dist_f8, locSrc_f16);
@@ -50,6 +52,8 @@ __device__ void fisheye_roi_and_srclocs_hip_compute(int2 *idxy_i2, int2 *widthHe
     fisheye_srcloc_hip_compute(6, widthHeight_i2, srcRoiPtr_i4, &normX_f8, &normY_f8, &dist_f8, locSrc_f16);
     fisheye_srcloc_hip_compute(7, widthHeight_i2, srcRoiPtr_i4, &normX_f8, &normY_f8, &dist_f8, locSrc_f16);
 }
+
+// -------------------- Set 1 - fisheye kernels --------------------
 
 template <typename T>
 __global__ void fisheye_pkd_hip_tensor(T *srcPtr,
@@ -73,11 +77,14 @@ __global__ void fisheye_pkd_hip_tensor(T *srcPtr,
     int2 idxy_i2 = make_int2(id_x, id_y);
     int2 widthHeight_i2 = make_int2(width, height);
    
+    // initialize the src location values with invalid values
     d_float16 locSrc_f16;
     locSrc_f16.f8[0].f4[0] = static_cast<float4>(-1);
     locSrc_f16.f8[0].f4[1] = static_cast<float4>(-1);
     locSrc_f16.f8[1].f4[0] = static_cast<float4>(-1);
     locSrc_f16.f8[1].f4[1] = static_cast<float4>(-1);
+    
+    // compute the src location values for the given dst locations
     fisheye_roi_and_srclocs_hip_compute(&idxy_i2, &widthHeight_i2, &srcRoi_i4, &locSrc_f16);
     
     d_float24 pix_f24;
@@ -109,11 +116,14 @@ __global__ void fisheye_pln_hip_tensor(T *srcPtr,
     int2 idxy_i2 = make_int2(id_x, id_y);
     int2 widthHeight_i2 = make_int2(width, height);
    
+    // initialize the src location values with invalid values
     d_float16 locSrc_f16;
     locSrc_f16.f8[0].f4[0] = static_cast<float4>(-1);
     locSrc_f16.f8[0].f4[1] = static_cast<float4>(-1);
     locSrc_f16.f8[1].f4[0] = static_cast<float4>(-1);
     locSrc_f16.f8[1].f4[1] = static_cast<float4>(-1);
+    
+    // compute the src location values for the given dst locations
     fisheye_roi_and_srclocs_hip_compute(&idxy_i2, &widthHeight_i2, &srcRoi_i4, &locSrc_f16);
 
     d_float8 pix_f8;
@@ -157,11 +167,14 @@ __global__ void fisheye_pkd3_pln3_hip_tensor(T *srcPtr,
     int2 idxy_i2 = make_int2(id_x, id_y);
     int2 widthHeight_i2 = make_int2(width, height);
    
+    // initialize the src location values with invalid values
     d_float16 locSrc_f16;
     locSrc_f16.f8[0].f4[0] = static_cast<float4>(-1);
     locSrc_f16.f8[0].f4[1] = static_cast<float4>(-1);
     locSrc_f16.f8[1].f4[0] = static_cast<float4>(-1);
     locSrc_f16.f8[1].f4[1] = static_cast<float4>(-1);
+    
+    // compute the src location values for the given dst locations
     fisheye_roi_and_srclocs_hip_compute(&idxy_i2, &widthHeight_i2, &srcRoi_i4, &locSrc_f16);
 
     d_float24 pix_f24;
@@ -192,17 +205,22 @@ __global__ void fisheye_pln3_pkd3_hip_tensor(T *srcPtr,
     int2 idxy_i2 = make_int2(id_x, id_y);
     int2 widthHeight_i2 = make_int2(width, height);
    
+    // initialize the src location values with invalid values
     d_float16 locSrc_f16;
     locSrc_f16.f8[0].f4[0] = static_cast<float4>(-1);
     locSrc_f16.f8[0].f4[1] = static_cast<float4>(-1);
     locSrc_f16.f8[1].f4[0] = static_cast<float4>(-1);
     locSrc_f16.f8[1].f4[1] = static_cast<float4>(-1);
+    
+    // compute the src location values for the given dst locations
     fisheye_roi_and_srclocs_hip_compute(&idxy_i2, &widthHeight_i2, &srcRoi_i4, &locSrc_f16);
 
     d_float24 pix_f24;
     rpp_hip_interpolate24_nearest_neighbor_pln3(srcPtr + srcIdx, &srcStridesNCH, &locSrc_f16, &srcRoi_i4, &pix_f24);
     rpp_hip_pack_float24_pln3_and_store24_pkd3(dstPtr + dstIdx, &pix_f24);
 }
+
+// -------------------- Set 2 - fisheye kernels executor --------------------
 
 template <typename T>
 RppStatus hip_exec_fisheye_tensor(T *srcPtr,
