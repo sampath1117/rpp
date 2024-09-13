@@ -99,7 +99,7 @@ RppStatus hip_exec_color_to_greyscale_tensor(T *srcPtr,
                                              Rpp32f *channelWeights,
                                              rpp::Handle& handle)
 {
-    int globalThreads_x = (dstDescPtr->strides.hStride + 7) >> 3;
+    int globalThreads_x = (dstDescPtr->w + 7) >> 3;
     int globalThreads_y = dstDescPtr->h;
     int globalThreads_z = dstDescPtr->n;
 
