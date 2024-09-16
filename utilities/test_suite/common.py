@@ -48,7 +48,7 @@ imageAugmentationMap = {
     21: ["resize", "HOST", "HIP"],
     23: ["rotate", "HOST", "HIP"],
     24: ["warp_affine", "HOST", "HIP"],
-    25: ["fisheye", "HIP"],
+    25: ["fisheye", "HOST", "HIP"],
     26: ["lens_correction", "HOST", "HIP"],
     29: ["water", "HOST", "HIP"],
     30: ["non_linear_blend", "HOST", "HIP"],
