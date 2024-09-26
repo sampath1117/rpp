@@ -54,14 +54,14 @@ inline void compute_fisheye_src_loc_avx(__m256 &pDstY, __m256 &pDstX, __m256 &pS
 
 inline void compute_fisheye_src_loc(Rpp32f dstY, Rpp32f dstX, Rpp32f &srcY, Rpp32f &srcX, Rpp32s &height, Rpp32s &width)
 {
-    Rpp32f normX = (static_cast<Rpp32f>((2.0 * dstX)) / width) - 1;
-    Rpp32f normY = (static_cast<Rpp32f>((2.0 * dstY)) / height) - 1;
-    Rpp32f dist = std::sqrt((normX * normX) + (normY * normY));
+    Rpp32f normX = (static_cast<Rpp32f>((2.0 * dstX)) / width) - 1.0f;
+    Rpp32f normY = (static_cast<Rpp32f>((2.0 * dstY)) / height) - 1.0f;
+    Rpp32f dist = 1.0f / rpp_host_math_inverse_sqrt_1((normX * normX) + (normY * normY));
     srcX = -1;
     srcY = -1;
     if ((dist >= 0.0) && (dist <= 1.0))
     {
-        Rpp32f distNew = std::sqrt(1.0 - dist * dist);
+        Rpp32f distNew = std::sqrt((1.0 - dist * dist));
         distNew = (dist + (1.0 - distNew)) * 0.5f;
         if (distNew <= 1.0)
         {
