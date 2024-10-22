@@ -40,13 +40,15 @@ RppStatus cast_host_tensor(T *srcPtr,
         U *dstPtrImage;
         srcPtrImage = srcPtr + batchCount * srcDescPtr->strides.nStride;
         dstPtrImage = dstPtr + batchCount * dstDescPtr->strides.nStride;
-        if(std::is_same<T, Rpp8u>::value && (std::is_same<U, Rpp16f>::value || std::is_same<U, Rpp32f>::value))
-            std::transform(srcPtrImage, srcPtrImage + srcDescPtr->strides.nStride, dstPtrImage, [](T val) { return static_cast<U>(val) / 255.0; });
-        else if(std::is_same<T, Rpp8u>::value && std::is_same<U, Rpp8s>::value)
-            std::transform(srcPtrImage, srcPtrImage + srcDescPtr->strides.nStride, dstPtrImage,
-                           [](T val) { return static_cast<U>(val) - 128; });
-        else
-            std::copy(srcPtrImage, srcPtrImage + srcDescPtr->strides.nStride, dstPtrImage);
+        std::transform(srcPtrImage, srcPtrImage + srcDescPtr->strides.nStride, dstPtrImage,
+                [](T val) { return static_cast<U>(val); });
+        // if(std::is_same<T, Rpp8u>::value && (std::is_same<U, Rpp16f>::value || std::is_same<U, Rpp32f>::value))
+        //     std::transform(srcPtrImage, srcPtrImage + srcDescPtr->strides.nStride, dstPtrImage, [](T val) { return static_cast<U>(val) / 255.0; });
+        // else if(std::is_same<T, Rpp8u>::value && std::is_same<U, Rpp8s>::value)
+        //     std::transform(srcPtrImage, srcPtrImage + srcDescPtr->strides.nStride, dstPtrImage,
+        //                    [](T val) { return static_cast<U>(val) - 128; });
+        // else
+        //     std::copy(srcPtrImage, srcPtrImage + srcDescPtr->strides.nStride, dstPtrImage);
     }
     return RPP_SUCCESS;
 }
