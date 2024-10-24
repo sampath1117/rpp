@@ -25,22 +25,22 @@ THE SOFTWARE.
 
 template <typename T, typename U>
 RppStatus cast_host_tensor(T *srcPtr,
-                           RpptDescPtr srcDescPtr,
+                           RpptGenericDescPtr srcGenericDescPtr,
                            U *dstPtr,
-                           RpptDescPtr dstDescPtr,
-                           RppLayoutParams layoutParams,
+                           RpptGenericDescPtr dstGenericDescPtr,
+                           Rpp32u *roiTensor,
                            rpp::Handle& handle)
 {
     Rpp32u numThreads = handle.GetNumThreads();
     omp_set_dynamic(0);
 #pragma omp parallel for num_threads(numThreads)
-    for(int batchCount = 0; batchCount < dstDescPtr->n; batchCount++)
+    for(int batchCount = 0; batchCount < srcGenericDescPtr->dims[0]; batchCount++)
     {
         T *srcPtrImage;
         U *dstPtrImage;
-        srcPtrImage = srcPtr + batchCount * srcDescPtr->strides.nStride;
-        dstPtrImage = dstPtr + batchCount * dstDescPtr->strides.nStride;
-        std::transform(srcPtrImage, srcPtrImage + srcDescPtr->strides.nStride, dstPtrImage,
+        srcPtrImage = srcPtr + batchCount * srcGenericDescPtr->strides[0];
+        dstPtrImage = dstPtr + batchCount * srcGenericDescPtr->strides[0];
+        std::transform(srcPtrImage, srcPtrImage + srcGenericDescPtr->strides[0], dstPtrImage,
                 [](T val) { return static_cast<U>(val); });
         // if(std::is_same<T, Rpp8u>::value && (std::is_same<U, Rpp16f>::value || std::is_same<U, Rpp32f>::value))
         //     std::transform(srcPtrImage, srcPtrImage + srcDescPtr->strides.nStride, dstPtrImage, [](T val) { return static_cast<U>(val) / 255.0; });
