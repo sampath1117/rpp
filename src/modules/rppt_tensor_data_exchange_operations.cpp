@@ -211,6 +211,14 @@ RppStatus rppt_cast_host(RppPtr_t srcPtr,
                                 roiTensor,
                                 rpp::deref(rppHandle));
     }
+    else if ((srcDescPtr->dataType == RpptDataType::I16) && (dstDescPtr->dataType == RpptDataType::F32)) {
+        cast_host_tensor(static_cast<Rpp16s*>(srcPtr) + srcDescPtr->offsetInBytes,
+                         srcGenericDescPtr,,
+                         static_cast<Rpp32f*>(dstPtr) + dstDescPtr->offsetInBytes,
+                         dstGenericDescPtr,,
+                         roiTensor,
+                         rpp::deref(rppHandle));
+    }
 
     return RPP_SUCCESS;
 }

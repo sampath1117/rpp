@@ -608,6 +608,15 @@ RppStatus rppt_cast_gpu(RppPtr_t srcPtr,
                                     roiTensor,
                                     rpp::deref(rppHandle));
     }
+    else if ((srcGenericDescPtr->dataType == RpptDataType::I16) && (dstGenericDescPtr->dataType == RpptDataType::F32))
+    {
+        hip_exec_cast_generic_tensor(static_cast<Rpp16s*>(srcPtr) + srcGenericDescPtr->offsetInBytes,
+                                    srcGenericDescPtr,
+                                    reinterpret_cast<Rpp32f *>(static_cast<Rpp8s*>(dstPtr) + dstGenericDescPtr->offsetInBytes),
+                                    dstGenericDescPtr,
+                                    roiTensor,
+                                    rpp::deref(rppHandle));
+    }
 
     return RPP_SUCCESS;
 #elif defined(OCL_COMPILE)
