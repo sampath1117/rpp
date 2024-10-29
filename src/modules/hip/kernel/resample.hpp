@@ -26,18 +26,18 @@ __device__ __forceinline__ void resample_hip_compute(float4 *src_f4, float4 *dst
 
 // -------------------- Set 1 - resample kernel host helpers  --------------------
 
-inline void compute_output_dims(Rpp32f *inRateTensor,
-                                Rpp32f *outRateTensor,
-                                Rpp32s *srcLengthTensor,
-                                Rpp32s *dstLengthTensor,
-                                Rpp32u batchSize)
-{
-    for (Rpp32s i = 0, j = 0; i < batchSize; i++, j += 2)
-    {
-        dstLengthTensor[j] = std::ceil(srcLengthTensor[j] * outRateTensor[i] / inRateTensor[i]);
-        dstLengthTensor[j + 1] = srcLengthTensor[j + 1];
-    }
-}
+// inline void compute_output_dims(Rpp32f *inRateTensor,
+//                                 Rpp32f *outRateTensor,
+//                                 Rpp32s *srcLengthTensor,
+//                                 Rpp32s *dstLengthTensor,
+//                                 Rpp32u batchSize)
+// {
+//     for (Rpp32s i = 0, j = 0; i < batchSize; i++, j += 2)
+//     {
+//         dstLengthTensor[i] = std::ceil(srcLengthTensor[j] * outRateTensor[i] / inRateTensor[i]);
+//         // dstLengthTensor[j + 1] = srcLengthTensor[j + 1];
+//     }
+// }
 
 // -------------------- Set 2 - resample kernels --------------------
 
@@ -45,32 +45,22 @@ __global__ void resample_single_channel_hip_tensor(float *srcPtr,
                                                    float *dstPtr,
                                                    uint2 strides,
                                                    int2 *srcDimsTensor,
-                                                   int2 *dstDimsTensor,
-                                                   float *inRateTensor,
-                                                   float *outRateTensor,
+                                                   int *dstDimsTensor,
                                                    RpptResamplingWindow *window)
 {
     int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
     int srcLength = srcDimsTensor[id_z].x;
-    int dstLength = dstDimsTensor[id_z].x;
-    int outBlock = id_x * hipBlockDim_x;
+    int dstLength = dstDimsTensor[id_z];
+    int outBlock = id_x;
     int blockEnd = std::min(outBlock + static_cast<int>(hipBlockDim_x), dstLength);
+    double scale = static_cast<double>(srcLength) / dstLength;
+    if (outBlock >= dstLength)
+        return;
 
     if (dstLength != srcLength)
     {
-        double scale = static_cast<double>(inRateTensor[id_z]) / outRateTensor[id_z];
-        extern __shared__ float lookup_smem[];
-
-        // copy all values from window lookup table to shared memory lookup table
-        for (int k = hipThreadIdx_x; k < window->lookupSize; k += hipBlockDim_x)
-            lookup_smem[k] = window->lookup[k];
-        __syncthreads();
-
-        if (outBlock >= dstLength)
-            return;
-
         // extract the window scale, center and lookup size values from window
         float windowScale = window->scale;
         float windowCenter = window->center;
@@ -90,9 +80,15 @@ __global__ void resample_single_channel_hip_tensor(float *srcPtr,
         uint dstIdx = id_z * strides.y + outBlock;
         float *inBlockPtr = srcPtr + id_z * strides.x + inBlockRounded;
 
+        extern __shared__ float lookup_smem[];
+        // copy all values from window lookup table to shared memory lookup table
+        for (int k = hipThreadIdx_x; k < window->lookupSize; k += hipBlockDim_x)
+            lookup_smem[k] = window->lookup[k];
+        __syncthreads();
+
         // process block size (256) elements in single thread
-        for (int outPos = outBlock; outPos < blockEnd; outPos++, inPos += fscale, dstIdx++)
-        {
+        // for (int outPos = outBlock; outPos < blockEnd; outPos++, inPos += fscale, dstIdx++)
+        // {
             int loc0, loc1;
             window->input_range(inPos, &loc0, &loc1);
 
@@ -136,13 +132,11 @@ __global__ void resample_single_channel_hip_tensor(float *srcPtr,
 
             // Final store to dst
             dstPtr[dstIdx] = accum;
-        }
+        // }
     }
     // copy input to output if dstLength is same as srcLength
     else
     {
-        if (outBlock >= dstLength)
-            return;
 
         uint srcIdx = id_z * strides.x + outBlock;
         uint dstIdx = id_z * strides.y + outBlock;
@@ -155,7 +149,6 @@ __global__ void resample_multi_channel_hip_tensor(float *srcPtr,
                                                   float *dstPtr,
                                                   uint2 strides,
                                                   int2 *srcDimsTensor,
-                                                  int2 *dstDimsTensor,
                                                   float *inRateTensor,
                                                   float *outRateTensor,
                                                   RpptResamplingWindow *window)
@@ -165,7 +158,7 @@ __global__ void resample_multi_channel_hip_tensor(float *srcPtr,
 
     int srcLength = srcDimsTensor[id_z].x;
     int numChannels = srcDimsTensor[id_z].y;
-    int dstLength = dstDimsTensor[id_z].x;
+    int dstLength = srcDimsTensor[id_z].x;
     int outBlock = id_x * hipBlockDim_x;
     int blockEnd = std::min(outBlock + static_cast<int>(hipBlockDim_x), dstLength);
 
@@ -249,7 +242,7 @@ RppStatus hip_exec_resample_tensor(Rpp32f *srcPtr,
                                    RpptResamplingWindow &window,
                                    rpp::Handle& handle)
 {
-    Rpp32s globalThreads_x = dstDescPtr->strides.hStride;
+    Rpp32s globalThreads_x = dstDescPtr->strides.nStride;
     Rpp32s globalThreads_y = 1;
     Rpp32s globalThreads_z = dstDescPtr->n;
     Rpp32u tensorDims = srcDescPtr->numDims - 1; // exclude batchsize from input dims
@@ -257,42 +250,41 @@ RppStatus hip_exec_resample_tensor(Rpp32f *srcPtr,
 
     // using the input sampling rate, output sampling rate compute the output dims
     Rpp32s *dstDimsTensor = reinterpret_cast<Rpp32s *>(handle.GetInitHandle()->mem.mgpu.scratchBufferPinned.floatmem);
-    compute_output_dims(inRateTensor, outRateTensor, srcDimsTensor, dstDimsTensor, dstDescPtr->n);
+    // compute_output_dims(inRateTensor, outRateTensor, srcDimsTensor, dstDimsTensor, dstDescPtr->n);
+    for (Rpp32s i = 0, j = 0; i < globalThreads_z; i++, j += 2)
+        dstDimsTensor[i] = std::ceil(srcDimsTensor[j] * outRateTensor[i] / inRateTensor[i]);
 
     // For 1D audio tensors (channels = 1)
     if (tensorDims == 1)
     {
         hipLaunchKernelGGL(resample_single_channel_hip_tensor,
-                           dim3(ceil((Rpp32f)globalThreads_x/LOCAL_THREADS_X_1DIM), ceil((Rpp32f)globalThreads_y/LOCAL_THREADS_Y_1DIM), ceil((Rpp32f)globalThreads_z/LOCAL_THREADS_Z_1DIM)),
-                           dim3(LOCAL_THREADS_X_1DIM, LOCAL_THREADS_Y_1DIM, LOCAL_THREADS_Z_1DIM),
+                           dim3(ceil((Rpp32f)globalThreads_x/256), ceil((Rpp32f)globalThreads_y/1), ceil((Rpp32f)globalThreads_z/LOCAL_THREADS_Z_1DIM)),
+                           dim3(256, 1, LOCAL_THREADS_Z_1DIM),
                            sharedMemorySizeInBytes,
                            handle.GetStream(),
                            srcPtr,
                            dstPtr,
                            make_uint2(srcDescPtr->strides.nStride, dstDescPtr->strides.nStride),
                            reinterpret_cast<int2 *>(srcDimsTensor),
-                           reinterpret_cast<int2 *>(dstDimsTensor),
-                           inRateTensor,
-                           outRateTensor,
+                           dstDimsTensor,
                            &window);
     }
     // For 2D audio tensors (channels > 1)
-    else if (tensorDims == 2)
-    {
-        hipLaunchKernelGGL(resample_multi_channel_hip_tensor,
-                           dim3(ceil((Rpp32f)globalThreads_x/LOCAL_THREADS_X_1DIM), ceil((Rpp32f)globalThreads_y/LOCAL_THREADS_Y_1DIM), ceil((Rpp32f)globalThreads_z/LOCAL_THREADS_Z_1DIM)),
-                           dim3(LOCAL_THREADS_X_1DIM, LOCAL_THREADS_Y_1DIM, LOCAL_THREADS_Z_1DIM),
-                           sharedMemorySizeInBytes,
-                           handle.GetStream(),
-                           srcPtr,
-                           dstPtr,
-                           make_uint2(srcDescPtr->strides.nStride, dstDescPtr->strides.nStride),
-                           reinterpret_cast<int2 *>(srcDimsTensor),
-                           reinterpret_cast<int2 *>(dstDimsTensor),
-                           inRateTensor,
-                           outRateTensor,
-                           &window);
-    }
+    // else if (tensorDims == 2)
+    // {
+    //     hipLaunchKernelGGL(resample_multi_channel_hip_tensor,
+    //                        dim3(ceil((Rpp32f)globalThreads_x/LOCAL_THREADS_X_1DIM), ceil((Rpp32f)globalThreads_y/LOCAL_THREADS_Y_1DIM), ceil((Rpp32f)globalThreads_z/LOCAL_THREADS_Z_1DIM)),
+    //                        dim3(LOCAL_THREADS_X_1DIM, LOCAL_THREADS_Y_1DIM, LOCAL_THREADS_Z_1DIM),
+    //                        sharedMemorySizeInBytes,
+    //                        handle.GetStream(),
+    //                        srcPtr,
+    //                        dstPtr,
+    //                        make_uint2(srcDescPtr->strides.nStride, dstDescPtr->strides.nStride),
+    //                        reinterpret_cast<int2 *>(srcDimsTensor),
+    //                        inRateTensor,
+    //                        outRateTensor,
+    //                        &window);
+    // }
     
     return RPP_SUCCESS;
 }
