@@ -31,12 +31,14 @@ inline void compute_fisheye_src_loc_avx(__m256 &pDstY, __m256 &pDstX, __m256 &pS
     __m256 pNormX, pNormY, pDist;
     pNormX = _mm256_sub_ps(_mm256_div_ps(_mm256_mul_ps(avx_p2, pDstX), pWidth), avx_p1);        //  (static_cast<Rpp32f>((2.0 * dstX)) / width) - 1;
     pNormY = _mm256_sub_ps(_mm256_div_ps(_mm256_mul_ps(avx_p2, pDstY), pHeight), avx_p1);       //  (static_cast<Rpp32f>((2.0 * dstY)) / height) - 1;
-    pDist = _mm256_sqrt_ps(_mm256_fmadd_ps(pNormX, pNormX, _mm256_mul_ps(pNormY, pNormY)));     //  std::sqrt((normX * normX) + (normY * normY));
+    pDist = rpp_host_math_inverse_sqrt_8_avx(_mm256_fmadd_ps(pNormX, pNormX, _mm256_mul_ps(pNormY, pNormY))); //  std::sqrt((normX * normX) + (normY * normY));
+    pDist = _mm256_div_ps(avx_p1,pDist);
     
     __m256 pDistNew, pTheta, pSinFactor, pCosFactor;
     pDistNew = _mm256_sqrt_ps(_mm256_sub_ps(avx_p1, _mm256_mul_ps(pDist, pDist)));              //  std::sqrt(1.0 - dist * dist);
     pDistNew = _mm256_mul_ps(_mm256_add_ps(pDist, _mm256_sub_ps(avx_p1, pDistNew)), avx_p1op2); //  (dist + (1.0 - distNew)) * 0.5f; 
     pTheta = atan2_ps(pNormY, pNormX);                                                          //  std::atan2(normY, normX);
+    pTheta = _mm256_blendv_ps(avx_p0, pTheta, _mm256_cmp_ps(pTheta, pTheta, _CMP_ORD_Q));
     sincos_ps(pTheta, &pSinFactor, &pCosFactor);
 
     pSrcX = _mm256_mul_ps(_mm256_mul_ps(_mm256_fmadd_ps(pDistNew, pCosFactor, avx_p1), pWidth), avx_p1op2);
