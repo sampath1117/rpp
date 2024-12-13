@@ -43,15 +43,6 @@ SOFTWARE.
 #include <map>
 #include <iomanip>
 
-#ifdef GPU_SUPPORT
-    #include <hip/hip_fp16.h>
-#else
-    #include <half/half.hpp>
-    using half_float::half;
-#endif
-
-typedef half Rpp16f;
-
 using namespace cv;
 using namespace std;
 
@@ -80,6 +71,7 @@ std::map<int, string> augmentationMap =
     {5, "pixelate"},
     {6, "jitter"},
     {8, "noise"},
+    {10, "fog"},
     {13, "exposure"},
     {20, "flip"},
     {21, "resize"},
@@ -87,6 +79,7 @@ std::map<int, string> augmentationMap =
     {24, "warp_afffine"},
     {25, "fisheye"},
     {26, "lens_correction"},
+    {28, "warp_perspective"},
     {29, "water"},
     {30, "non_linear_blend"},
     {31, "color_cast"},
