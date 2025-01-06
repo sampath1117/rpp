@@ -28,6 +28,7 @@ SOFTWARE.
 
 inline void compute_fisheye_src_loc_avx(__m256 &pDstY, __m256 &pDstX, __m256 &pSrcY, __m256 &pSrcX, __m256 &pHeight, __m256 &pWidth)
 {
+#if __AVX2__
     __m256 pNormX, pNormY, pDist;
     pNormX = _mm256_sub_ps(_mm256_div_ps(_mm256_mul_ps(avx_p2, pDstX), pWidth), avx_p1);        //  (static_cast<Rpp32f>((2.0 * dstX)) / width) - 1;
     pNormY = _mm256_sub_ps(_mm256_div_ps(_mm256_mul_ps(avx_p2, pDstY), pHeight), avx_p1);       //  (static_cast<Rpp32f>((2.0 * dstY)) / height) - 1;
@@ -52,6 +53,7 @@ inline void compute_fisheye_src_loc_avx(__m256 &pDstY, __m256 &pDstX, __m256 &pS
     pSrcX = _mm256_blendv_ps(avx_pMinus1, pSrcX, pMask2);
     pSrcY = _mm256_blendv_ps(avx_pMinus1, pSrcY, pMask2);
     pDstX = _mm256_add_ps(pDstX, avx_p8);
+#endif
 }
 
 inline void compute_fisheye_src_loc(Rpp32f dstY, Rpp32f dstX, Rpp32f &srcY, Rpp32f &srcX, Rpp32s &height, Rpp32s &width)
@@ -215,7 +217,7 @@ RppStatus fisheye_u8_u8_host_tensor(Rpp8u *srcPtr,
         }
 
         // fisheye without fused output-layout toggle (NHWC -> NHWC)
-        if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
+        else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
         {
             Rpp8u *dstPtrRow;
             dstPtrRow = dstPtrChannel;
@@ -281,7 +283,7 @@ RppStatus fisheye_u8_u8_host_tensor(Rpp8u *srcPtr,
                     {
                         __m256i pRow;
                         rpp_simd_load(rpp_generic_nn_load_u8pln1_avx, srcPtrTempChn, srcLocArray, invalidLoad, pRow);
-                        rpp_storeu_si64((__m128i *)(dstPtrTempChn), _mm256_castsi256_si128(pRow));
+                        rpp_storeu_si64(reinterpret_cast<__m128i *>(dstPtrTempChn), _mm256_castsi256_si128(pRow));
                         srcPtrTempChn += srcDescPtr->strides.cStride;
                         dstPtrTempChn += dstDescPtr->strides.cStride;
                     }
@@ -898,7 +900,7 @@ RppStatus fisheye_i8_i8_host_tensor(Rpp8s *srcPtr,
         }
 
         // fisheye without fused output-layout toggle (NHWC -> NHWC)
-        if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
+        else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
         {
             Rpp8s *dstPtrRow;
             dstPtrRow = dstPtrChannel;
@@ -964,7 +966,7 @@ RppStatus fisheye_i8_i8_host_tensor(Rpp8s *srcPtr,
                     {
                         __m256i pRow;
                         rpp_simd_load(rpp_generic_nn_load_i8pln1_avx, srcPtrTempChn, srcLocArray, invalidLoad, pRow);
-                        rpp_storeu_si64((__m128i *)(dstPtrTempChn), _mm256_castsi256_si128(pRow));
+                        rpp_storeu_si64(reinterpret_cast<__m128i *>(dstPtrTempChn), _mm256_castsi256_si128(pRow));
                         srcPtrTempChn += srcDescPtr->strides.cStride;
                         dstPtrTempChn += dstDescPtr->strides.cStride;
                     }

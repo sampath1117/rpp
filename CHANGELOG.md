@@ -2,12 +2,6 @@
 
 Full documentation for RPP is available at [https://rocm.docs.amd.com/projects/rpp/en/latest](https://rocm.docs.amd.com/projects/rpp/en/latest)
 
-## RPP 1.18.0 (unreleased)
-
-### Changes
-
-* RPP Tensor Fisheye support on HOST and HIP
-
 ## (Unreleased) RPP 1.9.10
 
 ### Changed
@@ -15,6 +9,7 @@ Full documentation for RPP is available at [https://rocm.docs.amd.com/projects/r
 * RPP Tensor Gaussian Filter support on HOST
 * RPP Fog augmentation on HOST and HIP
 * RPP Warp Perspective on HOST and HIP
+* RPP Tensor Fisheye support on HOST and HIP
 
 ## (Unreleased) RPP 1.9.4
 
