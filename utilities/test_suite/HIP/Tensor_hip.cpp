@@ -36,10 +36,7 @@ SOFTWARE.
 #include <unistd.h>
 #include <time.h>
 #include <omp.h>
-#include <hip/hip_fp16.h>
 #include <fstream>
-
-typedef half Rpp16f;
 
 using namespace cv;
 using namespace std;
@@ -67,7 +64,7 @@ int main(int argc, char **argv)
     bool kernelSizeCase = (testCase == 40 || testCase == 41 || testCase == 49 || testCase == 54);
     bool dualInputCase = (testCase == 2 || testCase == 30 || testCase == 33 || testCase == 61 || testCase == 63 || testCase == 65 || testCase == 68);
     bool randomOutputCase = (testCase == 6 || testCase == 8 || testCase == 84 || testCase == 49 || testCase == 54);
-    bool nonQACase = (testCase == 24);
+    bool nonQACase = (testCase == 24 || testCase == 54);
     bool interpolationTypeCase = (testCase == 21 || testCase == 23 || testCase == 24 || testCase == 79);
     bool reductionTypeCase = (testCase == 87 || testCase == 88 || testCase == 89 || testCase == 90 || testCase == 91);
     bool noiseTypeCase = (testCase == 8);
@@ -192,7 +189,7 @@ int main(int argc, char **argv)
     {
         char additionalParam_char[2];
         std::sprintf(additionalParam_char, "%u", additionalParam);
-        func += "_kSize";
+        func += "_kernelSize";
         func += additionalParam_char;
     }
     else if (interpolationTypeCase)
@@ -277,8 +274,12 @@ int main(int argc, char **argv)
         exit(0);
     }
 
+    Rpp32s additionalStride = 0;
+    if (kernelSizeCase)
+        additionalStride = additionalParam / 2;
+
     // Set numDims, offset, n/c/h/w values, strides for src/dst
-    set_descriptor_dims_and_strides(srcDescPtr, batchSize, maxHeight, maxWidth, inputChannels, srcOffsetInBytes);
+    set_descriptor_dims_and_strides(srcDescPtr, batchSize, maxHeight, maxWidth, inputChannels, srcOffsetInBytes, additionalStride);
     set_descriptor_dims_and_strides(dstDescPtr, batchSize, maxHeight, maxWidth, outputChannels, dstOffsetInBytes);
 
     // Factors to convert U8 data to F32, F16 data to 0-1 range and reconvert them back to 0 -255 range
@@ -1589,12 +1590,12 @@ int main(int argc, char **argv)
                 3.source and destination layout are the same
                 4.augmentation case does not generate random output*/
                 if(qaFlag && inputBitDepth == 0 && ((srcDescPtr->layout == dstDescPtr->layout) || pln1OutTypeCase) && !(randomOutputCase) && !(nonQACase))
-                    compare_output<Rpp8u>(outputu8, testCaseName, srcDescPtr, dstDescPtr, dstImgSizes, batchSize, interpolationTypeName, noiseTypeName, testCase, dst, scriptPath);
+                    compare_output<Rpp8u>(outputu8, testCaseName, srcDescPtr, dstDescPtr, dstImgSizes, batchSize, interpolationTypeName, noiseTypeName, additionalParam, testCase, dst, scriptPath);
 
                 // Calculate exact dstROI in XYWH format for OpenCV dump
                 if (roiTypeSrc == RpptRoiType::LTRB)
                     convert_roi(roiTensorPtrDst, RpptRoiType::XYWH, dstDescPtr->n);
-
+                    
                 // Check if the ROI values for each input is within the bounds of the max buffer allocated
                 RpptROI roiDefault;
                 RpptROIPtr roiPtrDefault = &roiDefault;

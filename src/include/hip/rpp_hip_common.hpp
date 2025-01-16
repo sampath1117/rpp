@@ -26,15 +26,11 @@ SOFTWARE.
 #define RPP_HIP_COMMON_H
 
 #include <hip/hip_runtime.h>
-#include <hip/hip_fp16.h>
-#include <half/half.hpp>
 
 #include "rppdefs.h"
 #include "rpp/handle.hpp"
 #include "rpp_hip_roi_conversion.hpp"
 
-using halfhpp = half_float::half;
-typedef halfhpp Rpp16f;
 typedef unsigned char uchar;
 typedef signed char schar;
 typedef struct { uint   data[ 6]; } d_uint6_s;
@@ -129,6 +125,7 @@ struct RPPTensorFunctionMetaData
 #define ONE_OVER_256                    0.00390625f
 #define SIX_OVER_360                    0.01666667f
 #define PI                              3.14159265
+#define TWO_PI                          6.2831853
 #define RGB_TO_GREY_WEIGHT_RED          0.299f
 #define RGB_TO_GREY_WEIGHT_GREEN        0.587f
 #define RGB_TO_GREY_WEIGHT_BLUE         0.114f
@@ -467,6 +464,18 @@ __device__ __forceinline__ float rpp_hip_unpack3(int src)
 {
     return (float)(schar)((src >> 24) & 0xFF);
 }
+// Un-Packing from I16s
+
+__device__ __forceinline__ float rpp_hip_unpack0_(int src)
+{
+    return (float)((short)(src & 0xFFFF)); 
+}
+
+__device__ __forceinline__ float rpp_hip_unpack2_(int src)
+{
+    return (float)((short)((src >> 16) & 0xFFFF)); 
+}
+
 
 __device__ __forceinline__ float4 rpp_hip_unpack_from_i8(int src)
 {
@@ -568,6 +577,15 @@ __device__ __forceinline__ void rpp_hip_load8_and_unpack_to_float8_mirror(schar 
     int2 src_i2 = *(int2 *)srcPtr;
     srcPtr_f8->f4[0] = rpp_hip_unpack_from_i8_mirror(src_i2.y);    // write 07-04
     srcPtr_f8->f4[1] = rpp_hip_unpack_from_i8_mirror(src_i2.x);    // write 03-00
+}
+
+// I16 loads without layout toggle (8 I16 pixels)
+
+__device__ __forceinline__ void rpp_hip_load8_and_unpack_to_float8(short *srcPtr, d_float8 *srcPtr_f8)
+{
+    int4 src_i4 = *(int4 *)srcPtr; 
+    srcPtr_f8->f4[0] = make_float4(rpp_hip_unpack0_(src_i4.x), rpp_hip_unpack2_(src_i4.x), rpp_hip_unpack0_(src_i4.y), rpp_hip_unpack2_(src_i4.y)); 
+    srcPtr_f8->f4[1] = make_float4(rpp_hip_unpack0_(src_i4.z), rpp_hip_unpack2_(src_i4.z), rpp_hip_unpack0_(src_i4.w), rpp_hip_unpack2_(src_i4.w)); 
 }
 
 // F16 loads without layout toggle (8 F16 pixels)
@@ -1903,6 +1921,18 @@ __device__ __forceinline__ void rpp_hip_math_log(d_float8 *src_f8, d_float8 *dst
     dst_f8->f1[5] = __logf(src_f8->f1[5]);
     dst_f8->f1[6] = __logf(src_f8->f1[6]);
     dst_f8->f1[7] = __logf(src_f8->f1[7]);
+}
+
+__device__ __forceinline__ void rpp_hip_math_log1p(d_float8 *src_f8, d_float8 *dst_f8)
+{
+    dst_f8->f1[0] = __logf((src_f8->f1[0]));
+    dst_f8->f1[1] = __logf((src_f8->f1[1]));
+    dst_f8->f1[2] = __logf((src_f8->f1[2]));
+    dst_f8->f1[3] = __logf((src_f8->f1[3]));
+    dst_f8->f1[4] = __logf((src_f8->f1[4]));
+    dst_f8->f1[5] = __logf((src_f8->f1[5]));
+    dst_f8->f1[6] = __logf((src_f8->f1[6]));
+    dst_f8->f1[7] = __logf((src_f8->f1[7]));
 }
 
 // /******************** DEVICE RANDOMIZATION HELPER FUNCTIONS ********************/
