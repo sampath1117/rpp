@@ -136,6 +136,7 @@ enum Augmentation {
     RESIZE = 21,
     ROTATE = 23,
     WARP_AFFINE = 24,
+    FISHEYE = 25,
     LENS_CORRECTION = 26,
     WARP_PERSPECTIVE = 28,
     WATER = 29,
